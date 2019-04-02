@@ -1,46 +1,82 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(samples CXX)
+project(bl_samples C CXX)
 
 # Some basics, set accordingly to your needs.
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
-# Where the 'samples' and 'b2d' are.
+# Where the 'samples' and 'blend2d' are.
 set(SAMPLES_DIR "${CMAKE_CURRENT_LIST_DIR}"
     CACHE PATH "Samples directory")
 
-set(B2D_DIR "${SAMPLES_DIR}/../b2d"
-    CACHE PATH "Location of 'b2d'")
+set(BLEND2D_DIR "${SAMPLES_DIR}/../blend2d"
+    CACHE PATH "Location of 'blend2d'")
 
-# Enable Blend2D static build.
-set(B2D_BUILD_STATIC TRUE)
-include("${B2D_DIR}/CMakeLists.txt")
+# Blend2D
+# -------
 
-# Blend2D typically needs pthread on Linux and some Windows
-# libraries on Windows platform. This will make sure that
-# samples will have everything that is required.
-set(SAMPLES_LIBS ${B2D_LIBS})
-set(SAMPLES_CFLAGS ${B2D_CFLAGS})
+set(BLEND2D_BUILD_STATIC TRUE)
+include("${BLEND2D_DIR}/CMakeLists.txt")
+set(SAMPLES_LIBS ${BLEND2D_LIBS})
+set(SAMPLES_CFLAGS ${BLEND2D_CFLAGS})
 
-set(SAMPLES_TARGETS
-  "b2d-getting-started-1"
-  "b2d-getting-started-2"
-  "b2d-getting-started-3"
-  "b2d-getting-started-4"
-  "b2d-getting-started-5"
-  "b2d-getting-started-6"
-  "b2d-getting-started-7"
-  "b2d-sample-tiger"
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(GNU|Clang|AppleClang)$")
+  list(APPEND SAMPLES_CFLAGS "-fvisibility=hidden")
+endif()
+
+# C++ Samples
+# -----------
+
+set(SAMPLES_CXX_TARGETS
+  "bl-getting-started-1"
+  "bl-getting-started-2"
+  "bl-getting-started-3"
+  "bl-getting-started-4"
+  "bl-getting-started-5"
+  "bl-getting-started-6"
+  "bl-getting-started-7"
 )
 
-foreach(sample ${SAMPLES_TARGETS})
-  # Add executable of the `app` and its dependencies.
+foreach(sample ${SAMPLES_CXX_TARGETS})
   add_executable(${sample} src/${sample}.cpp)
-  target_include_directories(${sample} BEFORE PRIVATE ${B2D_INCLUDE_DIR})
+  target_include_directories(${sample} BEFORE PRIVATE ${BLEND2D_INCLUDE_DIR})
   target_compile_options(${sample} PRIVATE ${SAMPLES_CFLAGS})
   target_link_libraries(${sample} ${SAMPLES_LIBS})
 endforeach()
 
+# C-API Samples
+# -------------
+#
+# NOTE: It's possible these samples would link to C++ standard library as well.
+# Since this is just examples we won't do anything here that could break some
+# setups.
+set(SAMPLES_C_TARGETS
+  "bl-capi-sample"
+)
+
+foreach(sample ${SAMPLES_C_TARGETS})
+  add_executable(${sample} src/${sample}.c)
+  target_include_directories(${sample} BEFORE PRIVATE ${BLEND2D_INCLUDE_DIR})
+  target_compile_options(${sample} PRIVATE ${SAMPLES_CFLAGS})
+  target_link_libraries(${sample} ${SAMPLES_LIBS})
+endforeach()
+
+# Resources
+# ---------
+
+# TODO: Not sure this works everywhere...
 foreach(resource "texture.jpeg" "NotoSans-Regular.ttf")
-  file(COPY "${CMAKE_CURRENT_LIST_DIR}/resources/${resource}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+  if("${CMAKE_BUILD_TYPE}")
+    add_custom_command(TARGET bl-getting-started-1 POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/${resource}"
+        "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>/${resource}"
+      COMMENT "Resources")
+  else()
+    add_custom_command(TARGET bl-getting-started-1 POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/${resource}"
+        "${CMAKE_CURRENT_BINARY_DIR}/${resource}"
+      COMMENT "Resources")
+  endif()
 endforeach()
