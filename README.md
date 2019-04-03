@@ -4,12 +4,22 @@ Blend2D - Getting Started and Sample Applications
 This repository contains few samples that use Blend2D rendering engine. Many samples come from [Getting Started](https://blend2d.com/getting-started.html) page. It's expected (by default) that the directory structure is similar to the directory structure described in the Getting Started page. Use the following commands to fetch asmjit, blend2d, and these samples:
 
 ```base
+# Download source packages from Git.
 $ git clone --depth=1 https://github.com/asmjit/asmjit --branch next-wip
 $ git clone --depth=1 https://github.com/blend2d/blend2d
 $ git clone --depth=1 https://github.com/blend2d/bl-samples
+
+# Create build directory and build 'bl-samples'.
+$ cd bl-samples
+$ mkdir build
+$ cd build
+$ cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
 After you have these 3 projects cloned use cmake to create your `bl-samples` project, the rest should be handled automatically.
+
+Alternatively you can pick a configure script from `tools` directory if there is a suitable one for your configuration.
+
 
 Resources
 ---------
