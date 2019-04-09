@@ -1,9 +1,15 @@
 Blend2D - Getting Started and Sample Applications
 -------------------------------------------------
 
-This repository contains few samples that use Blend2D rendering engine. Many samples come from [Getting Started](https://blend2d.com/getting-started.html) page. It's expected (by default) that the directory structure is similar to the directory structure described in the Getting Started page. Use the following commands to fetch asmjit, blend2d, and these samples:
+This repository contains few samples that use [Blend2D](https://blend2d.com) rendering engine. Many samples come from [Getting Started](https://blend2d.com/getting-started.html) page. It's expected (by default) that the directory structure is similar to the directory structure described in the Getting Started page.
 
-```base
+
+Building
+--------
+
+Use the following commands to fetch asmjit, blend2d, and these samples:
+
+```bash
 # Download source packages from Git.
 $ git clone --depth=1 https://github.com/asmjit/asmjit --branch next-wip
 $ git clone --depth=1 https://github.com/blend2d/blend2d
@@ -34,4 +40,4 @@ All files within resources should be freely redistributable:
 License
 -------
 
-All code samples (.cpp files) can be distributed under either Public Domain (UNLICENSE) or ZLIB license.
+All code samples can be distributed under either Public Domain (UNLICENSE) or Zlib license.
