@@ -1,16 +1,13 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(bl_samples C CXX)
+project(bl_getting_started C CXX)
 
 # Some basics, set accordingly to your needs.
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 
 # Where the 'samples' and 'blend2d' are.
-set(SAMPLES_DIR "${CMAKE_CURRENT_LIST_DIR}"
-    CACHE PATH "Samples directory")
-
-set(BLEND2D_DIR "${SAMPLES_DIR}/../blend2d"
-    CACHE PATH "Location of 'blend2d'")
+set(SAMPLES_DIR "${CMAKE_CURRENT_LIST_DIR}"    CACHE PATH "Samples directory")
+set(BLEND2D_DIR "${SAMPLES_DIR}/../../blend2d" CACHE PATH "Location of 'blend2d'")
 
 # Blend2D
 # -------
@@ -35,6 +32,7 @@ set(SAMPLES_CXX_TARGETS
   "bl-getting-started-5"
   "bl-getting-started-6"
   "bl-getting-started-7"
+  "bl-getting-started-8"
 )
 
 foreach(sample ${SAMPLES_CXX_TARGETS})
@@ -66,16 +64,16 @@ endforeach()
 
 # TODO: Not sure this works everywhere...
 foreach(resource "texture.jpeg" "NotoSans-Regular.ttf")
-  if("${CMAKE_BUILD_TYPE}")
+  if(NOT "${CMAKE_BUILD_TYPE}")
     add_custom_command(TARGET bl-getting-started-1 POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E copy
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/${resource}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../resources/${resource}"
         "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>/${resource}"
       COMMENT "Resources")
   else()
     add_custom_command(TARGET bl-getting-started-1 POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E copy
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/${resource}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../resources/${resource}"
         "${CMAKE_CURRENT_BINARY_DIR}/${resource}"
       COMMENT "Resources")
   endif()

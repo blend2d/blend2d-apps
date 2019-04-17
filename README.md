@@ -1,31 +1,35 @@
-Blend2D - Getting Started and Sample Applications
--------------------------------------------------
+Blend2D Samples
+---------------
 
-This repository contains few samples that use [Blend2D](https://blend2d.com) rendering engine. Many samples come from [Getting Started](https://blend2d.com/getting-started.html) page. It's expected (by default) that the directory structure is similar to the directory structure described in the Getting Started page.
+This repository contains a collection of samples that use [Blend2D](https://blend2d.com) rendering engine.
 
+The following cateogires of samples exist:
+
+  * `getting-started` - The same samples as provided by the [Getting Started](https://blend2d.com/getting-started.html) page
+  * `qt` - Interactive samples that use Qt toolkit for UI and quality/performance comparison
 
 Building
 --------
 
-Use the following commands to fetch asmjit, blend2d, and these samples:
+Use the following commands to fetch `asmjit`, `blend2d`, and `blend2d-samples` package:
 
 ```bash
 # Download source packages from Git.
 $ git clone --depth=1 https://github.com/asmjit/asmjit --branch next-wip
 $ git clone --depth=1 https://github.com/blend2d/blend2d
-$ git clone --depth=1 https://github.com/blend2d/bl-samples
+$ git clone --depth=1 https://github.com/blend2d/blend2d-samples
+```
 
-# Create build directory and build 'bl-samples'.
-$ cd bl-samples
+Each samples category is placed in its own subdirectory that contains an independent `CMakeLists.txt`, so use the following to build the samples you are interested in:
+
+```bash
+$ cd blend2d-samples/<category>
 $ mkdir build
 $ cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
-After you have these 3 projects cloned use cmake to create your `bl-samples` project, the rest should be handled automatically.
-
-Alternatively you can pick a configure script from `tools` directory if there is a suitable one for your configuration.
-
+Alternatively you can pick a configure script from `<category>/tools` directory if there is a suitable one for your configuration. Please note that samples were divided into categories so people can build only samples they are interested in. If you want to compile and run Qt samples you would need Qt library installed. CMake should be able to find Qt automatically if it's in your `PATH`, alternatively set `CMAKE_PREFIX_PATH` to tell CMake where Qt is installed.
 
 Resources
 ---------
@@ -34,8 +38,16 @@ Some applications require files that are stored in `resources` directory to work
 
 All files within resources should be freely redistributable:
 
-  - resources/texture.jpeg (Public Domain) - downloaded from [publicdomainpictures.net](https://www.publicdomainpictures.net/en/view-image.php?image=9670&picture=colorful-autumn-leaves).
-  - resources/NotoSans-Regular.ttf (OFL Version 1.1) - downloaded from [Google WebFonts Repo](https://github.com/google/fonts/).
+  - `resources/texture.jpeg `(Public Domain) - downloaded from [publicdomainpictures.net](https://www.publicdomainpictures.net/en/view-image.php?image=9670&picture=colorful-autumn-leaves)
+  - `resources/NotoSans-Regular.ttf` (OFL Version 1.1) - downloaded from [Google WebFonts Repo](https://github.com/google/fonts/)
+  - `qt/src/bl-qt-tiger.h` uses a tiger data extracted from [amanithvg](http://www.amanithvg.com/)'s tiger example so this data is not covered by the license
+
+Preview
+-------
+
+![Demo App Preview](https://blend2d.com/resources/images/demo-app-1.png) | ![Demo App Preview](https://blend2d.com/resources/images/demo-app-3.png)
+---- | ----
+![Demo App Preview](https://blend2d.com/resources/images/demo-app-4.png) | ![Demo App Preview](https://blend2d.com/resources/images/demo-app-6.png)
 
 License
 -------
