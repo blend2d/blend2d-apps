@@ -45,7 +45,7 @@ struct Tiger {
     destroy();
   }
 
-  void init(const char* commands, int commandCount, const float* points, int pointCount) {
+  void init(const char* commands, int commandCount, const float* points, uint32_t pointCount) {
     size_t c = 0;
     size_t p = 0;
 
@@ -180,6 +180,7 @@ public:
   double _scale;
   bool _rotateEachFrame;
   bool _cacheStroke;
+  bool _renderStroke;
 
   MainWindow() {
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -230,6 +231,7 @@ public:
 
     connect(new QShortcut(QKeySequence(Qt::Key_R), this), SIGNAL(activated()), SLOT(onToggleRenderer()));
     connect(new QShortcut(QKeySequence(Qt::Key_B), this), SIGNAL(activated()), SLOT(onToggleRotate()));
+    connect(new QShortcut(QKeySequence(Qt::Key_S), this), SIGNAL(activated()), SLOT(onToggleStroke()));
     connect(new QShortcut(QKeySequence(Qt::Key_Q), this), SIGNAL(activated()), SLOT(onRotatePrev()));
     connect(new QShortcut(QKeySequence(Qt::Key_W), this), SIGNAL(activated()), SLOT(onRotateNext()));
 
@@ -245,6 +247,7 @@ public:
     _scale = 1.0;
     _rotateEachFrame = true;
     _cacheStroke = false;
+    _renderStroke = true;
   }
 
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
@@ -255,6 +258,7 @@ public:
 
   Q_SLOT void onToggleRenderer() { _rendererSelect.setCurrentIndex(_rendererSelect.currentIndex() ^ 1); }
   Q_SLOT void onToggleRotate() { _rotateEachFrame = !_rotateEachFrame; }
+  Q_SLOT void onToggleStroke() { _renderStroke = !_renderStroke; }
   Q_SLOT void onRotatePrev() { _rot -= 0.25; }
   Q_SLOT void onRotateNext() { _rot += 0.25; }
 
@@ -269,6 +273,8 @@ public:
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
+    bool renderStroke = _renderStroke;
+
     ctx.setFillStyle(BLRgba32(0xFF00007F));
     ctx.fillAll();
 
@@ -297,7 +303,7 @@ public:
         ctx.fillPath(tp->blPath);
       }
 
-      if (tp->stroke) {
+      if (tp->stroke && renderStroke) {
         if (_cacheStroke) {
           ctx.setFillStyle(tp->strokeColor);
           ctx.fillPath(tp->blStrokedPath);
@@ -314,6 +320,8 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
+    bool renderStroke = _renderStroke;
+
     ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0x7F));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
@@ -340,7 +348,7 @@ public:
         ctx.fillPath(tp->qtPath, tp->qtBrush);
       }
 
-      if (tp->stroke) {
+      if (tp->stroke && renderStroke) {
         if (_cacheStroke)
           ctx.fillPath(tp->qtStrokedPath, tp->qtPen.brush());
         else
