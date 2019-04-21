@@ -64,7 +64,7 @@ endforeach()
 
 # TODO: Not sure this works everywhere...
 foreach(resource "texture.jpeg" "NotoSans-Regular.ttf")
-  if(NOT "${CMAKE_BUILD_TYPE}")
+  if(NOT CMAKE_BUILD_TYPE)
     add_custom_command(TARGET bl-getting-started-1 POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E copy
         "${CMAKE_CURRENT_SOURCE_DIR}/../resources/${resource}"
