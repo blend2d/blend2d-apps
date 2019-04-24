@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.8)
+cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
 
 project(bl_getting_started C CXX)
 
@@ -14,12 +15,6 @@ set(BLEND2D_DIR "${SAMPLES_DIR}/../../blend2d" CACHE PATH "Location of 'blend2d'
 
 set(BLEND2D_BUILD_STATIC TRUE)
 include("${BLEND2D_DIR}/CMakeLists.txt")
-set(SAMPLES_LIBS ${BLEND2D_LIBS})
-set(SAMPLES_CFLAGS ${BLEND2D_CFLAGS})
-
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(GNU|Clang|AppleClang)$")
-  list(APPEND SAMPLES_CFLAGS "-fvisibility=hidden")
-endif()
 
 # C++ Samples
 # -----------
@@ -35,11 +30,10 @@ set(SAMPLES_CXX_TARGETS
   "bl-getting-started-8"
 )
 
-foreach(sample ${SAMPLES_CXX_TARGETS})
-  add_executable(${sample} src/${sample}.cpp)
-  target_include_directories(${sample} BEFORE PRIVATE ${BLEND2D_INCLUDE_DIR})
-  target_compile_options(${sample} PRIVATE ${SAMPLES_CFLAGS})
-  target_link_libraries(${sample} ${SAMPLES_LIBS})
+foreach(target ${SAMPLES_CXX_TARGETS})
+  add_executable(${target} src/${target}.cpp)
+  set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
+  target_link_libraries(${target} Blend2D::Blend2D)
 endforeach()
 
 # C-API Samples
@@ -52,11 +46,10 @@ set(SAMPLES_C_TARGETS
   "bl-capi-sample"
 )
 
-foreach(sample ${SAMPLES_C_TARGETS})
-  add_executable(${sample} src/${sample}.c)
-  target_include_directories(${sample} BEFORE PRIVATE ${BLEND2D_INCLUDE_DIR})
-  target_compile_options(${sample} PRIVATE ${SAMPLES_CFLAGS})
-  target_link_libraries(${sample} ${SAMPLES_LIBS})
+foreach(target ${SAMPLES_C_TARGETS})
+  add_executable(${target} src/${target}.c)
+  set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
+  target_link_libraries(${target} Blend2D::Blend2D)
 endforeach()
 
 # Resources

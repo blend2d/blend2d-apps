@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.8)
+cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
 
 project(bl_qt CXX)
 set(CMAKE_CXX_STANDARD 11)
@@ -11,14 +12,6 @@ set(BLEND2D_BUILD_STATIC TRUE)
 include("${BLEND2D_DIR}/CMakeLists.txt")
 
 find_package(Qt5Widgets REQUIRED)
-
-set(SAMPLES_LIBS ${BLEND2D_LIBS})
-set(SAMPLES_CFLAGS ${BLEND2D_CFLAGS})
-set(SAMPLES_INCLUDE_DIRS ${BLEND2D_INCLUDE_DIR})
-
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(GNU|Clang|AppleClang)$")
-  list(APPEND SAMPLES_CFLAGS "-fvisibility=hidden")
-endif()
 
 set(SAMPLES_TARGETS
   "bl-qt-gradients"
@@ -33,10 +26,9 @@ set(SAMPLES_TARGETS
   "bl-qt-tiger"
 )
 
-foreach(sample ${SAMPLES_TARGETS})
-  add_executable(${sample} src/${sample}.cpp src/qblcanvas.cpp)
-  target_include_directories(${sample} BEFORE PRIVATE ${SAMPLES_INCLUDE_DIRS})
-  target_compile_options(${sample} PRIVATE ${SAMPLES_CFLAGS})
-  target_link_libraries(${sample} ${SAMPLES_LIBS} Qt5::Widgets)
-  qt5_use_modules(${sample} Widgets)
+foreach(target ${SAMPLES_TARGETS})
+  add_executable(${target} src/${target}.cpp src/qblcanvas.cpp)
+  set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
+  target_link_libraries(${target} Qt5::Widgets Blend2D::Blend2D)
+  qt5_use_modules(${target} Widgets)
 endforeach()
