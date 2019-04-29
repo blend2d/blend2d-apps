@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
   BLImageCodecCore codec;
   blImageCodecInit(&codec);
-  blImageCodecFindByName(&codec, blImageCodecBuiltInCodecs(), "BMP");
+  blImageCodecFindByName(&codec, "BMP", SIZE_MAX, NULL);
   blImageWriteToFile(&img, "bl-capi-sample.bmp", &codec);
   blImageCodecReset(&codec);
 

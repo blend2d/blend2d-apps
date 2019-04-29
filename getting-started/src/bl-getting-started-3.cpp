@@ -10,9 +10,7 @@ int main(int argc, char* argv[]) {
 
   // Read an image from file.
   BLImage texture;
-  BLResult err = texture.readFromFile(
-    "texture.jpeg",
-    BLImageCodec::builtInCodecs());
+  BLResult err = texture.readFromFile("texture.jpeg");
 
   // Basic error handling is necessary as we need some IO.
   if (err) {
@@ -30,7 +28,7 @@ int main(int argc, char* argv[]) {
   ctx.end();
 
   BLImageCodec codec;
-  codec.findByName(BLImageCodec::builtInCodecs(), "BMP");
+  codec.findByName("BMP");
   img.writeToFile("bl-getting-started-3.bmp", codec);
 
   return 0;

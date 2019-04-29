@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
   ctx.end();
 
   BLImageCodec codec;
-  codec.findByName(BLImageCodec::builtInCodecs(), "BMP");
+  codec.findByName("BMP");
   img.writeToFile("bl-getting-started-7.bmp", codec);
 
   return 0;
