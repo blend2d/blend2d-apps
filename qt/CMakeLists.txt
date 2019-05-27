@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC TRUE)
 set(SAMPLES_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "Samples directory")
 set(BLEND2D_DIR "${SAMPLES_DIR}/../../blend2d" CACHE PATH "Location of 'blend2d'")
 
-set(BLEND2D_BUILD_STATIC TRUE)
+set(BLEND2D_STATIC TRUE)
 include("${BLEND2D_DIR}/CMakeLists.txt")
 
 find_package(Qt5Widgets REQUIRED)

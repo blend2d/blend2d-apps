@@ -13,7 +13,7 @@ set(BLEND2D_DIR "${SAMPLES_DIR}/../../blend2d" CACHE PATH "Location of 'blend2d'
 # Blend2D
 # -------
 
-set(BLEND2D_BUILD_STATIC TRUE)
+set(BLEND2D_STATIC TRUE)
 include("${BLEND2D_DIR}/CMakeLists.txt")
 
 # C++ Samples
