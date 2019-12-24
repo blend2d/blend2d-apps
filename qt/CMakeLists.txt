@@ -23,6 +23,7 @@ set(SAMPLES_TARGETS
   "bl-qt-circles"
   "bl-qt-particles"
   "bl-qt-polys"
+  "bl-qt-rects"
   "bl-qt-tiger"
 )
 
