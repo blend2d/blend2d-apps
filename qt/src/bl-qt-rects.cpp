@@ -85,10 +85,12 @@ public:
     _rendererSelect.addItem("Qt", QVariant(int(QBLCanvas::RendererQt)));
     _compOpSelect.addItem("SrcOver", QVariant(int(BL_COMP_OP_SRC_OVER)));
     _compOpSelect.addItem("SrcCopy", QVariant(int(BL_COMP_OP_SRC_COPY)));
+    _compOpSelect.addItem("DstAtop", QVariant(int(BL_COMP_OP_DST_ATOP)));
+    _compOpSelect.addItem("Xor", QVariant(int(BL_COMP_OP_XOR)));
     _compOpSelect.addItem("Plus", QVariant(int(BL_COMP_OP_PLUS)));
     _compOpSelect.addItem("Screen", QVariant(int(BL_COMP_OP_SCREEN)));
-    _compOpSelect.addItem("Overlay", QVariant(int(BL_COMP_OP_OVERLAY)));
     _compOpSelect.addItem("Lighten", QVariant(int(BL_COMP_OP_LIGHTEN)));
+    _compOpSelect.addItem("Hard Light", QVariant(int(BL_COMP_OP_HARD_LIGHT)));
     _compOpSelect.addItem("Difference", QVariant(int(BL_COMP_OP_DIFFERENCE)));
     _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
 
@@ -181,9 +183,6 @@ public:
     ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
 
     ctx.setRenderHint(QPainter::Antialiasing, true);
-    ctx.setBrush(QColor(255, 255, 255));
-
-    // ctx.setOpacity(0.5);
     ctx.setCompositionMode(Blend2DCompOpToQtCompositionMode(_compOp));
 
     size_t size = _coords.size();

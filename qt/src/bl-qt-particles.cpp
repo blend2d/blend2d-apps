@@ -55,7 +55,7 @@ public:
     _colorsCheck.setText(QLatin1Literal("Colors"));
 
     _countSlider.setMinimum(0);
-    _countSlider.setMaximum(2000);
+    _countSlider.setMaximum(5000);
     _countSlider.setValue(500);
     _countSlider.setOrientation(Qt::Horizontal);
 
