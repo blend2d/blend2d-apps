@@ -1,7 +1,7 @@
 #include "qblcanvas.h"
 
 QBLCanvas::QBLCanvas()
-  : _rendererType(RendererB2D),
+  : _rendererType(RendererBlend2D),
     _dirty(true),
     _fps(0),
     _frameCount(0) {
@@ -65,16 +65,20 @@ void QBLCanvas::_resizeCanvas() {
 }
 
 void QBLCanvas::_renderCanvas() {
-  if (_rendererType == RendererB2D) {
-    if (onRenderB2D) {
-      BLContext ctx(blImage);
-      onRenderB2D(ctx);
-    }
-  }
-  else {
+  if (_rendererType == RendererQt) {
     if (onRenderQt) {
       QPainter ctx(&qtImage);
       onRenderQt(ctx);
+    }
+  }
+  else {
+    if (onRenderB2D) {
+      // In Blend2D case the non-zero _rendererType specifies the number of threads.
+      BLContextCreateInfo createInfo {};
+      createInfo.threadCount = _rendererType;
+
+      BLContext ctx(blImage, createInfo);
+      onRenderB2D(ctx);
     }
   }
 
@@ -90,6 +94,44 @@ void QBLCanvas::_afterRender() {
     _fps = _frameCount / double(t) * 1000.0;
     _frameCount = 0;
     _elapsedTimer.start();
+  }
+}
+
+void QBLCanvas::initRendererSelectBox(QComboBox* dst) {
+  static const uint32_t rendererTypes[] = {
+    RendererQt,
+    RendererBlend2D,
+    RendererBlend2D_1t,
+    RendererBlend2D_2t,
+    RendererBlend2D_4t,
+    RendererBlend2D_8t,
+    RendererBlend2D_12t,
+    RendererBlend2D_16t
+  };
+
+  for (const auto& rendererType : rendererTypes) {
+    QString s = rendererTypeToString(rendererType);
+    dst->addItem(s, QVariant(int(rendererType)));
+  }
+
+  dst->setCurrentIndex(1);
+}
+
+QString QBLCanvas::rendererTypeToString(uint32_t rendererType) {
+  char buffer[32];
+  switch (rendererType) {
+    case RendererQt:
+      return QLatin1String("Qt");
+
+    default:
+      if (rendererType > 32)
+        return QString();
+
+      if (rendererType == 0)
+        return QLatin1String("Blend2D");
+
+      snprintf(buffer, sizeof(buffer), "Blend2D %uT", rendererType);
+      return QLatin1String(buffer);
   }
 }
 

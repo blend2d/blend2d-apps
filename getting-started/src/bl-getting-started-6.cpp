@@ -24,10 +24,7 @@ int main(int argc, char* argv[]) {
   ctx.strokePath(path);
 
   ctx.end();
-
-  BLImageCodec codec;
-  codec.findByName("BMP");
-  img.writeToFile("bl-getting-started-6.bmp", codec);
+  img.writeToFile("bl-getting-started-6.bmp");
 
   return 0;
 }

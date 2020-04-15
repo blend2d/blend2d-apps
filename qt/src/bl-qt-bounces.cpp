@@ -26,8 +26,7 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    _rendererSelect.addItem("Blend2D", QVariant(int(QBLCanvas::RendererB2D)));
-    _rendererSelect.addItem("Qt", QVariant(int(QBLCanvas::RendererQt)));
+    QBLCanvas::initRendererSelectBox(&_rendererSelect);
     _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
 
     connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
@@ -35,8 +34,9 @@ public:
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
     grid->addWidget(&_rendererSelect, 0, 1);
-    grid->addWidget(&_limitFpsCheck, 0, 2);
-    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 3);
+
+    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 2);
+    grid->addWidget(&_limitFpsCheck, 0, 3, Qt::AlignRight);
 
     _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
     _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
@@ -46,10 +46,7 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
-
     onInit();
-    onLimitFpsChanged(0);
-    _updateTitle();
   }
 
   void showEvent(QShowEvent* event) override { _timer.start(); }
@@ -59,10 +56,12 @@ public:
   void onInit() {
     _time = 0;
     _count = 0;
+    _limitFpsCheck.setChecked(true);
+    _updateTitle();
   }
 
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
-  Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 60 : 2); }
+  Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
     _time += 2.0;

@@ -27,10 +27,7 @@ int main(int argc, char* argv[]) {
   ctx.fillUtf8Text(BLPoint(250, 80), font, "Rotated Text");
 
   ctx.end();
-
-  BLImageCodec codec;
-  codec.findByName("BMP");
-  img.writeToFile("bl-getting-started-7.bmp", codec);
+  img.writeToFile("bl-getting-started-7.bmp");
 
   return 0;
 }

@@ -18,9 +18,16 @@ public:
   QImage qtImage;
   BLImage blImage;
 
-  enum RendererType {
-    RendererB2D = 0,
-    RendererQt = 1
+  enum RendererType : uint32_t {
+    RendererBlend2D = 0,
+    RendererBlend2D_1t = 1,
+    RendererBlend2D_2t = 2,
+    RendererBlend2D_4t = 4,
+    RendererBlend2D_8t = 8,
+    RendererBlend2D_12t = 12,
+    RendererBlend2D_16t = 16,
+
+    RendererQt = 0xFF
   };
 
   uint32_t _rendererType;
@@ -51,6 +58,9 @@ public:
 
   inline uint32_t rendererType() const { return _rendererType; }
   inline double fps() const { return _fps; }
+
+  static void initRendererSelectBox(QComboBox* dst);
+  static QString rendererTypeToString(uint32_t rendererType);
 };
 
 #endif // QBLCANVAS_H

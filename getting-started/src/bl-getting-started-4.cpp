@@ -26,10 +26,7 @@ int main(int argc, char* argv[]) {
   ctx.fillRoundRect(50.0, 50.0, 380.0, 380.0, 80.5);
 
   ctx.end();
-
-  BLImageCodec codec;
-  codec.findByName("BMP");
-  img.writeToFile("bl-getting-started-4.bmp", codec);
+  img.writeToFile("bl-getting-started-4.bmp");
 
   return 0;
 }

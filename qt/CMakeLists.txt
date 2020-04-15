@@ -28,7 +28,7 @@ set(SAMPLES_TARGETS
 )
 
 foreach(target ${SAMPLES_TARGETS})
-  add_executable(${target} src/${target}.cpp src/qblcanvas.cpp)
+  add_executable(${target} WIN32 src/${target}.cpp src/qblcanvas.cpp)
   set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
   target_link_libraries(${target} Qt5::Widgets Blend2D::Blend2D)
   qt5_use_modules(${target} Widgets)

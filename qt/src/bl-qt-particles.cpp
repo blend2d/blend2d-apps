@@ -32,7 +32,7 @@ public:
 
   BLRandom _rnd;
   std::vector<Particle> _particles;
-  int maxAge = 250;
+  int maxAge = 650;
   double radiusScale = 6;
   BLRgba32 colors[3] = { BLRgba32(0xFFFF7F00), BLRgba32(0xFFFF3F9F), BLRgba32(0xFF7F4FFF) };
 
@@ -47,11 +47,8 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    _rendererSelect.addItem("Blend2D", QVariant(int(QBLCanvas::RendererB2D)));
-    _rendererSelect.addItem("Qt", QVariant(int(QBLCanvas::RendererQt)));
+    QBLCanvas::initRendererSelectBox(&_rendererSelect);
     _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
-    _limitFpsCheck.setChecked(true);
-
     _colorsCheck.setText(QLatin1Literal("Colors"));
 
     _countSlider.setMinimum(0);
@@ -64,9 +61,12 @@ public:
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
     grid->addWidget(&_rendererSelect, 0, 1);
-    grid->addWidget(&_limitFpsCheck, 0, 2);
-    grid->addWidget(&_colorsCheck, 0, 3);
-    grid->addWidget(&_countSlider, 0, 4);
+    grid->addWidget(&_colorsCheck, 0, 2);
+    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 3);
+    grid->addWidget(&_limitFpsCheck, 0, 4, Qt::AlignRight);
+
+    grid->addWidget(new QLabel("Count:"), 1, 0, Qt::AlignRight);
+    grid->addWidget(&_countSlider, 1, 1, 1, 5);
 
     _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
     _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
@@ -76,10 +76,7 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
-
     onInit();
-    onLimitFpsChanged(_limitFpsCheck.isChecked());
-    _updateTitle();
   }
 
   void showEvent(QShowEvent* event) override { _timer.start(); }
@@ -88,10 +85,12 @@ public:
 
   void onInit() {
     _rnd.reset(1234);
+    _limitFpsCheck.setChecked(true);
+    _updateTitle();
   }
 
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
-  Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 60 : 2); }
+  Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
     size_t i = 0;
@@ -119,7 +118,7 @@ public:
         break;
 
       double angle = _rnd.nextDouble() * PI * 2.0;
-      double speed = blMax(_rnd.nextDouble() * 2.0, 0.1);
+      double speed = blMax(_rnd.nextDouble() * 1.0, 0.1);
       double aSin = std::sin(angle);
       double aCos = std::cos(angle);
 

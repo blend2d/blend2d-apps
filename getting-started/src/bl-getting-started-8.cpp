@@ -42,10 +42,7 @@ int main(int argc, char* argv[]) {
     text = end + 1;
   }
   ctx.end();
-
-  BLImageCodec codec;
-  codec.findByName("BMP");
-  img.writeToFile("bl-getting-started-8.bmp", codec);
+  img.writeToFile("bl-getting-started-8.bmp");
 
   return 0;
 }
