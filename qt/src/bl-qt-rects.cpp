@@ -7,22 +7,6 @@
 // [MainWindow]
 // ============================================================================
 
-static double randomDouble() noexcept {
-  return double(rand() % 65536u) * (1.0 / 65535.0);
-}
-
-static double randomSign() noexcept {
-  return (rand() % 65536u) >= 32768 ? 1.0 : -1.0;
-}
-
-static BLRgba32 randomColor() noexcept {
-  unsigned r = (rand() % 256u);
-  unsigned g = (rand() % 256u);
-  unsigned b = (rand() % 256u);
-  unsigned a = (rand() % 256u);
-  return BLRgba32(r, g, b, a);
-}
-
 static QPainter::CompositionMode Blend2DCompOpToQtCompositionMode(uint32_t compOp) {
   switch (compOp) {
     default:
@@ -65,6 +49,7 @@ public:
   QCheckBox _limitFpsCheck;
   QBLCanvas _canvas;
 
+  BLRandom _random;
   std::vector<BLPoint> _coords;
   std::vector<BLPoint> _steps;
   std::vector<BLRgba32> _colors;
@@ -80,7 +65,8 @@ public:
   };
 
   MainWindow()
-    : _compOp(BL_COMP_OP_SRC_OVER),
+    : _random(0x1234),
+      _compOp(BL_COMP_OP_SRC_OVER),
       _shapeType(0),
       _rectSize(64.0) {
 
@@ -165,6 +151,9 @@ public:
     _limitFpsCheck.setChecked(true);
     _updateTitle();
   }
+
+  double randomSign() noexcept { return _random.nextDouble() < 0.5 ? 1.0 : -1.0; }
+  BLRgba32 randomColor() noexcept { return BLRgba32(_random.nextUInt32()); }
 
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
   Q_SLOT void onCompOpChanged(int index) { _compOp = _compOpSelect.itemData(index).toInt(); };
@@ -338,10 +327,10 @@ public:
     _colors.resize(size);
 
     while (i < size) {
-      _coords[i].reset(randomDouble() * w,
-                       randomDouble() * h);
-      _steps[i].reset((randomDouble() * 0.5 + 0.05) * randomSign(),
-                      (randomDouble() * 0.5 + 0.05) * randomSign());
+      _coords[i].reset(_random.nextDouble() * w,
+                       _random.nextDouble() * h);
+      _steps[i].reset((_random.nextDouble() * 0.5 + 0.05) * randomSign(),
+                      (_random.nextDouble() * 0.5 + 0.05) * randomSign());
       _colors[i].reset(randomColor());
       i++;
     }

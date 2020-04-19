@@ -28,6 +28,7 @@ public:
   QCheckBox _limitFpsCheck;
   QCheckBox _colorsCheck;
   QSlider _countSlider;
+  QSlider _rotationSlider;
   QBLCanvas _canvas;
 
   BLRandom _rnd;
@@ -56,6 +57,11 @@ public:
     _countSlider.setValue(500);
     _countSlider.setOrientation(Qt::Horizontal);
 
+    _rotationSlider.setMinimum(0);
+    _rotationSlider.setMaximum(1000);
+    _rotationSlider.setValue(100);
+    _rotationSlider.setOrientation(Qt::Horizontal);
+
     connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
     connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
 
@@ -67,6 +73,9 @@ public:
 
     grid->addWidget(new QLabel("Count:"), 1, 0, Qt::AlignRight);
     grid->addWidget(&_countSlider, 1, 1, 1, 5);
+
+    grid->addWidget(new QLabel("Rotation:"), 2, 0, Qt::AlignRight);
+    grid->addWidget(&_rotationSlider, 2, 1, 1, 5);
 
     _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
     _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
@@ -97,8 +106,9 @@ public:
     size_t j = 0;
     size_t count = _particles.size();
 
+    double rot = double(_rotationSlider.value()) * 0.02 / 1000;
     double PI = 3.14159265359;
-    BLMatrix2D m = BLMatrix2D::makeRotation(0.01);
+    BLMatrix2D m = BLMatrix2D::makeRotation(rot);
 
     while (i < count) {
       Particle& p = _particles[i++];
@@ -118,7 +128,7 @@ public:
         break;
 
       double angle = _rnd.nextDouble() * PI * 2.0;
-      double speed = blMax(_rnd.nextDouble() * 1.0, 0.1);
+      double speed = blMax(_rnd.nextDouble() * 2.0, 0.2);
       double aSin = std::sin(angle);
       double aCos = std::cos(angle);
 

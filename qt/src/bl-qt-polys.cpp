@@ -7,14 +7,6 @@
 // [MainWindow]
 // ============================================================================
 
-static double randomDouble() noexcept {
-  return double(rand() % 65535) * (1.0 / 65535.0);
-}
-
-static double randomSign() noexcept {
-  return (rand() % 65535) >= 32768 ? 1.0 : -1.0;
-}
-
 class MainWindow : public QWidget {
   Q_OBJECT
 
@@ -30,8 +22,11 @@ public:
   std::vector<BLPoint> _poly;
   std::vector<BLPoint> _step;
 
+  BLRandom _random;
+
   MainWindow() :
-    _op(0) {
+    _op(0),
+    _random(0x1234) {
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
     vBox->setSpacing(0);
@@ -94,6 +89,8 @@ public:
     _limitFpsCheck.setChecked(true);
     _updateTitle();
   }
+
+  double randomSign() noexcept { return _random.nextDouble() < 0.5 ? 1.0 : -1.0; }
 
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
@@ -182,7 +179,7 @@ public:
     switch (_op) {
       case 0: {
         ctx.setPen(Qt::NoPen);
-        ctx.drawPolygon(reinterpret_cast<const QPointF*>(_poly.data()), _poly.size(), Qt::OddEvenFill);
+        ctx.drawPolygon(reinterpret_cast<const QPointF*>(_poly.data()), int(_poly.size()), Qt::OddEvenFill);
         break;
       }
 
@@ -192,7 +189,7 @@ public:
         pen.setWidth((_op - 1) * 2 + 1);
         ctx.setBrush(Qt::NoBrush);
         ctx.setPen(pen);
-        ctx.drawPolygon(reinterpret_cast<const QPointF*>(_poly.data()), _poly.size(), Qt::OddEvenFill);
+        ctx.drawPolygon(reinterpret_cast<const QPointF*>(_poly.data()), int(_poly.size()), Qt::OddEvenFill);
         break;
 
       case 4:
@@ -228,10 +225,10 @@ public:
     _step.resize(size);
 
     while (prev < size) {
-      _poly[prev].reset(randomDouble() * w,
-                        randomDouble() * h);
-      _step[prev].reset((randomDouble() * 0.5 + 0.05) * randomSign(),
-                        (randomDouble() * 0.5 + 0.05) * randomSign());
+      _poly[prev].reset(_random.nextDouble() * w,
+                        _random.nextDouble() * h);
+      _step[prev].reset((_random.nextDouble() * 0.5 + 0.05) * randomSign(),
+                        (_random.nextDouble() * 0.5 + 0.05) * randomSign());
       prev++;
     }
   }
