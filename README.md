@@ -15,9 +15,9 @@ Use the following commands to fetch `asmjit`, `blend2d`, and `blend2d-samples` p
 
 ```bash
 # Download source packages from Git.
-$ git clone --depth=1 https://github.com/asmjit/asmjit
-$ git clone --depth=1 https://github.com/blend2d/blend2d
-$ git clone --depth=1 https://github.com/blend2d/blend2d-samples
+$ git clone https://github.com/asmjit/asmjit
+$ git clone https://github.com/blend2d/blend2d
+$ git clone https://github.com/blend2d/blend2d-samples
 ```
 
 Each samples category is placed in its own subdirectory that contains an independent `CMakeLists.txt`, so use the following to build the samples you are interested in:
