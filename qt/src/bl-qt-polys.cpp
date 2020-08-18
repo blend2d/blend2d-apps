@@ -36,7 +36,7 @@ public:
     grid->setSpacing(5);
 
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
+    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
 
     _operationSelect.addItem("Fill Poly", QVariant(int(0)));
     _operationSelect.addItem("Stroke Poly [W=1]", QVariant(int(1)));

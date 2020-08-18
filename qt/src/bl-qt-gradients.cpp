@@ -33,7 +33,7 @@ public:
       _grabbedX(0),
       _grabbedY(0) {
 
-    setWindowTitle(QLatin1Literal("Gradients Sample"));
+    setWindowTitle(QLatin1String("Gradients Sample"));
 
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
@@ -67,7 +67,7 @@ public:
 
     QPushButton* randomizeButton = new QPushButton("Random");
     connect(randomizeButton, SIGNAL(clicked()), SLOT(onRandomizeVertices()));
-    
+
     grid->addWidget(new QLabel("Gradient:"), 0, 0, Qt::AlignRight);
     grid->addWidget(&_gradientTypeSelect, 0, 1);
     grid->addItem(new QSpacerItem(0, 10), 0, 2);

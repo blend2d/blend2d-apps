@@ -36,7 +36,7 @@ public:
       _grabbedX(0),
       _grabbedY(0) {
 
-    setWindowTitle(QLatin1Literal("SVG Elliptic Arcs"));
+    setWindowTitle(QLatin1String("SVG Elliptic Arcs"));
 
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
@@ -61,8 +61,8 @@ public:
     _angleSlider.setMaximum(360);
     _angleSlider.setSliderPosition(0);
 
-    _largeArcFlag.setText(QLatin1Literal("Large Arc Flag"));
-    _sweepArcFlag.setText(QLatin1Literal("Sweep Arc Flag"));
+    _largeArcFlag.setText(QLatin1String("Large Arc Flag"));
+    _sweepArcFlag.setText(QLatin1String("Sweep Arc Flag"));
 
     _bottomText.setTextInteractionFlags(Qt::TextSelectableByMouse);
     _bottomText.setMargin(5);

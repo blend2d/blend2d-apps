@@ -34,7 +34,7 @@ public:
       _grabbedX(0),
       _grabbedY(0) {
 
-    setWindowTitle(QLatin1Literal("Stroke Sample"));
+    setWindowTitle(QLatin1String("Stroke Sample"));
     int maxPbWidth = 30;
     int labelWidth = 90;
 

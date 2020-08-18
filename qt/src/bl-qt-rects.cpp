@@ -94,7 +94,7 @@ public:
     _shapeTypeSelect.addItem("RoundRect", QVariant(int(kShapeRoundRect)));
     _shapeTypeSelect.addItem("Polygon", QVariant(int(kShapePolyPath)));
 
-    _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
+    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
 
     _sizeSlider.setOrientation(Qt::Horizontal);
     _sizeSlider.setMinimum(8);

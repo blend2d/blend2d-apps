@@ -192,7 +192,7 @@ public:
     grid->setSpacing(5);
 
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
+    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
 
     _cachingSelect.addItem("None", QVariant(int(0)));
     _cachingSelect.addItem("Strokes", QVariant(int(1)));
@@ -341,7 +341,7 @@ public:
     ctx.save();
     ctx.translate(_canvas.width() / 2, _canvas.height() / 2);
     ctx.scale(s, s);
-    ctx.setMatrix(QMatrix(m.m00, m.m01, m.m10, m.m11, m.m20, m.m21), true);
+    ctx.setTransform(QTransform(m.m00, m.m01, m.m10, m.m11, m.m20, m.m21), true);
 
     for (size_t i = 0, count = _tiger.paths.size(); i < count; i++) {
       const TigerPath* tp = _tiger.paths[i];

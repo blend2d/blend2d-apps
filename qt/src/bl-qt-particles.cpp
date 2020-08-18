@@ -49,8 +49,8 @@ public:
     grid->setSpacing(5);
 
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
-    _colorsCheck.setText(QLatin1Literal("Colors"));
+    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
+    _colorsCheck.setText(QLatin1String("Colors"));
 
     _countSlider.setMinimum(0);
     _countSlider.setMaximum(5000);

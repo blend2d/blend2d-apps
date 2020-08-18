@@ -27,7 +27,7 @@ public:
     grid->setSpacing(5);
 
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1Literal("Limit FPS"));
+    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
 
     connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
     connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
@@ -160,13 +160,13 @@ public:
       double rotation = pos * 360;
       double radius = bouncePos * 25;
 
-      QMatrix m;
+      QTransform m;
       m.translate(x + kHalfSize, y + kHalfSize);
       m.rotate(rotation);
       m.translate(-x - kHalfSize, -y - kHalfSize);
 
       ctx.save();
-      ctx.setMatrix(m);
+      ctx.setTransform(m);
       ctx.translate(x, y);
 
       QLinearGradient gr(0, kMarginSize, 0, kMarginSize + kSquareSize);
