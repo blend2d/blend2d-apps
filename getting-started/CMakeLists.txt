@@ -33,7 +33,7 @@ set(SAMPLES_CXX_TARGETS
 foreach(target ${SAMPLES_CXX_TARGETS})
   add_executable(${target} src/${target}.cpp)
   set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
-  target_link_libraries(${target} Blend2D::Blend2D)
+  target_link_libraries(${target} blend2d::blend2d)
 endforeach()
 
 # C-API Samples
@@ -49,7 +49,7 @@ set(SAMPLES_C_TARGETS
 foreach(target ${SAMPLES_C_TARGETS})
   add_executable(${target} src/${target}.c)
   set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
-  target_link_libraries(${target} Blend2D::Blend2D)
+  target_link_libraries(${target} blend2d::blend2d)
 endforeach()
 
 # Resources
