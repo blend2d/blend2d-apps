@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
   ctx.strokePath(path);
 
   ctx.end();
-  img.writeToFile("bl-getting-started-6.bmp");
+  img.writeToFile("bl-getting-started-6.png");
 
   return 0;
 }

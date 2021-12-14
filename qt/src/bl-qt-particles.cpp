@@ -1,12 +1,9 @@
 #include "qblcanvas.h"
+#include "bl-qt-static.h"
 
 #include <stdlib.h>
 #include <cmath>
 #include <vector>
-
-// ============================================================================
-// [Particle]
-// ============================================================================
 
 struct Particle {
   BLPoint p;
@@ -14,10 +11,6 @@ struct Particle {
   int age;
   int category;
 };
-
-// ============================================================================
-// [MainWindow]
-// ============================================================================
 
 class MainWindow : public QWidget {
   Q_OBJECT
@@ -194,7 +187,7 @@ public:
       ctx.setCompositionMode(QPainter::CompositionMode_Plus);
       for (size_t i = 0; i < kCategoryCount; i++) {
         paths[i].setFillRule(Qt::WindingFill);
-        ctx.fillPath(paths[i], QBrush(QColor(qRgb(colors[i].r, colors[i].g, colors[i].b))));
+        ctx.fillPath(paths[i], QBrush(QColor(qRgb(colors[i].r(), colors[i].g(), colors[i].b()))));
       }
     }
     else {
@@ -224,10 +217,6 @@ public:
       setWindowTitle(title);
   }
 };
-
-// ============================================================================
-// [Main]
-// ============================================================================
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);

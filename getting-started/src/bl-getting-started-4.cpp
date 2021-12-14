@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
   ctx.fillRoundRect(50.0, 50.0, 380.0, 380.0, 80.5);
 
   ctx.end();
-  img.writeToFile("bl-getting-started-4.bmp");
+  img.writeToFile("bl-getting-started-4.png");
 
   return 0;
 }

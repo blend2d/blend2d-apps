@@ -1,5 +1,6 @@
 #include "qblcanvas.h"
 #include "bl-qt-tiger.h"
+#include "bl-qt-static.h"
 
 #include <stdlib.h>
 
@@ -29,7 +30,7 @@ struct TigerPath {
   QPen qtPen;
   QBrush qtBrush;
 
-  uint32_t fillRule;
+  BLFillRule fillRule;
   bool fill;
   bool stroke;
 };
@@ -117,14 +118,14 @@ struct Tiger {
       tp->qtPath.setFillRule(tp->fillRule == BL_FILL_RULE_NON_ZERO ? Qt::WindingFill : Qt::OddEvenFill);
 
       if (tp->fill) {
-        tp->qtBrush = QBrush(QColor(qRgb(tp->fillColor.r, tp->fillColor.g, tp->fillColor.b)));
+        tp->qtBrush = QBrush(QColor(qRgb(tp->fillColor.r(), tp->fillColor.g(), tp->fillColor.b())));
       }
 
       if (tp->stroke) {
         tp->blStrokedPath.addStrokedPath(tp->blPath, tp->blStrokeOptions, blDefaultApproximationOptions);
         tp->blStrokedPath.shrink();
 
-        tp->qtPen = QPen(QColor(qRgb(tp->strokeColor.r, tp->strokeColor.g, tp->strokeColor.b)));
+        tp->qtPen = QPen(QColor(qRgb(tp->strokeColor.r(), tp->strokeColor.g(), tp->strokeColor.b())));
         tp->qtPen.setWidthF(tp->blStrokeOptions.width);
         tp->qtPen.setMiterLimit(tp->blStrokeOptions.miterLimit);
 
@@ -160,10 +161,6 @@ struct Tiger {
 
   BLArray<TigerPath*> paths;
 };
-
-// ============================================================================
-// [MainWindow]
-// ============================================================================
 
 class MainWindow : public QWidget {
   Q_OBJECT
@@ -373,10 +370,6 @@ public:
       setWindowTitle(title);
   }
 };
-
-// ============================================================================
-// [Main]
-// ============================================================================
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);

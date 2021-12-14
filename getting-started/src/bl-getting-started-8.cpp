@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     text = end + 1;
   }
   ctx.end();
-  img.writeToFile("bl-getting-started-8.bmp");
+  img.writeToFile("bl-getting-started-8.png");
 
   return 0;
 }

@@ -3,10 +3,7 @@
 
 #include <blend2d.h>
 #include "qblcanvas.h"
-
-// ============================================================================
-// [MainWindow]
-// ============================================================================
+#include "bl-qt-static.h"
 
 class MainWindow : public QWidget {
   Q_OBJECT
@@ -26,7 +23,7 @@ public:
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
     vBox->setSpacing(0);
-    
+
     QGridLayout* grid = new QGridLayout();
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
@@ -89,7 +86,7 @@ private Q_SLOTS:
     BLFontFace face;
     face.createFromFile(fileName.constData());
 
-    if (!face.isNone()) {
+    if (face.isValid()) {
       _face = face;
       _canvas->updateCanvas();
     }
@@ -117,10 +114,6 @@ public:
     ctx.fillUtf16Text(BLPoint(10, 10 + font.size()), font, reinterpret_cast<const uint16_t*>(text.constData()), text.length());
   }
 };
-
-// ============================================================================
-// [Main]
-// ============================================================================
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);

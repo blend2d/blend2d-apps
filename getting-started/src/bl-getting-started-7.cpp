@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
   ctx.fillUtf8Text(BLPoint(250, 80), font, "Rotated Text");
 
   ctx.end();
-  img.writeToFile("bl-getting-started-7.bmp");
+  img.writeToFile("bl-getting-started-7.png");
 
   return 0;
 }

@@ -1,13 +1,10 @@
 #include "qblcanvas.h"
+#include "bl-qt-static.h"
 
 #include <stdlib.h>
 #include <vector>
 
-// ============================================================================
-// [MainWindow]
-// ============================================================================
-
-static QPainter::CompositionMode Blend2DCompOpToQtCompositionMode(uint32_t compOp) {
+static QPainter::CompositionMode Blend2DCompOpToQtCompositionMode(BLCompOp compOp) {
   switch (compOp) {
     default:
     case BL_COMP_OP_SRC_OVER   : return QPainter::CompositionMode_SourceOver;
@@ -53,7 +50,7 @@ public:
   std::vector<BLPoint> _coords;
   std::vector<BLPoint> _steps;
   std::vector<BLRgba32> _colors;
-  uint32_t _compOp;
+  BLCompOp _compOp;
   uint32_t _shapeType;
   double _rectSize;
 
@@ -156,7 +153,7 @@ public:
   BLRgba32 randomColor() noexcept { return BLRgba32(_random.nextUInt32()); }
 
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
-  Q_SLOT void onCompOpChanged(int index) { _compOp = _compOpSelect.itemData(index).toInt(); };
+  Q_SLOT void onCompOpChanged(int index) { _compOp = (BLCompOp)_compOpSelect.itemData(index).toInt(); };
   Q_SLOT void onShapeTypeChanged(int index) { _shapeType = _shapeTypeSelect.itemData(index).toInt(); };
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
   Q_SLOT void onSizeChanged(int value) { _rectSize = value; }
@@ -271,7 +268,7 @@ public:
           double y = _coords[i].y - halfSize;
 
           ctx.fillRect(QRectF(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize),
-                       QColor(_colors[i].r, _colors[i].g, _colors[i].b, _colors[i].a));
+                       QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
         }
         break;
 
@@ -283,7 +280,7 @@ public:
           QPainterPath path;
           path.addRect(x, y, rectSize, rectSize);
 
-          ctx.fillPath(path, QColor(_colors[i].r, _colors[i].g, _colors[i].b, _colors[i].a));
+          ctx.fillPath(path, QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
         }
         break;
 
@@ -299,7 +296,7 @@ public:
           path.lineTo(x + rectSize / 3, y + rectSize);
           path.lineTo(x, y + rectSize / 3);
 
-          ctx.fillPath(path, QColor(_colors[i].r, _colors[i].g, _colors[i].b, _colors[i].a));
+          ctx.fillPath(path, QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
         }
         break;
 
@@ -311,7 +308,7 @@ public:
           QPainterPath path;
           path.addRoundedRect(QRectF(x, y, rectSize, rectSize), 10, 10);
 
-          ctx.fillPath(path, QColor(_colors[i].r, _colors[i].g, _colors[i].b, _colors[i].a));
+          ctx.fillPath(path, QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
         }
         break;
     }
@@ -350,10 +347,6 @@ public:
       setWindowTitle(title);
   }
 };
-
-// ============================================================================
-// [Main]
-// ============================================================================
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);

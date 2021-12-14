@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
   blGradientAddStopRgba32(&gradient, 0.5, 0xFFFFAF00u);
   blGradientAddStopRgba32(&gradient, 1.0, 0xFFFF0000u);
 
-  blContextSetFillStyleObject(&ctx, &gradient);
+  blContextSetFillStyle(&ctx, &gradient);
   blContextFillAll(&ctx);
   blGradientDestroy(&gradient);
 
@@ -42,9 +42,8 @@ int main(int argc, char* argv[]) {
 
   // An example of querying a codec from Blend2D internal codecs.
   BLImageCodecCore codec;
-  blImageCodecInit(&codec);
-  blImageCodecFindByName(&codec, "BMP", SIZE_MAX, NULL);
-  blImageWriteToFile(&img, "bl-capi-sample.bmp", &codec);
+  blImageCodecInitByName(&codec, "PNG", SIZE_MAX, NULL);
+  blImageWriteToFile(&img, "bl-capi-sample.png", &codec);
   blImageCodecDestroy(&codec);
 
   blImageDestroy(&img);

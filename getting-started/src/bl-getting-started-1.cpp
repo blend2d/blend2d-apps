@@ -25,8 +25,8 @@ int main(int argc, char* argv[]) {
 
   // Let's use some built-in codecs provided by Blend2D.
   BLImageCodec codec;
-  codec.findByName("BMP");
-  img.writeToFile("bl-getting-started-1.bmp", codec);
+  codec.findByName("PNG");
+  img.writeToFile("bl-getting-started-1.png", codec);
 
   return 0;
 }

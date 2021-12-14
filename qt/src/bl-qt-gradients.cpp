@@ -3,10 +3,7 @@
 
 #include <blend2d.h>
 #include "qblcanvas.h"
-
-// ============================================================================
-// [MainWindow]
-// ============================================================================
+#include "bl-qt-static.h"
 
 class MainWindow : public QWidget {
   Q_OBJECT
@@ -20,8 +17,8 @@ public:
   // Canvas data.
   BLGradient _gradient;
   BLPoint _pts[2];
-  uint32_t _gradientType;
-  uint32_t _gradientExtendMode;
+  BLGradientType _gradientType;
+  BLExtendMode _gradientExtendMode;
   size_t _numPoints;
   size_t _closestVertex;
   size_t _grabbedVertex;
@@ -150,12 +147,12 @@ public:
 
   Q_SLOT void onGradientTypeChanged(int index) {
     _numPoints = index == BL_GRADIENT_TYPE_CONICAL ? 1 : 2;
-    _gradientType = uint32_t(index);
+    _gradientType = (BLGradientType)index;
     _canvas.updateCanvas();
   }
 
   Q_SLOT void onExtendModeChanged(int index) {
-    _gradientExtendMode = uint32_t(index);
+    _gradientExtendMode = (BLExtendMode)index;
     _canvas.updateCanvas();
   }
 
@@ -204,10 +201,6 @@ public:
     }
   }
 };
-
-// ============================================================================
-// [Main]
-// ============================================================================
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);

@@ -1,11 +1,8 @@
 #include "qblcanvas.h"
+#include "bl-qt-static.h"
 
 #include <stdlib.h>
 #include <vector>
-
-// ============================================================================
-// [MainWindow]
-// ============================================================================
 
 class MainWindow : public QWidget {
   Q_OBJECT
@@ -246,10 +243,6 @@ public:
       setWindowTitle(title);
   }
 };
-
-// ============================================================================
-// [Main]
-// ============================================================================
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
