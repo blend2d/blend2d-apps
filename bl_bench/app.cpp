@@ -417,7 +417,7 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params) {
       printf(benchHeaderStr, mod._name);
       printf(benchBorderStr);
 
-      for (uint32_t testId = kBenchIdStrokeAlignedRect; testId < kBenchIdCount; testId++) {
+      for (uint32_t testId = 0; testId < kBenchIdCount; testId++) {
         params.benchId = testId;
 
         for (uint32_t sizeId = 0; sizeId < ARRAY_SIZE(benchShapeSizeList); sizeId++) {

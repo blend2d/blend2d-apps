@@ -62,4 +62,42 @@ public:
   static QString rendererTypeToString(uint32_t rendererType);
 };
 
+static BL_INLINE QColor blRgbaToQColor(const BLRgba32& rgba) noexcept {
+  return QColor(rgba.r(), rgba.g(), rgba.b(), rgba.a());
+}
+
+static BL_INLINE QColor blRgbaToQColor(const BLRgba64& rgba) noexcept {
+  return QColor(QRgba64::fromRgba64(uint16_t(rgba.r()), uint16_t(rgba.g()), uint16_t(rgba.b()), uint16_t(rgba.a())));
+}
+
+static BL_INLINE QPainter::CompositionMode blCompOpToQPainterCompositionMode(BLCompOp compOp) {
+  switch (compOp) {
+    default:
+    case BL_COMP_OP_SRC_OVER   : return QPainter::CompositionMode_SourceOver;
+    case BL_COMP_OP_SRC_COPY   : return QPainter::CompositionMode_Source;
+    case BL_COMP_OP_SRC_IN     : return QPainter::CompositionMode_SourceIn;
+    case BL_COMP_OP_SRC_OUT    : return QPainter::CompositionMode_SourceOut;
+    case BL_COMP_OP_SRC_ATOP   : return QPainter::CompositionMode_SourceAtop;
+    case BL_COMP_OP_DST_OVER   : return QPainter::CompositionMode_DestinationOver;
+    case BL_COMP_OP_DST_COPY   : return QPainter::CompositionMode_Destination;
+    case BL_COMP_OP_DST_IN     : return QPainter::CompositionMode_DestinationIn;
+    case BL_COMP_OP_DST_OUT    : return QPainter::CompositionMode_DestinationOut;
+    case BL_COMP_OP_DST_ATOP   : return QPainter::CompositionMode_DestinationAtop;
+    case BL_COMP_OP_XOR        : return QPainter::CompositionMode_Xor;
+    case BL_COMP_OP_CLEAR      : return QPainter::CompositionMode_Clear;
+    case BL_COMP_OP_PLUS       : return QPainter::CompositionMode_Plus;
+    case BL_COMP_OP_MULTIPLY   : return QPainter::CompositionMode_Multiply;
+    case BL_COMP_OP_SCREEN     : return QPainter::CompositionMode_Screen;
+    case BL_COMP_OP_OVERLAY    : return QPainter::CompositionMode_Overlay;
+    case BL_COMP_OP_DARKEN     : return QPainter::CompositionMode_Darken;
+    case BL_COMP_OP_LIGHTEN    : return QPainter::CompositionMode_Lighten;
+    case BL_COMP_OP_COLOR_DODGE: return QPainter::CompositionMode_ColorDodge;
+    case BL_COMP_OP_COLOR_BURN : return QPainter::CompositionMode_ColorBurn;
+    case BL_COMP_OP_HARD_LIGHT : return QPainter::CompositionMode_HardLight;
+    case BL_COMP_OP_SOFT_LIGHT : return QPainter::CompositionMode_SoftLight;
+    case BL_COMP_OP_DIFFERENCE : return QPainter::CompositionMode_Difference;
+    case BL_COMP_OP_EXCLUSION  : return QPainter::CompositionMode_Exclusion;
+  }
+}
+
 #endif // QT_BL_CANVAS_H_INCLUDED

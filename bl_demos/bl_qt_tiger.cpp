@@ -118,14 +118,14 @@ struct Tiger {
       tp->qtPath.setFillRule(tp->fillRule == BL_FILL_RULE_NON_ZERO ? Qt::WindingFill : Qt::OddEvenFill);
 
       if (tp->fill) {
-        tp->qtBrush = QBrush(QColor(qRgb(tp->fillColor.r(), tp->fillColor.g(), tp->fillColor.b())));
+        tp->qtBrush = QBrush(blRgbaToQColor(tp->fillColor));
       }
 
       if (tp->stroke) {
         tp->blStrokedPath.addStrokedPath(tp->blPath, tp->blStrokeOptions, blDefaultApproximationOptions);
         tp->blStrokedPath.shrink();
 
-        tp->qtPen = QPen(QColor(qRgb(tp->strokeColor.r(), tp->strokeColor.g(), tp->strokeColor.b())));
+        tp->qtPen = QPen(blRgbaToQColor(tp->strokeColor));
         tp->qtPen.setWidthF(tp->blStrokeOptions.width);
         tp->qtPen.setMiterLimit(tp->blStrokeOptions.miterLimit);
 
@@ -274,7 +274,7 @@ public:
   void onRenderB2D(BLContext& ctx) noexcept {
     bool renderStroke = _renderStroke;
 
-    ctx.setFillStyle(BLRgba32(0xFF00007F));
+    ctx.setFillStyle(BLRgba32(0xFF00007Fu));
     ctx.fillAll();
 
     double minX = 17;

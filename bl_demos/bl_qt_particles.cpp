@@ -187,7 +187,7 @@ public:
       ctx.setCompositionMode(QPainter::CompositionMode_Plus);
       for (size_t i = 0; i < kCategoryCount; i++) {
         paths[i].setFillRule(Qt::WindingFill);
-        ctx.fillPath(paths[i], QBrush(QColor(qRgb(colors[i].r(), colors[i].g(), colors[i].b()))));
+        ctx.fillPath(paths[i], QBrush(blRgbaToQColor(colors[i])));
       }
     }
     else {

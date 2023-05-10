@@ -4,35 +4,6 @@
 #include "bl_qt_headers.h"
 #include "bl_qt_canvas.h"
 
-static QPainter::CompositionMode Blend2DCompOpToQtCompositionMode(BLCompOp compOp) {
-  switch (compOp) {
-    default:
-    case BL_COMP_OP_SRC_OVER   : return QPainter::CompositionMode_SourceOver;
-    case BL_COMP_OP_SRC_COPY   : return QPainter::CompositionMode_Source;
-    case BL_COMP_OP_SRC_IN     : return QPainter::CompositionMode_SourceIn;
-    case BL_COMP_OP_SRC_OUT    : return QPainter::CompositionMode_SourceOut;
-    case BL_COMP_OP_SRC_ATOP   : return QPainter::CompositionMode_SourceAtop;
-    case BL_COMP_OP_DST_OVER   : return QPainter::CompositionMode_DestinationOver;
-    case BL_COMP_OP_DST_COPY   : return QPainter::CompositionMode_Destination;
-    case BL_COMP_OP_DST_IN     : return QPainter::CompositionMode_DestinationIn;
-    case BL_COMP_OP_DST_OUT    : return QPainter::CompositionMode_DestinationOut;
-    case BL_COMP_OP_DST_ATOP   : return QPainter::CompositionMode_DestinationAtop;
-    case BL_COMP_OP_XOR        : return QPainter::CompositionMode_Xor;
-    case BL_COMP_OP_CLEAR      : return QPainter::CompositionMode_Clear;
-    case BL_COMP_OP_PLUS       : return QPainter::CompositionMode_Plus;
-    case BL_COMP_OP_MULTIPLY   : return QPainter::CompositionMode_Multiply;
-    case BL_COMP_OP_SCREEN     : return QPainter::CompositionMode_Screen;
-    case BL_COMP_OP_OVERLAY    : return QPainter::CompositionMode_Overlay;
-    case BL_COMP_OP_DARKEN     : return QPainter::CompositionMode_Darken;
-    case BL_COMP_OP_LIGHTEN    : return QPainter::CompositionMode_Lighten;
-    case BL_COMP_OP_COLOR_DODGE: return QPainter::CompositionMode_ColorDodge;
-    case BL_COMP_OP_COLOR_BURN : return QPainter::CompositionMode_ColorBurn;
-    case BL_COMP_OP_HARD_LIGHT : return QPainter::CompositionMode_HardLight;
-    case BL_COMP_OP_SOFT_LIGHT : return QPainter::CompositionMode_SoftLight;
-    case BL_COMP_OP_DIFFERENCE : return QPainter::CompositionMode_Difference;
-    case BL_COMP_OP_EXCLUSION  : return QPainter::CompositionMode_Exclusion;
-  }
-}
 class MainWindow : public QWidget {
   Q_OBJECT
 
@@ -253,7 +224,7 @@ public:
     ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
 
     ctx.setRenderHint(QPainter::Antialiasing, true);
-    ctx.setCompositionMode(Blend2DCompOpToQtCompositionMode(_compOp));
+    ctx.setCompositionMode(blCompOpToQPainterCompositionMode(_compOp));
 
     size_t i;
     size_t size = _coords.size();
@@ -266,9 +237,7 @@ public:
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
-
-          ctx.fillRect(QRectF(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize),
-                       QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
+          ctx.fillRect(QRectF(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize), blRgbaToQColor(_colors[i]));
         }
         break;
 
@@ -279,8 +248,7 @@ public:
 
           QPainterPath path;
           path.addRect(x, y, rectSize, rectSize);
-
-          ctx.fillPath(path, QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
+          ctx.fillPath(path, blRgbaToQColor(_colors[i]));
         }
         break;
 
@@ -295,8 +263,7 @@ public:
           path.lineTo(x + rectSize - rectSize / 3, y + rectSize);
           path.lineTo(x + rectSize / 3, y + rectSize);
           path.lineTo(x, y + rectSize / 3);
-
-          ctx.fillPath(path, QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
+          ctx.fillPath(path, blRgbaToQColor(_colors[i]));
         }
         break;
 
@@ -307,8 +274,7 @@ public:
 
           QPainterPath path;
           path.addRoundedRect(QRectF(x, y, rectSize, rectSize), 10, 10);
-
-          ctx.fillPath(path, QColor(_colors[i].r(), _colors[i].g(), _colors[i].b(), _colors[i].a()));
+          ctx.fillPath(path, blRgbaToQColor(_colors[i]));
         }
         break;
     }

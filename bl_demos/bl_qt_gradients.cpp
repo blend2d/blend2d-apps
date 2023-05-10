@@ -7,6 +7,7 @@ class MainWindow : public QWidget {
   Q_OBJECT
 public:
   // Widgets.
+  QComboBox _rendererSelect;
   QComboBox _gradientTypeSelect;
   QComboBox _extendModeSelect;
   QSlider _parameterSlider;
@@ -38,6 +39,9 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
+    QBLCanvas::initRendererSelectBox(&_rendererSelect);
+    connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
+
     _gradientTypeSelect.addItem("Linear", QVariant(int(BL_GRADIENT_TYPE_LINEAR)));
     _gradientTypeSelect.addItem("Radial", QVariant(int(BL_GRADIENT_TYPE_RADIAL)));
     _gradientTypeSelect.addItem("Conical", QVariant(int(BL_GRADIENT_TYPE_CONICAL)));
@@ -49,12 +53,13 @@ public:
     connect(&_extendModeSelect, SIGNAL(activated(int)), SLOT(onExtendModeChanged(int)));
 
     _parameterSlider.setOrientation(Qt::Horizontal);
-    _parameterSlider.setMinimum(1);
+    _parameterSlider.setMinimum(0);
     _parameterSlider.setMaximum(500);
     _parameterSlider.setSliderPosition(250);
     connect(&_parameterSlider, SIGNAL(valueChanged(int)), SLOT(onParameterChanged(int)));
 
-    _canvas.onRenderB2D = std::bind(&MainWindow::onRender, this, std::placeholders::_1);
+    _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
+    _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
     _canvas.onMouseEvent = std::bind(&MainWindow::onMouseEvent, this, std::placeholders::_1);
 
     QPushButton* colorsButton = new QPushButton("Colors");
@@ -63,17 +68,19 @@ public:
     QPushButton* randomizeButton = new QPushButton("Random");
     connect(randomizeButton, SIGNAL(clicked()), SLOT(onRandomizeVertices()));
 
-    grid->addWidget(new QLabel("Gradient:"), 0, 0, Qt::AlignRight);
-    grid->addWidget(&_gradientTypeSelect, 0, 1);
-    grid->addItem(new QSpacerItem(0, 10), 0, 2);
-    grid->addWidget(new QLabel("Extend Mode:"), 0, 3);
-    grid->addWidget(&_extendModeSelect, 0, 4);
-    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 5);
-    grid->addWidget(colorsButton, 0, 6);
-    grid->addWidget(randomizeButton, 0, 7);
+    grid->addWidget(new QLabel("Renderer:"), 0, 0);
+    grid->addWidget(&_rendererSelect, 0, 1);
+    grid->addWidget(new QLabel("Gradient:"), 0, 2, Qt::AlignRight);
+    grid->addWidget(&_gradientTypeSelect, 0, 3);
+    grid->addItem(new QSpacerItem(0, 10), 0, 4);
+    grid->addWidget(new QLabel("Extend Mode:"), 0, 5);
+    grid->addWidget(&_extendModeSelect, 0, 6);
+    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 7);
+    grid->addWidget(colorsButton, 0, 8);
+    grid->addWidget(randomizeButton, 0, 9);
 
     grid->addWidget(new QLabel("Radius:"), 1, 0, Qt::AlignRight);
-    grid->addWidget(&_parameterSlider, 1, 1, 1, 7);
+    grid->addWidget(&_parameterSlider, 1, 1, 1, 9);
 
     vBox->addItem(grid);
     vBox->addWidget(&_canvas);
@@ -105,6 +112,10 @@ public:
       }
     }
     return closestIndex;
+  }
+
+  double sliderAngle(double scale) {
+    return double(_parameterSlider.value()) / 500.0 * scale;
   }
 
   void onMouseEvent(QMouseEvent* event) {
@@ -143,6 +154,10 @@ public:
     }
   }
 
+  Q_SLOT void onRendererChanged(int index) {
+    _canvas.setRendererType(_rendererSelect.itemData(index).toInt());
+  }
+
   Q_SLOT void onGradientTypeChanged(int index) {
     _numPoints = index == BL_GRADIENT_TYPE_CONICAL ? 1 : 2;
     _gradientType = (BLGradientType)index;
@@ -176,7 +191,7 @@ public:
     _canvas.updateCanvas();
   }
 
-  void onRender(BLContext& ctx) {
+  void onRenderB2D(BLContext& ctx) noexcept {
     _gradient.setType(_gradientType);
     _gradient.setExtendMode(_gradientExtendMode);
 
@@ -187,7 +202,7 @@ public:
       _gradient.setValues(BLRadialGradientValues { _pts[0].x, _pts[0].y, _pts[1].x, _pts[1].y, double(_parameterSlider.value()) });
     }
     else {
-      _gradient.setValues(BLConicalGradientValues { _pts[0].x, _pts[0].y, double(_parameterSlider.value()) });
+      _gradient.setValues(BLConicalGradientValues { _pts[0].x, _pts[0].y, sliderAngle(3.14159265358979323846 * 2)});
     }
 
     ctx.setFillStyle(_gradient);
@@ -196,6 +211,55 @@ public:
     for (size_t i = 0; i < _numPoints; i++) {
       ctx.setFillStyle(i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
       ctx.fillCircle(_pts[i].x, _pts[i].y, 2);
+    }
+  }
+
+  void onRenderQt(QPainter& ctx) noexcept {
+    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(255, 0, 0));
+    ctx.setRenderHint(QPainter::Antialiasing, true);
+
+
+    QGradientStops stops;
+    for (size_t i = 0; i < _gradient.size(); i++) {
+      const BLGradientStop& stop = _gradient.stopAt(i);
+      stops.append(QGradientStop(qreal(stop.offset), blRgbaToQColor(stop.rgba)));
+    }
+
+    QGradient::Spread spread = QGradient::PadSpread;
+    if (_gradientExtendMode == BL_EXTEND_MODE_REPEAT) spread = QGradient::RepeatSpread;
+    if (_gradientExtendMode == BL_EXTEND_MODE_REFLECT) spread = QGradient::ReflectSpread;
+
+    switch (_gradientType) {
+      case BL_GRADIENT_TYPE_LINEAR: {
+        QLinearGradient g(_pts[0].x, _pts[0].y, _pts[1].x, _pts[1].y);
+        g.setStops(stops);
+        g.setSpread(spread);
+        ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QBrush(g));
+        break;
+      }
+
+      case BL_GRADIENT_TYPE_RADIAL: {
+        QRadialGradient g(_pts[0].x, _pts[0].y, double(_parameterSlider.value()), _pts[1].x, _pts[1].y);
+        g.setStops(stops);
+        g.setSpread(spread);
+        ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QBrush(g));
+        break;
+      }
+
+      case BL_GRADIENT_TYPE_CONICAL: {
+        QConicalGradient g(_pts[0].x, _pts[0].y, sliderAngle(360.0));
+        g.setSpread(spread);
+        g.setStops(stops);
+        ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QBrush(g));
+        break;
+      }
+    }
+
+    for (size_t i = 0; i < _numPoints; i++) {
+      QColor color = blRgbaToQColor(i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
+      ctx.setPen(QPen(Qt::NoPen));
+      ctx.setBrush(color);
+      ctx.drawEllipse(QPointF(_pts[i].x, _pts[i].y), 2, 2);
     }
   }
 };

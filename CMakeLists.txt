@@ -243,8 +243,10 @@ set(BLEND2D_DEMOS
   bl_qt_bounces
   bl_qt_circles
   bl_qt_particles
+  bl_qt_pattern_fill
   bl_qt_polys
   bl_qt_rects
+  bl_qt_sprites
   bl_qt_tiger
 )
 
