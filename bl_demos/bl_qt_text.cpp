@@ -155,19 +155,16 @@ private Q_SLOTS:
 
 public:
   void onRenderB2D(BLContext& ctx) noexcept {
+    ctx.fillAll(BLRgba32(0xFF000000));
+
     BLFont font;
     font.createFromFace(_blFace, _slider->value());
 
-    ctx.setFillStyle(BLRgba32(0xFF000000));
-    ctx.fillAll();
-
     // Qt uses UTF-16 strings, Blend2D can process them natively.
     QString text = _text->text();
-    ctx.setFillStyle(BLRgba32(0xFFFFFFFF));
-
     PerformanceTimer timer;
     timer.start();
-    ctx.fillUtf16Text(BLPoint(10, 10 + font.size()), font, reinterpret_cast<const uint16_t*>(text.constData()), text.length());
+    ctx.fillUtf16Text(BLPoint(10, 10 + font.size()), font, reinterpret_cast<const uint16_t*>(text.constData()), text.length(), BLRgba32(0xFFFFFFFF));
     timer.stop();
     _updateTitle(timer.duration());
   }
@@ -196,7 +193,7 @@ public:
 
   void _updateTitle(double duration) {
     char buf[256];
-    snprintf(buf, 256, "Text Sample - Size %d, Duration %0.3f [ms]", int(_slider->value()), duration);
+    snprintf(buf, 256, "Text Sample [Size %dpx TextRenderTime %0.3fms]", int(_slider->value()), duration);
 
     QString title = QString::fromUtf8(buf);
     if (title != windowTitle())

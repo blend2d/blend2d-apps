@@ -29,11 +29,15 @@ public:
     RendererQt = 0xFF
   };
 
-  uint32_t _rendererType;
-  bool _dirty;
-  double _fps;
-  uint32_t _frameCount;
+  uint32_t _rendererType {};
+  bool _dirty {};
+  double _fps {};
+  uint32_t _frameCount {};
   QElapsedTimer _elapsedTimer;
+
+  size_t _renderedFrames {};
+  size_t _renderTimePos = 31;
+  double _renderTime[32] {};
 
   std::function<void(BLContext& ctx)> onRenderB2D;
   std::function<void(QPainter& ctx)> onRenderQt;
@@ -58,7 +62,10 @@ public:
   inline uint32_t rendererType() const { return _rendererType; }
   inline double fps() const { return _fps; }
 
-  static void initRendererSelectBox(QComboBox* dst);
+  double lastRenderTime() const;
+  double averageRenderTime() const;
+
+  static void initRendererSelectBox(QComboBox* dst, bool blend2DOnly = false);
   static QString rendererTypeToString(uint32_t rendererType);
 };
 

@@ -1,25 +1,7 @@
-// Blend2D - 2D Vector Graphics Powered by a JIT Compiler
+// This file is part of Blend2D project <https://blend2d.com>
 //
-//  * Official Blend2D Home Page: https://blend2d.com
-//  * Official Github Repository: https://github.com/blend2d/blend2d
-//
-// Copyright (c) 2017-2020 The Blend2D Authors
-//
-// This software is provided 'as-is', without any express or implied
-// warranty. In no event will the authors be held liable for any damages
-// arising from the use of this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-// 1. The origin of this software must not be misrepresented; you must not
-//    claim that you wrote the original software. If you use this software
-//    in a product, an acknowledgment in the product documentation would be
-//    appreciated but is not required.
-// 2. Altered source versions must be plainly marked as such, and must not be
-//    misrepresented as being the original software.
-// 3. This notice may not be removed or altered from any source distribution.
+// See LICENSE.md for license and copyright information
+// SPDX-License-Identifier: Zlib
 
 #include <stdio.h>
 #include <string.h>
@@ -41,13 +23,13 @@
   #include "./module_qt.h"
 #endif // BLEND2D_APPS_ENABLE_QT
 
+#if defined(BLEND2D_APPS_ENABLE_SKIA)
+  #include "./module_skia.h"
+#endif // BLEND2D_APPS_ENABLE_SKIA
+
 #define ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
 
 namespace blbench {
-
-// ============================================================================
-// [bench::BenchApp - Constants]
-// ============================================================================
 
 static const char* benchIdNameList[] = {
   "FillRectA",
@@ -115,7 +97,7 @@ static const char* benchStyleModeList[] = {
   "Radial@Pad",
   "Radial@Repeat",
   "Radial@Reflect",
-  "Conical",
+  "Conic",
   "Pattern_NN",
   "Pattern_BI"
 };
@@ -139,16 +121,17 @@ struct DurationFormat {
   char data[64];
 
   inline void format(uint64_t duration) {
-    if (duration < 10000)
-      snprintf(data, 64, "%llu.%llu", (unsigned long long)(duration) / 1000, (unsigned long long)((duration / 100) % 10));
+    uint64_t ms = duration / 1000u;
+    uint32_t us = duration % 1000u;
+
+    if (duration < 1000)
+      snprintf(data, 64, "%llu.%02llu", (unsigned long long)ms, (unsigned long long)(us / 10));
+    else if (duration < 10000 && (us / 100u) > 0u)
+      snprintf(data, 64, "%llu.%01llu", (unsigned long long)ms, (unsigned long long)(us / 100));
     else
-      snprintf(data, 64, "%llu", (unsigned long long )(duration / 1000));
+      snprintf(data, 64, "%llu", (unsigned long long )ms);
   }
 };
-
-// ============================================================================
-// [bench::BenchApp - Construction / Destruction]
-// ============================================================================
 
 BenchApp::BenchApp(int argc, char** argv)
   : _argc(argc),
@@ -159,10 +142,6 @@ BenchApp::BenchApp(int argc, char** argv)
     _repeat(1),
     _quantity(1000) {}
 BenchApp::~BenchApp() {}
-
-// ============================================================================
-// [bench::BenchApp - Args]
-// ============================================================================
 
 bool BenchApp::hasArg(const char* key) const {
   int argc = _argc;
@@ -205,10 +184,6 @@ int BenchApp::intValueOf(const char* key, int defaultValue) const {
 
   return defaultValue;
 }
-
-// ============================================================================
-// [bench::BenchApp - Init]
-// ============================================================================
 
 bool BenchApp::init() {
   _isolated = hasArg("--isolated");
@@ -286,10 +261,6 @@ bool BenchApp::readImage(BLImage& image, const char* name, const void* data, siz
   }
 }
 
-// ============================================================================
-// [bench::BenchApp - Helpers]
-// ============================================================================
-
 bool BenchApp::isStyleEnabled(uint32_t style) {
   if (_deepBench)
     return true;
@@ -298,22 +269,15 @@ bool BenchApp::isStyleEnabled(uint32_t style) {
   return style == kBenchStyleSolid     ||
          style == kBenchStyleLinearPad ||
          style == kBenchStyleRadialPad ||
-         style == kBenchStyleConical   ||
+         style == kBenchStyleConic     ||
          style == kBenchStylePatternNN ||
          style == kBenchStylePatternBI ;
 }
 
-// ============================================================================
-// [bench::BenchApp - Run]
-// ============================================================================
-
 int BenchApp::run() {
-  BenchParams params;
-  memset(&params, 0, sizeof(params));
-
+  BenchParams params{};
   params.screenW = 600;
   params.screenH = 512;
-
   params.format = BL_FORMAT_PRGB32;
   params.quantity = _quantity;
   params.strokeWidth = 2.0;
@@ -334,46 +298,49 @@ int BenchApp::run() {
 
     for (uint32_t i = 0; i < featureCount; i++) {
       if ((si.cpuFeatures & features[i]) == features[i]) {
-        Blend2DModule mod(0, features[i]);
-        runModule(mod, params);
+        BenchModule* mod = createBlend2DModule(0, features[i]);
+        runModule(*mod, params);
+        delete mod;
       }
     }
   }
   else {
-    {
-      Blend2DModule mod(0);
-      runModule(mod, params);
-    }
+    BenchModule* mod;
 
-    {
-      Blend2DModule mod(2);
-      runModule(mod, params);
-    }
-    {
-      Blend2DModule mod(4);
-      runModule(mod, params);
-    }
+    mod = createBlend2DModule(0);
+    runModule(*mod, params);
+    delete mod;
 
-    #if defined(BLEND2D_APPS_ENABLE_AGG)
-    {
-      AGGModule mod;
-      runModule(mod, params);
-    }
-    #endif
+    mod = createBlend2DModule(2);
+    runModule(*mod, params);
+    delete mod;
 
-    #if defined(BLEND2D_APPS_ENABLE_CAIRO)
-    {
-      CairoModule mod;
-      runModule(mod, params);
-    }
-    #endif
+    mod = createBlend2DModule(4);
+    runModule(*mod, params);
 
-    #if defined(BLEND2D_APPS_ENABLE_QT)
-    {
-      QtModule mod;
-      runModule(mod, params);
-    }
-    #endif
+#if defined(BLEND2D_APPS_ENABLE_AGG)
+    mod = createAggModule();
+    runModule(*mod, params);
+    delete mod;
+#endif
+
+#if defined(BLEND2D_APPS_ENABLE_CAIRO)
+    mod = createCairoModule();
+    runModule(*mod, params);
+    delete mod;
+#endif
+
+#if defined(BLEND2D_APPS_ENABLE_QT)
+    mod = createQtModule();
+    runModule(*mod, params);
+    delete mod;
+#endif
+
+#if defined(BLEND2D_APPS_ENABLE_SKIA)
+    mod = createSkiaModule();
+    runModule(*mod, params);
+    delete mod;
+#endif
   }
 
   return 0;
@@ -395,9 +362,9 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params) {
   }
 
   for (uint32_t compOp = compOpFirst; compOp <= compOpLast; compOp++) {
-    if (!mod.supportsCompOp(compOp))
-      continue;
     params.compOp = BLCompOp(compOp);
+    if (!mod.supportsCompOp(params.compOp))
+      continue;
 
     for (uint32_t style = 0; style < kBenchStyleCount; style++) {
       if (!isStyleEnabled(style) || !mod.supportsStyle(style))

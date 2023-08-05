@@ -1,25 +1,7 @@
-// Blend2D - 2D Vector Graphics Powered by a JIT Compiler
+// This file is part of Blend2D project <https://blend2d.com>
 //
-//  * Official Blend2D Home Page: https://blend2d.com
-//  * Official Github Repository: https://github.com/blend2d/blend2d
-//
-// Copyright (c) 2017-2020 The Blend2D Authors
-//
-// This software is provided 'as-is', without any express or implied
-// warranty. In no event will the authors be held liable for any damages
-// arising from the use of this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-// 1. The origin of this software must not be misrepresented; you must not
-//    claim that you wrote the original software. If you use this software
-//    in a product, an acknowledgment in the product documentation would be
-//    appreciated but is not required.
-// 2. Altered source versions must be plainly marked as such, and must not be
-//    misrepresented as being the original software.
-// 3. This notice may not be removed or altered from any source distribution.
+// See LICENSE.md for license and copyright information
+// SPDX-License-Identifier: Zlib
 
 #ifdef BLEND2D_APPS_ENABLE_AGG
 
@@ -27,295 +9,217 @@
 #include "./module_agg.h"
 
 #include <algorithm>
-#include "agg_conv_transform.h"
-#include "agg_conv_stroke.h"
-#include "agg_rounded_rect.h"
-#include "agg_trans_affine.h"
+#include "agg2d/agg2d.h"
 
 namespace blbench {
 
-// ============================================================================
-// [bench::AGGRectSource]
-// ============================================================================
+static inline uint32_t toAgg2DBlendMode(BLCompOp compOp) {
+  switch (compOp) {
+    case BL_COMP_OP_CLEAR      : return uint32_t(Agg2D::BlendClear); break;
+    case BL_COMP_OP_SRC_COPY   : return uint32_t(Agg2D::BlendSrc); break;
+    case BL_COMP_OP_DST_COPY   : return uint32_t(Agg2D::BlendDst); break;
+    case BL_COMP_OP_SRC_OVER   : return uint32_t(Agg2D::BlendSrcOver); break;
+    case BL_COMP_OP_DST_OVER   : return uint32_t(Agg2D::BlendDstOver); break;
+    case BL_COMP_OP_SRC_IN     : return uint32_t(Agg2D::BlendSrcIn); break;
+    case BL_COMP_OP_DST_IN     : return uint32_t(Agg2D::BlendDstIn); break;
+    case BL_COMP_OP_SRC_OUT    : return uint32_t(Agg2D::BlendSrcOut); break;
+    case BL_COMP_OP_DST_OUT    : return uint32_t(Agg2D::BlendDstOut); break;
+    case BL_COMP_OP_SRC_ATOP   : return uint32_t(Agg2D::BlendSrcAtop); break;
+    case BL_COMP_OP_DST_ATOP   : return uint32_t(Agg2D::BlendDstAtop); break;
+    case BL_COMP_OP_XOR        : return uint32_t(Agg2D::BlendXor); break;
+    case BL_COMP_OP_PLUS       : return uint32_t(Agg2D::BlendAdd); break;
+    case BL_COMP_OP_MULTIPLY   : return uint32_t(Agg2D::BlendMultiply); break;
+    case BL_COMP_OP_SCREEN     : return uint32_t(Agg2D::BlendScreen); break;
+    case BL_COMP_OP_OVERLAY    : return uint32_t(Agg2D::BlendOverlay); break;
+    case BL_COMP_OP_DARKEN     : return uint32_t(Agg2D::BlendDarken); break;
+    case BL_COMP_OP_LIGHTEN    : return uint32_t(Agg2D::BlendLighten); break;
+    case BL_COMP_OP_COLOR_DODGE: return uint32_t(Agg2D::BlendColorDodge); break;
+    case BL_COMP_OP_COLOR_BURN : return uint32_t(Agg2D::BlendColorBurn); break;
+    case BL_COMP_OP_HARD_LIGHT : return uint32_t(Agg2D::BlendHardLight); break;
+    case BL_COMP_OP_SOFT_LIGHT : return uint32_t(Agg2D::BlendSoftLight); break;
+    case BL_COMP_OP_DIFFERENCE : return uint32_t(Agg2D::BlendDifference); break;
+    case BL_COMP_OP_EXCLUSION  : return uint32_t(Agg2D::BlendExclusion); break;
 
-class AGGRectSource {
-public:
-  BLBox _box;
-  size_t _index;
-
-  inline AGGRectSource(const BLRect rect) {
-    _box.x0 = rect.x;
-    _box.y0 = rect.y;
-    _box.x1 = rect.x + rect.w;
-    _box.y1 = rect.y + rect.h;
-    _index = 0;
+    default:
+      return 0xFFFFFFFFu;
   }
+}
 
-  inline void rewind(unsigned) { _index = 0; }
-  inline unsigned vertex(double* x, double* y) {
-    switch (_index) {
-      case 0:
-        *x = _box.x0;
-        *y = _box.y0;
-        _index++;
-        return agg::path_cmd_move_to;
-      case 1:
-        *x = _box.x1;
-        *y = _box.y0;
-        _index++;
-        return agg::path_cmd_line_to;
-      case 2:
-        *x = _box.x1;
-        *y = _box.y1;
-        _index++;
-        return agg::path_cmd_line_to;
-      case 3:
-        *x = _box.x0;
-        *y = _box.y1;
-        _index++;
-        return agg::path_cmd_line_to;
+static inline Agg2D::Color toAgg2DColor(BLRgba32 rgba32) {
+  return Agg2D::Color(rgba32.r(), rgba32.g(), rgba32.b(), rgba32.a());
+}
 
-      case 4:
-        _index++;
-        return agg::path_cmd_end_poly | agg::path_flags_close;
+struct AggModule : public BenchModule {
+  Agg2D _ctx;
 
-      default:
-        return agg::path_cmd_stop;
-    }
-  }
+  AggModule();
+  virtual ~AggModule();
+
+  void renderScanlines(const BLRect& rect, uint32_t style);
+  void fillRectAA(int x, int y, int w, int h, uint32_t style);
+
+  template<typename T>
+  void rasterizePath(T& path, bool stroke);
+
+  virtual bool supportsCompOp(BLCompOp compOp) const;
+  virtual bool supportsStyle(uint32_t style) const;
+
+  virtual void onBeforeRun();
+  virtual void onAfterRun();
+
+  void prepareFillStrokeOption(bool stroke);
+
+  template<typename RectT>
+  void setupStyle(bool stroke, const RectT& rect);
+
+  virtual void onDoRectAligned(bool stroke);
+  virtual void onDoRectSmooth(bool stroke);
+  virtual void onDoRectRotated(bool stroke);
+  virtual void onDoRoundSmooth(bool stroke);
+  virtual void onDoRoundRotated(bool stroke);
+  virtual void onDoPolygon(uint32_t mode, uint32_t complexity);
+  virtual void onDoShape(bool stroke, const BLPoint* pts, size_t count);
 };
 
-// ============================================================================
-// [bench::AGGRandomPolySource]
-// ============================================================================
-
-class AGGRandomPolySource {
-public:
-  BLPoint _tr;
-  double _wh;
-  BenchRandom& _rnd;
-  size_t _remaining;
-  size_t _remainingSaved;
-  agg::path_commands_e _cmd;
-
-  inline AGGRandomPolySource(const BLPoint& tr, double wh, BenchRandom& rnd, size_t count)
-    : _tr(tr),
-      _wh(wh),
-      _rnd(rnd),
-      _remaining(count + 1),
-      _remainingSaved(count),
-      _cmd(agg::path_cmd_move_to) {}
-
-  inline void rewind(unsigned) { _remaining = _remainingSaved + 1; }
-  inline unsigned vertex(double* x, double* y) {
-    if (_remaining <= 1) {
-      if (_remaining == 0)
-        return agg::path_cmd_stop;
-      _remaining--;
-      return agg::path_cmd_end_poly | agg::path_flags_close;
-    }
-
-    agg::path_commands_e cmd = _cmd;
-    *x = _rnd.nextDouble(_tr.x, _tr.x + _wh);
-    *y = _rnd.nextDouble(_tr.y, _tr.y + _wh);
-
-    _cmd = agg::path_cmd_line_to;
-    _remaining--;
-    return cmd;
-  }
-};
-
-// ============================================================================
-// [bench::AGGShapeDataSource]
-// ============================================================================
-
-class AGGShapeDataSource {
-public:
-  const BLPoint* _data;
-  size_t _size;
-  size_t _index;
-  double _scale;
-  BLPoint _tr;
-  agg::path_commands_e _cmd;
-
-  inline AGGShapeDataSource(const BLPoint* data, size_t size, const BLPoint& tr, double scale) noexcept {
-    _data = data;
-    _size = size;
-    _index = 0;
-    _tr = tr;
-    _scale = scale;
-    _cmd = agg::path_cmd_move_to;
-  }
-
-  inline void rewind(unsigned) {}
-  inline unsigned vertex(double* x, double* y) {
-    if (_index >= _size)
-      return agg::path_cmd_stop;
-
-    agg::path_commands_e cmd = _cmd;
-    if (_data[_index].x == -1.0) {
-      cmd = agg::path_cmd_end_poly;
-      _cmd = agg::path_cmd_move_to;
-    }
-    else {
-      _cmd = agg::path_cmd_line_to;
-      *x = _data[_index].x * _scale + _tr.x;
-      *y = _data[_index].y * _scale + _tr.y;
-    }
-
-    _index++;
-    return cmd;
-  }
-};
-
-// ============================================================================
-// [bench::AGGModule - Construction / Destruction]
-// ============================================================================
-
-AGGModule::AGGModule() {
+AggModule::AggModule() {
   strcpy(_name, "AGG");
 }
-AGGModule::~AGGModule() {}
+AggModule::~AggModule() {}
 
-// ============================================================================
-// [bench::AGGModule - AGG]
-// ============================================================================
-
-void AGGModule::renderScanlines(const BLRect& rect, uint32_t style) {
-  switch (style) {
-    case kBenchStyleSolid: {
-      BLRgba32 c(_rndColor.nextRgba32());
-      agg::rgba8 color(uint8_t(c.r()), uint8_t(c.g()), uint8_t(c.b()), uint8_t(c.a()));
-      color.premultiply();
-      _rendererSolid.color(color);
-      agg::render_scanlines(_rasterizer, _scanline, _rendererSolid);
-      break;
-    }
-  }
-
-  _rasterizer.reset();
+bool AggModule::supportsCompOp(BLCompOp compOp) const {
+  return toAgg2DBlendMode(compOp) != 0xFFFFFFFFu;
 }
 
-void AGGModule::fillRectAA(int x, int y, int w, int h, uint32_t style) {
-  switch (style) {
-    case kBenchStyleSolid: {
-      BLRgba32 c(_rndColor.nextRgba32());
-      agg::rgba8 color(uint8_t(c.r()), uint8_t(c.g()), uint8_t(c.b()), uint8_t(c.a()));
-      color.premultiply();
-      _rendererBase.blend_bar(x, y, x + w - 1, y + h - 1, color, 0xFFu);
-      break;
-    }
-  }
+bool AggModule::supportsStyle(uint32_t style) const {
+  return style == kBenchStyleSolid         ||
+         style == kBenchStyleLinearPad     ||
+         style == kBenchStyleLinearRepeat  ||
+         style == kBenchStyleLinearReflect ||
+         style == kBenchStyleRadialPad     ||
+         style == kBenchStyleRadialRepeat  ||
+         style == kBenchStyleRadialReflect ;
 }
 
-template<typename T>
-void AGGModule::rasterizePath(T& path, bool stroke) {
-  if (stroke) {
-    agg::conv_stroke<T> strokedPath(path);
-    strokedPath.width(_params.strokeWidth);
-    _rasterizer.add_path(strokedPath);
-  }
-  else {
-    _rasterizer.add_path(path);
-  }
-}
-
-// ============================================================================
-// [bench::AGGModule - Interface]
-// ============================================================================
-
-bool AGGModule::supportsCompOp(uint32_t compOp) const {
-  // TODO: SRC_COPY not supported yet.
-  return /*compOp == BL_COMP_OP_SRC_COPY ||*/
-         compOp == BL_COMP_OP_SRC_OVER ;
-}
-
-bool AGGModule::supportsStyle(uint32_t style) const {
-  return style == kBenchStyleSolid;
-}
-
-void AGGModule::onBeforeRun() {
+void AggModule::onBeforeRun() {
   int w = int(_params.screenW);
   int h = int(_params.screenH);
-  uint32_t style = _params.style;
 
-  // Initialize the sprites.
+  BLImageData surfaceData;
+  _surface.create(w, h, BL_FORMAT_PRGB32);
+  _surface.makeMutable(&surfaceData);
 
-  // TODO: Not supported yet,
-  /*
-  for (uint32_t i = 0; i < kBenchNumSprites; i++) {
-    const BLImage& sprite = _sprites[i];
+  _ctx.attach(
+    static_cast<unsigned char*>(surfaceData.pixelData),
+    unsigned(surfaceData.size.w),
+    unsigned(surfaceData.size.h),
+    int(surfaceData.stride));
 
-    BLImageData spriteData;
-    sprite.getData(&spriteData);
+  _ctx.fillEvenOdd(false);
+  _ctx.noLine();
+  _ctx.blendMode(Agg2D::BlendSrc);
+  _ctx.clearAll(Agg2D::Color(0, 0, 0, 0));
+  _ctx.blendMode(Agg2D::BlendMode(toAgg2DBlendMode(_params.compOp)));
+}
 
-    int stride = int(spriteData.stride);
-    int format = AGGUtils::toAGGFormat(spriteData.format);
-    unsigned char* pixels = static_cast<unsigned char*>(spriteData.pixelData);
+void AggModule::onAfterRun() {
+  _ctx.attach(nullptr, 0, 0, 0);
+}
 
-    cairo_surface_t* cairoSprite = cairo_image_surface_create_for_data(
-      pixels, cairo_format_t(format), spriteData.size.w, spriteData.size.h, stride);
+void AggModule::prepareFillStrokeOption(bool stroke) {
+  if (stroke)
+    _ctx.noFill();
+  else
+    _ctx.noLine();
+}
 
-    _cairoSprites[i] = cairoSprite;
-  }
-  */
+template<typename RectT>
+void AggModule::setupStyle(bool stroke, const RectT& rect) {
+  switch (_params.style) {
+    case kBenchStyleSolid: {
+      BLRgba32 color = _rndColor.nextRgba32();
+      if (!stroke)
+        _ctx.fillColor(toAgg2DColor(color));
+      else
+        _ctx.lineColor(toAgg2DColor(color));
+      break;
+    }
 
-  // Initialize AGG.
-  {
-    BLImageData surfaceData;
-    _surface.create(w, h, _params.format);
-    _surface.makeMutable(&surfaceData);
+    case kBenchStyleLinearPad:
+    case kBenchStyleLinearRepeat:
+    case kBenchStyleLinearReflect: {
+      double x1 = rect.x + rect.w * 0.2;
+      double y1 = rect.y + rect.h * 0.2;
+      double x2 = rect.x + rect.w * 0.8;
+      double y2 = rect.y + rect.h * 0.8;
 
-    _aggSurface.attach((unsigned char*)surfaceData.pixelData, unsigned(w), unsigned(h), int(surfaceData.stride));
-    _pixfmt.attach(_aggSurface);
-    _rendererBase.attach(_pixfmt);
-    _rendererSolid.attach(_rendererBase);
+      BLRgba32 c1 = _rndColor.nextRgba32();
+      BLRgba32 c2 = _rndColor.nextRgba32();
+      BLRgba32 c3 = _rndColor.nextRgba32();
 
-    _aggSurface.clear(uint32_t(0));
-    _rasterizer.clip_box(0, 0, w - 1, h - 1);
+      if (!stroke)
+        _ctx.fillLinearGradient(x1, y1, x2, y2, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+      else
+        _ctx.lineLinearGradient(x1, y1, x2, y2, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+      break;
+    }
+
+    case kBenchStyleRadialPad:
+    case kBenchStyleRadialRepeat:
+    case kBenchStyleRadialReflect: {
+      double cx = rect.x + rect.w / 2.0;
+      double cy = rect.y + rect.h / 2.0;
+      double cr = (rect.w + rect.h) / 4.0;
+
+      BLRgba32 c1 = _rndColor.nextRgba32();
+      BLRgba32 c2 = _rndColor.nextRgba32();
+      BLRgba32 c3 = _rndColor.nextRgba32();
+
+      if (!stroke)
+        _ctx.fillRadialGradient(cx, cy, cr, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+      else
+        _ctx.lineRadialGradient(cx, cy, cr, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+      break;
+    }
   }
 }
 
-void AGGModule::onAfterRun() {}
-
-void AGGModule::onDoRectAligned(bool stroke) {
+void AggModule::onDoRectAligned(bool stroke) {
   BLSizeI bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
   int wh = _params.shapeSize;
 
-  _rasterizer.filling_rule(agg::fill_non_zero);
+  prepareFillStrokeOption(stroke);
 
-  for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
-
-    if (!stroke) {
-      fillRectAA(rect.x, rect.y, rect.w, rect.h, style);
+  if (_params.style == kBenchStyleSolid && !stroke) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRectI rect = _rndCoord.nextRectI(bounds, wh, wh);
+      _ctx.fillRectangleI(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, toAgg2DColor(_rndColor.nextRgba32()));
     }
-    else {
-      BLRect rectD(rect);
-      AGGRectSource r(rectD);
-      rasterizePath(r, stroke);
-      renderScanlines(rect, style);
+  }
+  else {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRectI rect = _rndCoord.nextRectI(bounds, wh, wh);
+      setupStyle(stroke, rect);
+      _ctx.rectangle(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
     }
   }
 }
 
-void AGGModule::onDoRectSmooth(bool stroke) {
+void AggModule::onDoRectSmooth(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
   double wh = _params.shapeSize;
 
-  _rasterizer.filling_rule(agg::fill_non_zero);
+  prepareFillStrokeOption(stroke);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-    AGGRectSource r(rect);
-    rasterizePath(r, stroke);
-    renderScanlines(rect, style);
+    BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
+    setupStyle(stroke, rect);
+    _ctx.rectangle(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
   }
 }
 
-void AGGModule::onDoRectRotated(bool stroke) {
+void AggModule::onDoRectRotated(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
 
@@ -324,44 +228,40 @@ void AGGModule::onDoRectRotated(bool stroke) {
   double wh = _params.shapeSize;
   double angle = 0.0;
 
-  _rasterizer.filling_rule(agg::fill_non_zero);
+  prepareFillStrokeOption(stroke);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
     BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-    AGGRectSource r(rect);
 
     agg::trans_affine affine;
     affine.translate(-cx, -cy);
     affine.rotate(angle);
     affine.translate(cx, cy);
 
-    agg::conv_transform<AGGRectSource, agg::trans_affine> transformedRRect(r, affine);
-
-    rasterizePath(transformedRRect, stroke);
-    renderScanlines(rect, style);
+    _ctx.affine(affine);
+    setupStyle(stroke, rect);
+    _ctx.rectangle(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
+    _ctx.resetTransformations();
   }
 }
 
-void AGGModule::onDoRoundSmooth(bool stroke) {
+void AggModule::onDoRoundSmooth(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
   double wh = _params.shapeSize;
 
-  _rasterizer.filling_rule(agg::fill_non_zero);
+  prepareFillStrokeOption(stroke);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+    BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
     double radius = _rndExtra.nextDouble(4.0, 40.0);
 
-    agg::rounded_rect r(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, radius);
-    r.normalize_radius();
-
-    rasterizePath(r, stroke);
-    renderScanlines(rect, style);
+    setupStyle(stroke, rect);
+    _ctx.roundedRect(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, radius);
   }
 }
 
-void AGGModule::onDoRoundRotated(bool stroke) {
+void AggModule::onDoRoundRotated(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
 
@@ -370,28 +270,25 @@ void AGGModule::onDoRoundRotated(bool stroke) {
   double wh = _params.shapeSize;
   double angle = 0.0;
 
-  _rasterizer.filling_rule(agg::fill_non_zero);
+  prepareFillStrokeOption(stroke);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
     BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
     double radius = _rndExtra.nextDouble(4.0, 40.0);
 
-    agg::rounded_rect r(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, radius);
-    r.normalize_radius();
-
     agg::trans_affine affine;
     affine.translate(-cx, -cy);
     affine.rotate(angle);
     affine.translate(cx, cy);
+    _ctx.affine(affine);
 
-    agg::conv_transform<agg::rounded_rect, agg::trans_affine> transformedRRect(r, affine);
-
-    rasterizePath(transformedRRect, stroke);
-    renderScanlines(rect, style);
+    setupStyle(stroke, rect);
+    _ctx.roundedRect(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, radius);
+    _ctx.resetTransformations();
   }
 }
 
-void AGGModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
+void AggModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
   BLSizeI bounds(_params.screenW - _params.shapeSize,
                  _params.screenH - _params.shapeSize);
 
@@ -399,32 +296,74 @@ void AGGModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
   bool stroke = (mode == 2);
   double wh = _params.shapeSize;
 
-  _rasterizer.filling_rule(mode == 1 ? agg::fill_even_odd : agg::fill_non_zero);
+  prepareFillStrokeOption(stroke);
+  _ctx.fillEvenOdd(mode == 1);
+
+  Agg2D::DrawPathFlag drawPathFlag = stroke ? Agg2D::StrokeOnly : Agg2D::FillOnly;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
     BLPoint base(_rndCoord.nextPoint(bounds));
-    AGGRandomPolySource path(base, wh, _rndCoord, complexity);
 
-    rasterizePath(path, stroke);
-    renderScanlines(BLRect(base.x, base.y, wh, wh), style);
+    double x = _rndCoord.nextDouble(base.x, base.x + wh);
+    double y = _rndCoord.nextDouble(base.y, base.y + wh);
+
+    _ctx.resetPath();
+    _ctx.moveTo(x, y);
+
+    for (uint32_t p = 1; p < complexity; p++) {
+      x = _rndCoord.nextDouble(base.x, base.x + wh);
+      y = _rndCoord.nextDouble(base.y, base.y + wh);
+      _ctx.lineTo(x, y);
+    }
+
+    setupStyle(stroke, BLRect(base.x, base.y, wh, wh));
+    _ctx.drawPath(drawPathFlag);
   }
 }
 
-void AGGModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
+void AggModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
   BLSizeI bounds(_params.screenW - _params.shapeSize,
                  _params.screenH - _params.shapeSize);
 
   uint32_t style = _params.style;
   double wh = double(_params.shapeSize);
 
-  _rasterizer.filling_rule(agg::fill_non_zero);
+  prepareFillStrokeOption(stroke);
+  _ctx.fillEvenOdd(false);
+
+  Agg2D::DrawPathFlag drawPathFlag = stroke ? Agg2D::StrokeOnly : Agg2D::FillOnly;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLPoint tr(_rndCoord.nextPoint(bounds));
-    AGGShapeDataSource path(pts, count, tr, wh);
-    rasterizePath(path, stroke);
-    renderScanlines(BLRect(tr.x, tr.y, wh, wh), style);
+    BLPoint base(_rndCoord.nextPoint(bounds));
+    bool start = true;
+
+    _ctx.resetPath();
+
+    for (size_t i = 0; i < count; i++) {
+      double x = pts[i].x;
+      double y = pts[i].y;
+
+      if (x == -1.0 && y == -1.0) {
+        start = true;
+        continue;
+      }
+
+      if (start) {
+        _ctx.moveTo(base.x + x * wh, base.y + y * wh);
+        start = false;
+      }
+      else {
+        _ctx.lineTo(base.x + x * wh, base.y + y * wh);
+      }
+    }
+
+    setupStyle(stroke, BLRect(base.x, base.y, wh, wh));
+    _ctx.drawPath(drawPathFlag);
   }
+}
+
+BenchModule* createAggModule() {
+  return new AggModule();
 }
 
 } // {blbench}

@@ -1,25 +1,7 @@
-// Blend2D - 2D Vector Graphics Powered by a JIT Compiler
+// This file is part of Blend2D project <https://blend2d.com>
 //
-//  * Official Blend2D Home Page: https://blend2d.com
-//  * Official Github Repository: https://github.com/blend2d/blend2d
-//
-// Copyright (c) 2017-2020 The Blend2D Authors
-//
-// This software is provided 'as-is', without any express or implied
-// warranty. In no event will the authors be held liable for any damages
-// arising from the use of this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-// 1. The origin of this software must not be misrepresented; you must not
-//    claim that you wrote the original software. If you use this software
-//    in a product, an acknowledgment in the product documentation would be
-//    appreciated but is not required.
-// 2. Altered source versions must be plainly marked as such, and must not be
-//    misrepresented as being the original software.
-// 3. This notice may not be removed or altered from any source distribution.
+// See LICENSE.md for license and copyright information
+// SPDX-License-Identifier: Zlib
 
 #ifdef BLEND2D_APPS_ENABLE_CAIRO
 
@@ -27,19 +9,16 @@
 #include "./module_cairo.h"
 
 #include <algorithm>
+#include <cairo.h>
 
 namespace blbench {
-
-// ============================================================================
-// [bench::CairoUtils]
-// ============================================================================
 
 static inline double u8ToUnit(int x) {
   static const double kDiv255 = 1.0 / 255.0;
   return double(x) * kDiv255;
 }
 
-uint32_t CairoUtils::toCairoFormat(uint32_t format) {
+static uint32_t toCairoFormat(uint32_t format) {
   switch (format) {
     case BL_FORMAT_PRGB32: return CAIRO_FORMAT_ARGB32;
     case BL_FORMAT_XRGB32: return CAIRO_FORMAT_RGB24;
@@ -49,7 +28,7 @@ uint32_t CairoUtils::toCairoFormat(uint32_t format) {
   }
 }
 
-uint32_t CairoUtils::toCairoOperator(uint32_t compOp) {
+static uint32_t toCairoOperator(uint32_t compOp) {
   switch (compOp) {
     case BL_COMP_OP_SRC_OVER   : return CAIRO_OPERATOR_OVER;
     case BL_COMP_OP_SRC_COPY   : return CAIRO_OPERATOR_SOURCE;
@@ -81,7 +60,7 @@ uint32_t CairoUtils::toCairoOperator(uint32_t compOp) {
   }
 }
 
-void CairoUtils::roundRect(cairo_t* ctx, const BLRect& rect, double radius) {
+static void roundRect(cairo_t* ctx, const BLRect& rect, double radius) {
   double rw2 = rect.w * 0.5;
   double rh2 = rect.h * 0.5;
 
@@ -113,9 +92,35 @@ void CairoUtils::roundRect(cairo_t* ctx, const BLRect& rect, double radius) {
   cairo_close_path(ctx);
 }
 
-// ============================================================================
-// [bench::CairoModule - Construction / Destruction]
-// ============================================================================
+struct CairoModule : public BenchModule {
+  cairo_surface_t* _cairoSurface;
+  cairo_surface_t* _cairoSprites[kBenchNumSprites];
+  cairo_t* _cairoContext;
+
+  // Initialized by onBeforeRun().
+  uint32_t _patternExtend;
+  uint32_t _patternFilter;
+
+  CairoModule();
+  virtual ~CairoModule();
+
+  template<typename RectT>
+  void setupStyle(uint32_t style, const RectT& rect);
+
+  virtual bool supportsCompOp(BLCompOp compOp) const;
+  virtual bool supportsStyle(uint32_t style) const;
+
+  virtual void onBeforeRun();
+  virtual void onAfterRun();
+
+  virtual void onDoRectAligned(bool stroke);
+  virtual void onDoRectSmooth(bool stroke);
+  virtual void onDoRectRotated(bool stroke);
+  virtual void onDoRoundSmooth(bool stroke);
+  virtual void onDoRoundRotated(bool stroke);
+  virtual void onDoPolygon(uint32_t mode, uint32_t complexity);
+  virtual void onDoShape(bool stroke, const BLPoint* pts, size_t count);
+};
 
 CairoModule::CairoModule() {
   strcpy(_name, "Cairo");
@@ -124,10 +129,6 @@ CairoModule::CairoModule() {
   memset(_cairoSprites, 0, sizeof(_cairoSprites));
 }
 CairoModule::~CairoModule() {}
-
-// ============================================================================
-// [bench::CairoModule - Helpers]
-// ============================================================================
 
 template<typename RectT>
 void CairoModule::setupStyle(uint32_t style, const RectT& rect) {
@@ -202,12 +203,8 @@ void CairoModule::setupStyle(uint32_t style, const RectT& rect) {
   }
 }
 
-// ============================================================================
-// [bench::CairoModule - Interface]
-// ============================================================================
-
-bool CairoModule::supportsCompOp(uint32_t compOp) const {
-  return CairoUtils::toCairoOperator(compOp) != 0xFFFFFFFFu;
+bool CairoModule::supportsCompOp(BLCompOp compOp) const {
+  return toCairoOperator(compOp) != 0xFFFFFFFFu;
 }
 
 bool CairoModule::supportsStyle(uint32_t style) const {
@@ -235,7 +232,7 @@ void CairoModule::onBeforeRun() {
     sprite.getData(&spriteData);
 
     int stride = int(spriteData.stride);
-    int format = CairoUtils::toCairoFormat(spriteData.format);
+    int format = toCairoFormat(spriteData.format);
     unsigned char* pixels = static_cast<unsigned char*>(spriteData.pixelData);
 
     cairo_surface_t* cairoSprite = cairo_image_surface_create_for_data(
@@ -251,7 +248,7 @@ void CairoModule::onBeforeRun() {
     _surface.makeMutable(&surfaceData);
 
     int stride = int(surfaceData.stride);
-    int format = CairoUtils::toCairoFormat(surfaceData.format);
+    int format = toCairoFormat(surfaceData.format);
     unsigned char* pixels = (unsigned char*)surfaceData.pixelData;
 
     _cairoSurface = cairo_image_surface_create_for_data(
@@ -270,7 +267,7 @@ void CairoModule::onBeforeRun() {
   cairo_rectangle(_cairoContext, 0, 0, w, h);
   cairo_fill(_cairoContext);
 
-  cairo_set_operator(_cairoContext, cairo_operator_t(CairoUtils::toCairoOperator(_params.compOp)));
+  cairo_set_operator(_cairoContext, cairo_operator_t(toCairoOperator(_params.compOp)));
   cairo_set_line_width(_cairoContext, _params.strokeWidth);
 
   // Setup globals.
@@ -383,7 +380,7 @@ void CairoModule::onDoRoundSmooth(bool stroke) {
     double radius = _rndExtra.nextDouble(4.0, 40.0);
 
     setupStyle<BLRect>(style, rect);
-    CairoUtils::roundRect(_cairoContext, rect, radius);
+    roundRect(_cairoContext, rect, radius);
 
     if (stroke)
       cairo_stroke(_cairoContext);
@@ -410,7 +407,7 @@ void CairoModule::onDoRoundRotated(bool stroke) {
     cairo_translate(_cairoContext, -cx, -cy);
 
     setupStyle<BLRect>(style, rect);
-    CairoUtils::roundRect(_cairoContext, rect, radius);
+    roundRect(_cairoContext, rect, radius);
 
     if (stroke)
       cairo_stroke(_cairoContext);
@@ -505,6 +502,9 @@ void CairoModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
   cairo_path_destroy(path);
 }
 
+BenchModule* createCairoModule() {
+  return new CairoModule();
+}
 } // {blbench}
 
 #endif // BLEND2D_APPS_ENABLE_CAIRO

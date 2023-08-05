@@ -117,8 +117,8 @@ public:
   }
 
   void onMouseEvent(QMouseEvent* event) {
-    double mx = event->x();
-    double my = event->y();
+    double mx = event->position().x();
+    double my = event->position().y();
 
     if (event->type() == QEvent::MouseButtonPress) {
       if (event->button() == Qt::LeftButton) {
@@ -157,8 +157,7 @@ public:
   }
 
   void onRender(BLContext& ctx) {
-    ctx.setFillStyle(BLRgba32(0xFF000000u));
-    ctx.fillAll();
+    ctx.fillAll(BLRgba32(0xFF000000u));
 
     BLPoint radius(_xRadiusSlider.value(), _yRadiusSlider.value());
     BLPoint start(_pts[0]);
@@ -197,8 +196,7 @@ public:
 
     // Render the rest of the UI (draggable points).
     for (size_t i = 0; i < _numPoints; i++) {
-      ctx.setFillStyle(i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
-      ctx.fillCircle(_pts[i].x, _pts[i].y, 2.5);
+      ctx.fillCircle(_pts[i].x, _pts[i].y, 2.5, i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
     }
 
     char buf[256];

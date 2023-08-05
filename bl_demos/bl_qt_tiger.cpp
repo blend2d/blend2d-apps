@@ -272,45 +272,40 @@ public:
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
+    ctx.fillAll(BLRgba32(0xFF00007Fu));
+
     bool renderStroke = _renderStroke;
-
-    ctx.setFillStyle(BLRgba32(0xFF00007Fu));
-    ctx.fillAll();
-
     double minX = 17;
     double minY = 53;
     double maxX = 562.0;
     double maxY = 613.0;
     double s = blMin(_canvas.width() / (maxX - minX), _canvas.height() / (maxY - minY)) * _scale;
 
-    BLMatrix2D m;
-    m.reset();
-    m.rotate((_rot / 180.0) * PI, minX + maxX / 2.0, minY + maxY / 2.0);
-    m.postTranslate(-maxX / 2, -maxY / 2);
+    BLMatrix2D transform;
+    transform.reset();
+    transform.rotate((_rot / 180.0) * PI, minX + maxX / 2.0, minY + maxY / 2.0);
+    transform.postTranslate(-maxX / 2, -maxY / 2);
 
     ctx.save();
     ctx.translate(_canvas.width() / 2, _canvas.height() / 2);
     ctx.scale(s);
-    ctx.transform(m);
+    ctx.applyTransform(transform);
 
     for (size_t i = 0, count = _tiger.paths.size(); i < count; i++) {
       const TigerPath* tp = _tiger.paths[i];
 
       if (tp->fill) {
-        ctx.setFillStyle(tp->fillColor);
         ctx.setFillRule(tp->fillRule);
-        ctx.fillPath(tp->blPath);
+        ctx.fillPath(tp->blPath, tp->fillColor);
       }
 
       if (tp->stroke && renderStroke) {
         if (_cacheStroke) {
-          ctx.setFillStyle(tp->strokeColor);
-          ctx.fillPath(tp->blStrokedPath);
+          ctx.fillPath(tp->blStrokedPath, tp->strokeColor);
         }
         else {
-          ctx.setStrokeStyle(tp->strokeColor);
           ctx.setStrokeOptions(tp->blStrokeOptions);
-          ctx.strokePath(tp->blPath);
+          ctx.strokePath(tp->blPath, tp->strokeColor);
         }
       }
     }
@@ -360,9 +355,10 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Tiger Sample [%dx%d] [%.1f FPS]",
+    snprintf(buf, 256, "Tiger Sample [%dx%d] [AvgTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
+      _canvas.averageRenderTime(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

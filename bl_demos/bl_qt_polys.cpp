@@ -125,8 +125,7 @@ public:
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.setFillStyle(BLRgba32(0xFF000000));
-    ctx.fillAll();
+    ctx.fillAll(BLRgba32(0xFF000000));
 
     ctx.setFillRule(BL_FILL_RULE_EVEN_ODD);
     ctx.setFillStyle(BLRgba32(0xFFFFFFFF));
@@ -280,10 +279,11 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Polygons Sample [%dx%d] [N=%zu] [%.1f FPS]",
+    snprintf(buf, 256, "Polygons Sample [%dx%d] [N=%zu] [AvgTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _poly.size(),
+      _canvas.averageRenderTime(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

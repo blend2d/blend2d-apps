@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
 
 # Blend2D-Apps - Configuration
@@ -16,11 +16,20 @@ set(BLEND2D_DIR "${BLEND2D_APPS_DIR}/../blend2d" CACHE PATH "Location of 'blend2
 set(BLEND2D_STATIC TRUE)
 include("${BLEND2D_DIR}/CMakeLists.txt")
 
+# Dependencies - Probe
+# ====================
+
+pkg_check_modules(CAIRO cairo)
+find_package(unofficial-skia CONFIG)
+find_package(Qt6 COMPONENTS Core Gui Widgets)
+
 # Dependencies - AntiGrain (Optional)
 # ===================================
 
-message("-- [blend2d-apps] adding support for AntiGrain")
+message("-- [blend2d-apps] adding support for AGG")
 set(ANTIGRAIN_SRC
+  3rdparty/agg2d/agg2d.h
+  3rdparty/agg2d/agg2d.cpp
   3rdparty/agg/include/agg_alpha_mask_u8.h
   3rdparty/agg/include/agg_arc.h
   3rdparty/agg/include/agg_array.h
@@ -177,29 +186,35 @@ set(ANTIGRAIN_SRC
   3rdparty/agg/src/agg_vpgen_segmentator.cpp
 )
 
-set(DEPENDENCY_AGG_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/3rdparty/agg/include")
+set(DEPENDENCY_AGG_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/3rdparty" "${CMAKE_CURRENT_LIST_DIR}/3rdparty/agg/include")
 set(DEPENDENCY_AGG_DEFINITIONS BLEND2D_APPS_ENABLE_AGG)
 set(DEPENDENCY_AGG_LIBRARIES "")
 
 # Dependencies - Cairo (Optional)
 # ===============================
 
-pkg_check_modules(CAIRO cairo)
 if(CAIRO_FOUND)
   message("-- [blend2d-apps] adding support for Cairo")
-  list(APPEND DEPENDENCY_CAIRO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS})
-  list(APPEND DEPENDENCY_CAIRO_DEFINITIONS BLEND2D_APPS_ENABLE_CAIRO)
-  list(APPEND DEPENDENCY_CAIRO_LIBRARIES ${CAIRO_LIBRARIES})
+  set(DEPENDENCY_CAIRO_LIBRARIES ${CAIRO_LIBRARIES})
+  set(DEPENDENCY_CAIRO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS})
+  set(DEPENDENCY_CAIRO_DEFINITIONS BLEND2D_APPS_ENABLE_CAIRO)
+endif()
+
+# Dependencies - SKIA (Optional)
+# ==============================
+
+if(TARGET unofficial::skia::skia)
+  message("-- [blend2d-apps] adding support for SKIA")
+  set(DEPENDENCY_SKIA_LIBRARIES unofficial::skia::skia)
+  set(DEPENDENCY_SKIA_DEFINITIONS BLEND2D_APPS_ENABLE_SKIA)
 endif()
 
 # Dependencies - Qt (Optional)
 # ============================
 
-find_package(Qt5Gui)
-find_package(Qt5Widgets)
-if(Qt5Gui_FOUND)
-  message("-- [blend2d-apps] adding support for Qt5")
-  list(APPEND DEPENDENCY_QT_LIBRARIES Qt5::Gui)
+if(Qt6Gui_FOUND)
+  message("-- [blend2d-apps] adding support for Qt6")
+  list(APPEND DEPENDENCY_QT_LIBRARIES Qt6::Gui Qt6::Widgets)
   list(APPEND DEPENDENCY_QT_DEFINITIONS BLEND2D_APPS_ENABLE_QT)
 endif()
 
@@ -220,6 +235,8 @@ set(BLEND2D_BENCH_SRC
   bl_bench/module_cairo.h
   bl_bench/module_qt.cpp
   bl_bench/module_qt.h
+  bl_bench/module_skia.cpp
+  bl_bench/module_skia.h
   bl_bench/shapes_data.cpp
   bl_bench/shapes_data.h
 )
@@ -227,9 +244,9 @@ set(BLEND2D_BENCH_SRC
 add_executable(bl_bench ${BLEND2D_BENCH_SRC} ${ANTIGRAIN_SRC})
 target_compile_features(bl_bench PUBLIC cxx_std_11)
 set_property(TARGET bl_bench PROPERTY CXX_VISIBILITY_PRESET hidden)
-target_include_directories(bl_bench PRIVATE ${DEPENDENCY_AGG_INCLUDE_DIRS} ${DEPENDENCY_CAIRO_INCLUDE_DIRS} ${DEPENDENCY_QT_INCLUDE_DIRS})
-target_compile_definitions(bl_bench PRIVATE ${DEPENDENCY_AGG_DEFINITIONS} ${DEPENDENCY_CAIRO_DEFINITIONS} ${DEPENDENCY_QT_DEFINITIONS})
-target_link_libraries(bl_bench blend2d::blend2d ${DEPENDENCY_AGG_LIBRARUES} ${DEPENDENCY_CAIRO_LIBRARIES} ${DEPENDENCY_QT_LIBRARIES})
+target_include_directories(bl_bench PRIVATE ${DEPENDENCY_AGG_INCLUDE_DIRS} ${DEPENDENCY_CAIRO_INCLUDE_DIRS})
+target_compile_definitions(bl_bench PRIVATE ${DEPENDENCY_AGG_DEFINITIONS} ${DEPENDENCY_CAIRO_DEFINITIONS} ${DEPENDENCY_QT_DEFINITIONS} ${DEPENDENCY_SKIA_DEFINITIONS})
+target_link_libraries(bl_bench blend2d::blend2d ${DEPENDENCY_AGG_LIBRARUES} ${DEPENDENCY_CAIRO_LIBRARIES} ${DEPENDENCY_QT_LIBRARIES} ${DEPENDENCY_SKIA_LIBRARIES})
 
 # Blend2D-Apps - Qt Demos
 # =======================
@@ -250,7 +267,7 @@ set(BLEND2D_DEMOS
   bl_qt_tiger
 )
 
-if(Qt5Widgets_FOUND)
+if(Qt6Gui_FOUND)
   foreach(target ${BLEND2D_DEMOS})
     add_executable(${target} WIN32
       "bl_demos/${target}.cpp"
@@ -260,6 +277,6 @@ if(Qt5Widgets_FOUND)
     target_compile_features(${target} PUBLIC cxx_std_11)
     set_property(TARGET ${target} PROPERTY AUTOMOC TRUE)
     set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
-    target_link_libraries(${target} blend2d::blend2d Qt5::Gui Qt5::Widgets)
+    target_link_libraries(${target} blend2d::blend2d Qt6::Gui Qt6::Widgets)
   endforeach()
 endif()

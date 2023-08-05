@@ -1,6 +1,8 @@
 #include "bl_qt_headers.h"
 #include "bl_qt_canvas.h"
 
+#include <chrono>
+
 QBLCanvas::QBLCanvas()
   : _rendererType(RendererBlend2D),
     _dirty(true),
@@ -66,6 +68,8 @@ void QBLCanvas::_resizeCanvas() {
 }
 
 void QBLCanvas::_renderCanvas() {
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   if (_rendererType == RendererQt) {
     if (onRenderQt) {
       QPainter ctx(&qtImage);
@@ -83,6 +87,13 @@ void QBLCanvas::_renderCanvas() {
     }
   }
 
+  auto endTime = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = endTime - startTime;
+
+  _renderTimePos = (_renderTimePos + 1) & 31;
+  _renderTime[_renderTimePos] = duration.count();
+  _renderedFrames++;
+
   _dirty = false;
   _afterRender();
 }
@@ -98,7 +109,22 @@ void QBLCanvas::_afterRender() {
   }
 }
 
-void QBLCanvas::initRendererSelectBox(QComboBox* dst) {
+double QBLCanvas::lastRenderTime() const {
+  return _renderedFrames > 0 ? _renderTime[_renderTimePos] : 0.0;
+}
+
+double QBLCanvas::averageRenderTime() const {
+  double sum = 0.0;
+  size_t count = _renderedFrames < 32 ? _renderedFrames : size_t(32);
+
+  for (size_t i = 0; i < count; i++) {
+    sum += _renderTime[i];
+  }
+
+  return (sum * 1000.0) / double(count);
+}
+
+void QBLCanvas::initRendererSelectBox(QComboBox* dst, bool blend2DOnly) {
   static const uint32_t rendererTypes[] = {
     RendererQt,
     RendererBlend2D,
@@ -111,11 +137,13 @@ void QBLCanvas::initRendererSelectBox(QComboBox* dst) {
   };
 
   for (const auto& rendererType : rendererTypes) {
+    if (rendererType == RendererQt && blend2DOnly)
+      continue;
     QString s = rendererTypeToString(rendererType);
     dst->addItem(s, QVariant(int(rendererType)));
   }
 
-  dst->setCurrentIndex(1);
+  dst->setCurrentIndex(blend2DOnly ? 0 : 1);
 }
 
 QString QBLCanvas::rendererTypeToString(uint32_t rendererType) {

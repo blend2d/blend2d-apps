@@ -1,25 +1,7 @@
-// Blend2D - 2D Vector Graphics Powered by a JIT Compiler
+// This file is part of Blend2D project <https://blend2d.com>
 //
-//  * Official Blend2D Home Page: https://blend2d.com
-//  * Official Github Repository: https://github.com/blend2d/blend2d
-//
-// Copyright (c) 2017-2020 The Blend2D Authors
-//
-// This software is provided 'as-is', without any express or implied
-// warranty. In no event will the authors be held liable for any damages
-// arising from the use of this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-// 1. The origin of this software must not be misrepresented; you must not
-//    claim that you wrote the original software. If you use this software
-//    in a product, an acknowledgment in the product documentation would be
-//    appreciated but is not required.
-// 2. Altered source versions must be plainly marked as such, and must not be
-//    misrepresented as being the original software.
-// 3. This notice may not be removed or altered from any source distribution.
+// See LICENSE.md for license and copyright information
+// SPDX-License-Identifier: Zlib
 
 #ifndef BLBENCH_MODULE_H
 #define BLBENCH_MODULE_H
@@ -29,25 +11,16 @@
 
 namespace blbench {
 
-// ============================================================================
-// [Forward Declarations]
-// ============================================================================
-
 struct BenchApp;
 
-// ============================================================================
-// [bench::kBenchMisc]
-// ============================================================================
+// bench - Constants
+// =================
 
 enum BenchMisc {
   kBenchNumSprites = 4
 };
 
-// ============================================================================
-// [bench::BenchId]
-// ============================================================================
-
-enum BenchId {
+enum BenchId : uint32_t {
   kBenchIdFillAlignedRect,
   kBenchIdFillSmoothRect,
   kBenchIdFillRotatedRect,
@@ -76,11 +49,7 @@ enum BenchId {
   kBenchIdCount
 };
 
-// ============================================================================
-// [bench::BenchStyle]
-// ============================================================================
-
-enum BenchStyle {
+enum BenchStyle : uint32_t {
   kBenchStyleSolid,
   kBenchStyleLinearPad,
   kBenchStyleLinearRepeat,
@@ -88,16 +57,15 @@ enum BenchStyle {
   kBenchStyleRadialPad,
   kBenchStyleRadialRepeat,
   kBenchStyleRadialReflect,
-  kBenchStyleConical,
+  kBenchStyleConic,
   kBenchStylePatternNN,
   kBenchStylePatternBI,
 
   kBenchStyleCount
 };
 
-// ============================================================================
-// [bench::BenchParams]
-// ============================================================================
+// bench::BenchParams
+// ==================
 
 struct BenchParams {
   uint32_t screenW;
@@ -114,9 +82,8 @@ struct BenchParams {
   double strokeWidth;
 };
 
-// ============================================================================
-// [bench::BenchRandom]
-// ============================================================================
+// bench::BenchRandom
+// ==================
 
 struct BenchRandom {
   inline BenchRandom(uint64_t seed)
@@ -126,15 +93,7 @@ struct BenchRandom {
   BLRandom _prng;
   BLRandom _initial;
 
-  // --------------------------------------------------------------------------
-  // [Rewind]
-  // --------------------------------------------------------------------------
-
   inline void rewind() { _prng = _initial; }
-
-  // --------------------------------------------------------------------------
-  // [Next]
-  // --------------------------------------------------------------------------
 
   inline int nextInt() {
     return int(_prng.nextUInt32() & 0x7FFFFFFFu);
@@ -197,9 +156,8 @@ struct BenchRandom {
   }
 };
 
-// ============================================================================
-// [bench::BenchModule]
-// ============================================================================
+// bench::BenchModule
+// ==================
 
 struct BenchModule {
   //! Module name.
@@ -223,22 +181,10 @@ struct BenchModule {
   //! Sprites.
   BLImage _sprites[kBenchNumSprites];
 
-  // --------------------------------------------------------------------------
-  // [Construction / Destruction]
-  // --------------------------------------------------------------------------
-
   BenchModule();
   virtual ~BenchModule();
 
-  // --------------------------------------------------------------------------
-  // [Run]
-  // --------------------------------------------------------------------------
-
   void run(const BenchApp& app, const BenchParams& params);
-
-  // --------------------------------------------------------------------------
-  // [Misc]
-  // --------------------------------------------------------------------------
 
   inline uint32_t nextSpriteId() {
     uint32_t i = _rndSpriteId;
@@ -247,11 +193,7 @@ struct BenchModule {
     return i;
   };
 
-  // --------------------------------------------------------------------------
-  // [Interface]
-  // --------------------------------------------------------------------------
-
-  virtual bool supportsCompOp(uint32_t compOp) const = 0;
+  virtual bool supportsCompOp(BLCompOp compOp) const = 0;
   virtual bool supportsStyle(uint32_t style) const = 0;
 
   virtual void onBeforeRun() = 0;

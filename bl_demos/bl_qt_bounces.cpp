@@ -10,9 +10,17 @@ public:
   QTimer _timer;
   QBLCanvas _canvas;
   QComboBox _rendererSelect;
+  QComboBox _styleSelect;
   QCheckBox _limitFpsCheck;
   double _time;
   int _count;
+
+  enum class StyleId {
+    kSolid,
+    kLinear,
+    kRadial,
+    kConic
+  };
 
   MainWindow() {
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -26,11 +34,20 @@ public:
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
     _limitFpsCheck.setText(QLatin1String("Limit FPS"));
 
+    _styleSelect.addItem("Solid Color", QVariant(int(StyleId::kSolid)));
+    _styleSelect.addItem("Linear Gradient", QVariant(int(StyleId::kLinear)));
+    _styleSelect.addItem("Radial Gradient", QVariant(int(StyleId::kRadial)));
+    _styleSelect.addItem("Conic Gradient", QVariant(int(StyleId::kConic)));
+    _styleSelect.setCurrentIndex(1);
+
     connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
     connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
     grid->addWidget(&_rendererSelect, 0, 1);
+
+    grid->addWidget(new QLabel("Style:"), 1, 0);
+    grid->addWidget(&_styleSelect, 1, 1);
 
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 2);
     grid->addWidget(&_limitFpsCheck, 0, 3, Qt::AlignRight);
@@ -66,10 +83,12 @@ public:
     _canvas.updateCanvas(true);
   }
 
-  void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.setFillStyle(BLRgba32(0xFF000000));
-    ctx.fillAll();
+  inline StyleId getStyleId() const noexcept { return StyleId(_styleSelect.currentData().toInt()); }
 
+  void onRenderB2D(BLContext& ctx) noexcept {
+    ctx.fillAll(BLRgba32(0xFF000000));
+
+    StyleId styleId = getStyleId();
     double kMarginSize = 7;
     double kSquareSize = 45;
     double kFullSize = kSquareSize + kMarginSize * 2.0;
@@ -89,7 +108,23 @@ public:
     double PI = 3.14159265359;
 
     BLGradient gr;
-    gr.setType(BL_GRADIENT_TYPE_LINEAR);
+
+    switch (styleId) {
+      case StyleId::kSolid:
+        break;
+      case StyleId::kLinear:
+        gr.setType(BL_GRADIENT_TYPE_LINEAR);
+        gr.setValues(BLLinearGradientValues(0, kMarginSize, 0, kMarginSize + kSquareSize));
+        break;
+      case StyleId::kRadial:
+        gr.setType(BL_GRADIENT_TYPE_RADIAL);
+        gr.setValues(BLRadialGradientValues(kHalfSize, kHalfSize, kHalfSize, kHalfSize - 15, kHalfSize));
+        break;
+      case StyleId::kConic:
+        gr.setType(BL_GRADIENT_TYPE_CONIC);
+        gr.setValues(BLConicGradientValues(kHalfSize, kHalfSize, M_PI / -2.0));
+        break;
+    }
 
     for (int i = 0; i < count; i++) {
       double x = ix * kFullSize;
@@ -104,18 +139,37 @@ public:
       double rotation = pos * (PI * 2);
       double radius = bouncePos * 25;
 
-      ctx.save();
       ctx.rotate(rotation, x + kHalfSize, y + kHalfSize);
       ctx.translate(x, y);
 
-      gr.resetStops();
-      gr.addStop(0, BLRgba32(0xFFFF7F00u));
-      gr.addStop(1, BLRgba32(int(r * 255), 0, int(b * 255)));
-      gr.setValues(BLLinearGradientValues(0, kMarginSize, 0, kMarginSize + kSquareSize));
+      BLRoundRect roundRect(kMarginSize, kMarginSize, kSquareSize, kSquareSize, radius, radius);
 
-      ctx.setFillStyle(gr);
-      ctx.fillRoundRect(kMarginSize, kMarginSize, kSquareSize, kSquareSize, radius, radius);
-      ctx.restore();
+      switch (styleId) {
+        case StyleId::kSolid: {
+          ctx.fillRoundRect(roundRect, BLRgba32(int(r * 255), 0, int(b * 255)));
+          break;
+        }
+
+        case StyleId::kLinear:
+        case StyleId::kRadial: {
+          gr.resetStops();
+          gr.addStop(0, BLRgba32(0xFFFF7F00u));
+          gr.addStop(1, BLRgba32(int(r * 255), 0, int(b * 255)));
+          ctx.fillRoundRect(roundRect, gr);
+          break;
+        }
+
+        case StyleId::kConic: {
+          gr.resetStops();
+          gr.addStop(0.0, BLRgba32(0xFFFF7F00u));
+          gr.addStop(0.5, BLRgba32(int(r * 255), 0, int(b * 255)));
+          gr.addStop(1.0, BLRgba32(0xFFFF7F00u));
+          ctx.fillRoundRect(roundRect, gr);
+          break;
+        }
+      }
+
+      ctx.resetTransform();
 
       if (++ix >= w) { ix = 0; iy++; }
     }
@@ -127,6 +181,7 @@ public:
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setPen(Qt::NoPen);
 
+    StyleId styleId = getStyleId();
     double kMarginSize = 7;
     double kSquareSize = 45;
     double kFullSize = kSquareSize + kMarginSize * 2.0;
@@ -166,11 +221,38 @@ public:
       ctx.setTransform(m);
       ctx.translate(x, y);
 
-      QLinearGradient gr(0, kMarginSize, 0, kMarginSize + kSquareSize);
-      gr.setColorAt(0, QColor(qRgb(255, 127, 0)));
-      gr.setColorAt(1, QColor(qRgb(r * 255, 0, int(b * 255))));
+      switch (styleId) {
+        case StyleId::kSolid: {
+          ctx.setBrush(QBrush(QColor(qRgb(r * 255, 0, int(b * 255)))));
+          break;
+        }
 
-      ctx.setBrush(QBrush(gr));
+        case StyleId::kLinear: {
+          QLinearGradient gr(0, kMarginSize, 0, kMarginSize + kSquareSize);
+          gr.setColorAt(0, QColor(qRgb(255, 127, 0)));
+          gr.setColorAt(1, QColor(qRgb(r * 255, 0, int(b * 255))));
+          ctx.setBrush(QBrush(gr));
+          break;
+        }
+
+        case StyleId::kRadial: {
+          QRadialGradient gr(kHalfSize, kHalfSize, kHalfSize, kHalfSize, kHalfSize - 15);
+          gr.setColorAt(0, QColor(qRgb(255, 127, 0)));
+          gr.setColorAt(1, QColor(qRgb(r * 255, 0, int(b * 255))));
+          ctx.setBrush(QBrush(gr));
+          break;
+        }
+
+        case StyleId::kConic: {
+          QConicalGradient gr(kHalfSize, kHalfSize, 270);
+          gr.setColorAt(0.0, QColor(qRgb(r * 255, 0, int(b * 255))));
+          gr.setColorAt(0.5, QColor(qRgb(255, 127, 0)));
+          gr.setColorAt(1.0, QColor(qRgb(r * 255, 0, int(b * 255))));
+          ctx.setBrush(QBrush(gr));
+          break;
+        }
+      }
+
       ctx.drawRoundedRect(kMarginSize, kMarginSize, kSquareSize, kSquareSize, radius, radius);
       ctx.restore();
 
@@ -180,10 +262,11 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Bounces Sample [%dx%d] [%d objects] [%.1f FPS]",
+    snprintf(buf, 256, "Bounces Sample [%dx%d] [%d objects] [AvgTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _count,
+      _canvas.averageRenderTime(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

@@ -156,8 +156,7 @@ public:
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.setFillStyle(BLRgba32(0xFF000000));
-    ctx.fillAll();
+    ctx.fillAll(BLRgba32(0xFF000000));
 
     size_t i;
     size_t size = _coords.size();
@@ -172,9 +171,7 @@ public:
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
-
-          ctx.setFillStyle(_colors[i]);
-          ctx.fillRect(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize);
+          ctx.fillRect(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize, _colors[i]);
         }
         break;
 
@@ -185,9 +182,7 @@ public:
 
           BLPath path;
           path.addRect(x, y, rectSize, rectSize);
-
-          ctx.setFillStyle(_colors[i]);
-          ctx.fillPath(path);
+          ctx.fillPath(path, _colors[i]);
         }
         break;
 
@@ -202,9 +197,7 @@ public:
           path.lineTo(x + rectSize - rectSize / 3, y + rectSize);
           path.lineTo(x + rectSize / 3, y + rectSize);
           path.lineTo(x, y + rectSize / 3);
-
-          ctx.setFillStyle(_colors[i]);
-          ctx.fillPath(path);
+          ctx.fillPath(path, _colors[i]);
         }
         break;
 
@@ -213,8 +206,7 @@ public:
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
 
-          ctx.setFillStyle(_colors[i]);
-          ctx.fillRoundRect(x, y, rectSize, rectSize, 10);
+          ctx.fillRoundRect(BLRoundRect(x, y, rectSize, rectSize, 10), _colors[i]);
         }
         break;
     }
@@ -301,11 +293,12 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Rectangles Sample [%dx%d] [Size=%d Count=%zu] [%.1f FPS]",
+    snprintf(buf, 256, "Rectangles [%dx%d] [Size=%d N=%zu] [AvgTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       int(_rectSize),
       _coords.size(),
+      _canvas.averageRenderTime(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

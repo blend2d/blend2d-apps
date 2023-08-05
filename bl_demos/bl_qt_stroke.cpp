@@ -156,8 +156,8 @@ public:
       if (event->button() == Qt::LeftButton) {
         if (_closestVertex != SIZE_MAX) {
           _grabbedVertex = _closestVertex;
-          _grabbedX = event->x();
-          _grabbedY = event->y();
+          _grabbedX = event->position().x();
+          _grabbedY = event->position().y();
           _canvas.updateCanvas();
         }
       }
@@ -174,12 +174,12 @@ public:
 
     if (event->type() == QEvent::MouseMove) {
       if (_grabbedVertex == SIZE_MAX) {
-        _path.getClosestVertex(BLPoint(double(event->x()), double(event->y())), 5, &_closestVertex);;
+        _path.getClosestVertex(BLPoint(double(event->position().x()), double(event->position().y())), 5, &_closestVertex);;
         _canvas.updateCanvas();
       }
       else {
-        double x = event->x();
-        double y = event->y();
+        double x = event->position().x();
+        double y = event->position().y();
         _path.setVertexAt(_grabbedVertex, BL_PATH_CMD_PRESERVE, BLPoint(x, y));
         _canvas.updateCanvas();
       }
@@ -340,24 +340,18 @@ public:
   }
 
   void onRender(BLContext& ctx) {
-    ctx.setFillStyle(BLRgba32(0xFF000000u));
-    ctx.fillAll();
+    ctx.fillAll(BLRgba32(0xFF000000u));
 
     BLPath s;
     s.addStrokedPath(_path, _strokeOptions, blDefaultApproximationOptions);
-
-    ctx.setFillStyle(BLRgba32(0x8F003FAAu));
-    ctx.fillPath(s);
+    ctx.fillPath(s, BLRgba32(0x8F003FAAu));
 
     if (_showControl) {
-      ctx.setStrokeStyle(BLRgba32(0xFF0066AAu));
-      ctx.strokePath(s);
+      ctx.strokePath(s, BLRgba32(0xFF0066AAu));
       renderPathPoints(ctx, s, SIZE_MAX, BLRgba32(0x7F007FFFu), BLRgba32(0xFFFFFFFFu));
     }
 
-    ctx.setStrokeStyle(BLRgba32(0xFFFFFFFFu));
-    ctx.strokePath(_path);
-
+    ctx.strokePath(_path, BLRgba32(0xFFFFFFFFu));
     renderPathPoints(ctx, _path, _closestVertex, BLRgba32(0xFFFFFFFF), BLRgba32(0xFF00FFFFu));
   }
 
@@ -368,12 +362,7 @@ public:
     for (size_t i = 0; i < count; i++) {
       if (!std::isfinite(vtx[i].x))
         continue;
-      if (i == highlight)
-        ctx.setFillStyle(highlightColor);
-      else
-        ctx.setFillStyle(normalColor);
-
-      ctx.fillCircle(vtx[i].x, vtx[i].y, 2.5);
+      ctx.fillCircle(vtx[i].x, vtx[i].y, 2.5, i == highlight ? highlightColor : normalColor);
     }
   }
 };

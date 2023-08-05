@@ -28,9 +28,15 @@ public:
   std::vector<Particle> _particles;
   int maxAge = 650;
   double radiusScale = 6;
-  BLRgba32 colors[3] = { BLRgba32(0xFFFF7F00), BLRgba32(0xFFFF3F9F), BLRgba32(0xFF7F4FFF) };
 
-  enum { kCategoryCount = 3 };
+  enum { kCategoryCount = 5 };
+  BLRgba32 colors[kCategoryCount] = {
+    BLRgba32(0xFFFF7F00),
+    BLRgba32(0xFFFF3F9F),
+    BLRgba32(0xFF7F4FFF),
+    BLRgba32(0xFFFF9F3F),
+    BLRgba32(0xFFAF3F00)
+  };
 
   MainWindow() {
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -121,7 +127,7 @@ public:
         break;
 
       double angle = _rnd.nextDouble() * PI * 2.0;
-      double speed = blMax(_rnd.nextDouble() * 2.0, 0.2);
+      double speed = blMax(_rnd.nextDouble() * 2.0, 0.05);
       double aSin = std::sin(angle);
       double aCos = std::cos(angle);
 
@@ -138,8 +144,7 @@ public:
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.setFillStyle(BLRgba32(0xFF000000u));
-    ctx.fillAll();
+    ctx.fillAll(BLRgba32(0xFF000000u));
 
     double cx = _canvas.width() / 2;
     double cy = _canvas.height() / 2;
@@ -153,8 +158,7 @@ public:
 
       ctx.setCompOp(BL_COMP_OP_PLUS);
       for (size_t i = 0; i < kCategoryCount; i++) {
-        ctx.setFillStyle(colors[i]);
-        ctx.fillPath(paths[i]);
+        ctx.fillPath(paths[i], colors[i]);
       }
     }
     else {
@@ -162,9 +166,7 @@ public:
       for (Particle& part : _particles) {
         path.addCircle(BLCircle(cx + part.p.x, cy + part.p.y, double(maxAge - part.age) / double(maxAge) * radiusScale));
       }
-
-      ctx.setFillStyle(BLRgba32(0xFFFFFFFFu));
-      ctx.fillPath(path);
+      ctx.fillPath(path, BLRgba32(0xFFFFFFFFu));
     }
   }
 
@@ -206,10 +208,11 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Particles Sample [%dx%d] [%d particles] [%.1f FPS]",
+    snprintf(buf, 256, "Particles Sample [%dx%d] [%d particles] [AvgTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       int(_particles.size()),
+      _canvas.averageRenderTime(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

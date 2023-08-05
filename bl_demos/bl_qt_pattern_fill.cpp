@@ -19,6 +19,7 @@ public:
   QSlider _fracX;
   QSlider _fracY;
   QSlider _angle;
+  QSlider _scale;
   QBLCanvas _canvas;
   BLImage _spritesB2D[4];
   QImage _spritesQt[4];
@@ -62,8 +63,8 @@ public:
       BL_EXTEND_MODE_REPEAT_X_REPEAT_Y,
       BL_EXTEND_MODE_REPEAT_X_REFLECT_Y,
       BL_EXTEND_MODE_REFLECT_X_PAD_Y,
-      BL_EXTEND_MODE_REFLECT_X_REFLECT_Y,
-      BL_EXTEND_MODE_REFLECT_X_REPEAT_Y
+      BL_EXTEND_MODE_REFLECT_X_REPEAT_Y,
+      BL_EXTEND_MODE_REFLECT_X_REFLECT_Y
     };
 
     for (uint32_t i = 0; i < 12; i++) {
@@ -87,6 +88,11 @@ public:
     _angle.setValue(0);
     _angle.setOrientation(Qt::Horizontal);
 
+    _scale.setMinimum(0);
+    _scale.setMaximum(1000);
+    _scale.setValue(0);
+    _scale.setOrientation(Qt::Horizontal);
+
     connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
     connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
     connect(&_bilinearCheck, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
@@ -94,6 +100,7 @@ public:
     connect(&_fracX, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
     connect(&_fracY, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
     connect(&_angle, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
+    connect(&_scale, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
     grid->addWidget(&_rendererSelect, 0, 1);
@@ -115,6 +122,9 @@ public:
 
     grid->addWidget(new QLabel("Angle:"), 2, 0);
     grid->addWidget(&_angle, 2, 1, 1, 4);
+
+    grid->addWidget(new QLabel("Scale:"), 3, 0);
+    grid->addWidget(&_scale, 3, 1, 1, 4);
 
     _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
     _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
@@ -169,6 +179,7 @@ public:
   inline double tx() const { return 256.0 + double(_fracX.value()) / 256.0; }
   inline double ty() const { return 256.0 + double(_fracY.value()) / 256.0; }
   inline double angleRad() const { return (double(_angle.value()) / (3600.0 / 2)) * M_PI; }
+  inline double scale() const { return double(_scale.value() + 100) / 100.0; }
 
   void onRenderB2D(BLContext& ctx) noexcept {
     int rx = _canvas.width() / 2;
@@ -177,6 +188,7 @@ public:
     BLPattern pattern(_spritesB2D[0], BLExtendMode(_extendModeSelect.currentData().toInt()));
     pattern.rotate(angleRad(), rx, ry);
     pattern.translate(tx(), ty());
+    pattern.scale(scale());
 
     ctx.setPatternQuality(
       _bilinearCheck.isChecked()
@@ -184,8 +196,7 @@ public:
         : BL_PATTERN_QUALITY_NEAREST);
 
     ctx.setCompOp(BL_COMP_OP_SRC_COPY);
-    ctx.setFillStyle(pattern);
-    ctx.fillAll();
+    ctx.fillAll(pattern);
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
@@ -196,6 +207,7 @@ public:
     tr.translate(rx, ry);
     tr.rotateRadians(angleRad());
     tr.translate(-rx + tx(), -ry + ty());
+    tr.scale(scale(), scale());
 
     QBrush brush(_spritesQt[0]);
     brush.setTransform(tr);
@@ -208,9 +220,10 @@ public:
   void _updateTitle() {
     char buf[256];
 
-    snprintf(buf, 256, "Blend2D Pattern Fill Sample [%dx%d] [%.1f FPS]",
+    snprintf(buf, 256, "Blend2D Pattern Fill Sample [%dx%d] [AvgTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
+      _canvas.averageRenderTime(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

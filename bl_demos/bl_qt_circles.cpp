@@ -84,8 +84,7 @@ public:
   //   https://github.com/fogleman/gg/blob/master/examples/spiral.go
 
   void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.setFillStyle(BLRgba32(0xFF000000u));
-    ctx.fillAll();
+    ctx.fillAll(BLRgba32(0xFF000000u));
 
     BLPath p;
 
@@ -107,8 +106,7 @@ public:
       p.addCircle(BLCircle(x, y, r));
     }
 
-    ctx.setFillStyle(BLRgba32(0xFFFFFFFFu));
-    ctx.fillPath(p);
+    ctx.fillPath(p, BLRgba32(0xFFFFFFFFu));
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
@@ -140,10 +138,11 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Circles Sample [%dx%d] [%d circles] [%.1f FPS]",
+    snprintf(buf, 256, "Circles Sample [%dx%d] [%d circles] [AvgTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _countSlider.value(),
+      _canvas.averageRenderTime(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

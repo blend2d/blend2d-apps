@@ -3,15 +3,15 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#ifndef BLBENCH_MODULE_AGG_H
-#define BLBENCH_MODULE_AGG_H
+#ifndef BLBENCH_MODULE_SKIA_H
+#define BLBENCH_MODULE_SKIA_H
 
 #include "./module.h"
 
 namespace blbench {
 
-BenchModule* createAggModule();
+BenchModule* createSkiaModule();
 
 } // {blbench}
 
-#endif // BLBENCH_MODULE_AGG_H
+#endif // BLBENCH_MODULE_SKIA_H
