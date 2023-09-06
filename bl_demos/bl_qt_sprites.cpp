@@ -21,7 +21,7 @@ public:
   std::vector<BLPointI> _coords;
   std::vector<BLPointI> _steps;
   std::vector<uint32_t> _spriteIds;
-  BLCompOp _compOp;
+  BLCompOp _compOp = BL_COMP_OP_SRC_OVER;
 
   BLImage _spritesB2D[4];
   QImage _spritesQt[4];
@@ -33,10 +33,7 @@ public:
     kShapePolyPath,
   };
 
-  MainWindow()
-    : _random(0x1234),
-      _compOp(BL_COMP_OP_SRC_OVER) {
-
+  MainWindow() : _random(0x1234) {
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
     vBox->setSpacing(0);

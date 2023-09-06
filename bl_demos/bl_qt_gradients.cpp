@@ -16,20 +16,16 @@ public:
   QBLCanvas _canvas;
 
   // Canvas data.
-  BLPoint _pts[2];
-  BLGradientType _gradientType;
-  BLExtendMode _gradientExtendMode;
-  size_t _numPoints;
-  size_t _closestVertex;
-  size_t _grabbedVertex;
-  int _grabbedX, _grabbedY;
+  BLPoint _pts[2] {};
+  BLGradientType _gradientType = BL_GRADIENT_TYPE_LINEAR;
+  BLExtendMode _gradientExtendMode = BL_EXTEND_MODE_PAD;
+  size_t _numPoints = 2;
+  size_t _closestVertex = SIZE_MAX;
+  size_t _grabbedVertex = SIZE_MAX;
+  int _grabbedX = 0;
+  int _grabbedY = 0;
 
-  MainWindow()
-    : _closestVertex(SIZE_MAX),
-      _grabbedVertex(SIZE_MAX),
-      _grabbedX(0),
-      _grabbedY(0) {
-
+  MainWindow() {
     setWindowTitle(QLatin1String("Gradients Sample"));
 
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -112,7 +108,6 @@ public:
   void onInit() {
     _pts[0].reset(350, 300);
     _pts[1].reset(200, 150);
-    _numPoints = 2;
   }
 
   size_t getClosestVertex(BLPoint p, double maxDistance) noexcept {
@@ -174,7 +169,7 @@ public:
 
   Q_SLOT void onGradientTypeChanged(int index) {
     _numPoints = index == BL_GRADIENT_TYPE_CONIC ? 1 : 2;
-    _gradientType = (BLGradientType)index;
+    _gradientType = BLGradientType(index);
     _canvas.updateCanvas();
   }
 

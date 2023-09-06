@@ -173,11 +173,12 @@ public:
   QComboBox _cachingSelect;
   QSlider _slider;
   Tiger _tiger;
-  double _rot;
-  double _scale;
-  bool _rotateEachFrame;
-  bool _cacheStroke;
-  bool _renderStroke;
+
+  double _rot = 0.0;
+  double _scale = 1.0;
+  bool _rotateEachFrame = true;
+  bool _cacheStroke = false;
+  bool _renderStroke = true;
 
   MainWindow() {
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -240,11 +241,6 @@ public:
   void hideEvent(QHideEvent* event) override { _timer.stop(); }
 
   void onInit() {
-    _rot = 0.0;
-    _scale = 1.0;
-    _rotateEachFrame = true;
-    _cacheStroke = false;
-    _renderStroke = true;
     _updateTitle();
     _limitFpsCheck.setChecked(true);
   }

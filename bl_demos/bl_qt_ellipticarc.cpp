@@ -17,20 +17,14 @@ public:
 
   // Canvas data.
   BLGradient _gradient;
-  BLPoint _pts[2];
-  uint32_t _gradientType;
-  uint32_t _gradientExtendMode;
-  size_t _numPoints;
-  size_t _closestVertex;
-  size_t _grabbedVertex;
-  int _grabbedX, _grabbedY;
+  BLPoint _pts[2] {};
+  size_t _numPoints = 2;
+  size_t _closestVertex = SIZE_MAX;
+  size_t _grabbedVertex = SIZE_MAX;
+  int _grabbedX = 0;
+  int _grabbedY = 0;
 
-  MainWindow()
-    : _closestVertex(SIZE_MAX),
-      _grabbedVertex(SIZE_MAX),
-      _grabbedX(0),
-      _grabbedY(0) {
-
+  MainWindow() {
     setWindowTitle(QLatin1String("SVG Elliptic Arcs"));
 
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -96,9 +90,6 @@ public:
   void onInit() {
     _pts[0].reset(124, 180);
     _pts[1].reset(296, 284);
-    _numPoints = 2;
-    _gradientType = BL_GRADIENT_TYPE_LINEAR;
-    _gradientExtendMode = BL_EXTEND_MODE_PAD;
     _gradient.addStop(0.0, BLRgba32(0xFF000000u));
     _gradient.addStop(1.0, BLRgba32(0xFFFFFFFFu));
   }

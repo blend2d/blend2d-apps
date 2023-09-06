@@ -15,15 +15,13 @@ public:
   QCheckBox _limitFpsCheck;
   QComboBox _operationSelect;
 
-  int _op;
+  int _op = 0;
   std::vector<BLPoint> _poly;
   std::vector<BLPoint> _step;
 
   BLRandom _random;
 
-  MainWindow() :
-    _op(0),
-    _random(0x1234) {
+  MainWindow() : _random(0x1234) {
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
     vBox->setSpacing(0);

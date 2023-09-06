@@ -16,22 +16,18 @@ public:
   // Canvas data.
   BLRandom _prng;
   BLPath _path;
-  bool _showControl;
-  size_t _closestVertex;
-  size_t _grabbedVertex;
-  int _grabbedX, _grabbedY;
+  bool _showControl = true;
+  size_t _closestVertex = SIZE_MAX;
+  size_t _grabbedVertex = SIZE_MAX;
+  int _grabbedX = 0;
+  int _grabbedY = 0;
   BLStrokeOptions _strokeOptions;
 
-  MainWindow()
-    : _showControl(true),
-      _closestVertex(SIZE_MAX),
-      _grabbedVertex(SIZE_MAX),
-      _grabbedX(0),
-      _grabbedY(0) {
-
-    setWindowTitle(QLatin1String("Stroke Sample"));
+  MainWindow() {
     int maxPbWidth = 30;
     int labelWidth = 90;
+
+    setWindowTitle(QLatin1String("Stroke Sample"));
 
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);

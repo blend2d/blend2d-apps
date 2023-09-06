@@ -21,9 +21,9 @@ public:
   std::vector<BLPoint> _coords;
   std::vector<BLPoint> _steps;
   std::vector<BLRgba32> _colors;
-  BLCompOp _compOp;
-  uint32_t _shapeType;
-  double _rectSize;
+  BLCompOp _compOp = BL_COMP_OP_SRC_OVER;
+  uint32_t _shapeType = 0;
+  double _rectSize = 64.0;
 
   enum ShapeType {
     kShapeRect,
@@ -32,12 +32,7 @@ public:
     kShapePolyPath,
   };
 
-  MainWindow()
-    : _random(0x1234),
-      _compOp(BL_COMP_OP_SRC_OVER),
-      _shapeType(0),
-      _rectSize(64.0) {
-
+  MainWindow() : _random(0x1234) {
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
     vBox->setSpacing(0);

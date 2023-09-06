@@ -12,8 +12,8 @@ public:
   QComboBox _rendererSelect;
   QComboBox _styleSelect;
   QCheckBox _limitFpsCheck;
-  double _time;
-  int _count;
+  double _time {};
+  int _count {};
 
   enum class StyleId {
     kSolid,

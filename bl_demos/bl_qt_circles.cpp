@@ -14,8 +14,8 @@ public:
   QCheckBox _limitFpsCheck;
   QSlider _countSlider;
   QBLCanvas _canvas;
-  double _angle;
-  int _count;
+  double _angle {};
+  int _count {};
 
   MainWindow() {
     QVBoxLayout* vBox = new QVBoxLayout();
