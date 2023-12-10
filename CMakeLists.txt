@@ -4,7 +4,7 @@ cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
 # Blend2D-Apps - Configuration
 # ============================
 
-project(blend2d-apps CXX)
+project(blend2d-apps C CXX)
 include(FindPkgConfig)
 
 set(BLEND2D_APPS_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "blend2d-apps directory")
