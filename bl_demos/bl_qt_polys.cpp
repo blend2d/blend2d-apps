@@ -14,7 +14,9 @@ public:
   QComboBox _rendererSelect;
   QCheckBox _limitFpsCheck;
   QComboBox _operationSelect;
+  QComboBox _styleSelect;
 
+  bool _animate = true;
   int _op = 0;
   std::vector<BLPoint> _poly;
   std::vector<BLPoint> _step;
@@ -48,6 +50,10 @@ public:
     _operationSelect.addItem("Stroke Cubics [W=3]", QVariant(int(10)));
     _operationSelect.addItem("Stroke Cubics [W=5]", QVariant(int(11)));
 
+    _styleSelect.addItem("Solid Color", QVariant(int(0)));
+    _styleSelect.addItem("Linear Gradient", QVariant(int(1)));
+    _styleSelect.addItem("Radial Gradient", QVariant(int(2)));
+
     _slider.setOrientation(Qt::Horizontal);
     _slider.setMinimum(3);
     _slider.setMaximum(1000);
@@ -59,15 +65,18 @@ public:
     connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
     connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
     connect(&_operationSelect, SIGNAL(activated(int)), SLOT(onOperationChanged(int)));
+    connect(&_styleSelect, SIGNAL(activated(int)), SLOT(onStyleChanged(int)));
     connect(&_slider, SIGNAL(valueChanged(int)), SLOT(onPolySizeChanged(int)));
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
     grid->addWidget(&_rendererSelect, 0, 1);
-    grid->addWidget(new QLabel("Operation:"), 0, 2);
+    grid->addWidget(new QLabel("Op:"), 0, 2);
     grid->addWidget(&_operationSelect, 0, 3);
+    grid->addWidget(new QLabel("Op:"), 0, 4);
+    grid->addWidget(&_styleSelect, 0, 5);
 
-    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 4);
-    grid->addWidget(&_limitFpsCheck, 0, 5);
+    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 6);
+    grid->addWidget(&_limitFpsCheck, 0, 7);
 
     grid->addWidget(new QLabel("Count:"), 1, 0, Qt::AlignRight);
     grid->addWidget(&_slider, 1, 1, 1, 5);
@@ -77,12 +86,13 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
+
     onInit();
   }
 
   void showEvent(QShowEvent* event) override { _timer.start(); }
   void hideEvent(QHideEvent* event) override { _timer.stop(); }
-  void keyPressEvent(QKeyEvent* event) override {}
 
   void onInit() {
     setPolySize(50);
@@ -92,29 +102,32 @@ public:
 
   double randomSign() noexcept { return _random.nextDouble() < 0.5 ? 1.0 : -1.0; }
 
+  Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
   Q_SLOT void onOperationChanged(int index) { _op = index; }
   Q_SLOT void onPolySizeChanged(int value) { setPolySize(size_t(value)); }
 
   Q_SLOT void onTimer() {
-    double w = _canvas.blImage.width();
-    double h = _canvas.blImage.height();
+    if (_animate) {
+      double w = _canvas.blImage.width();
+      double h = _canvas.blImage.height();
 
-    size_t size = _poly.size();
-    for (size_t i = 0; i < size; i++) {
-      BLPoint& vertex = _poly[i];
-      BLPoint& step = _step[i];
+      size_t size = _poly.size();
+      for (size_t i = 0; i < size; i++) {
+        BLPoint& vertex = _poly[i];
+        BLPoint& step = _step[i];
 
-      vertex += step;
-      if (vertex.x <= 0.0 || vertex.x >= w) {
-        step.x = -step.x;
-        vertex.x = blMin(vertex.x + step.x, w);
-      }
+        vertex += step;
+        if (vertex.x <= 0.0 || vertex.x >= w) {
+          step.x = -step.x;
+          vertex.x = blMin(vertex.x + step.x, w);
+        }
 
-      if (vertex.y <= 0.0 || vertex.y >= h) {
-        step.y = -step.y;
-        vertex.y = blMin(vertex.y + step.y, h);
+        if (vertex.y <= 0.0 || vertex.y >= h) {
+          step.y = -step.y;
+          vertex.y = blMin(vertex.y + step.y, h);
+        }
       }
     }
 
@@ -124,10 +137,47 @@ public:
 
   void onRenderB2D(BLContext& ctx) noexcept {
     ctx.fillAll(BLRgba32(0xFF000000));
-
     ctx.setFillRule(BL_FILL_RULE_EVEN_ODD);
-    ctx.setFillStyle(BLRgba32(0xFFFFFFFF));
-    ctx.setStrokeStyle(BLRgba32(0xFFFFFFFF));
+
+    int styleId = _styleSelect.currentIndex();
+
+    switch (styleId) {
+      default:
+      case 0: {
+        ctx.setFillStyle(BLRgba32(0xFFFFFFFF));
+        ctx.setStrokeStyle(BLRgba32(0xFFFFFFFF));
+        break;
+      }
+
+      case 1: {
+        double w = _canvas.blImage.width();
+        double h = _canvas.blImage.height();
+
+        BLGradient g(BLLinearGradientValues(0, 0, w, h));
+        g.addStop(0.0, BLRgba32(0xFFFF0000));
+        g.addStop(0.5, BLRgba32(0xFFAF00AF));
+        g.addStop(1.0, BLRgba32(0xFF0000FF));
+
+        ctx.setFillStyle(g);
+        ctx.setStrokeStyle(g);
+        break;
+      }
+
+      case 2: {
+        double w = _canvas.blImage.width();
+        double h = _canvas.blImage.height();
+        double r = blMin(w, h);
+
+        BLGradient g(BLRadialGradientValues(w * 0.5, h * 0.5, w * 0.5, h * 0.5, r * 0.5));
+        g.addStop(0.0, BLRgba32(0xFFFF0000));
+        g.addStop(0.5, BLRgba32(0xFFAF00AF));
+        g.addStop(1.0, BLRgba32(0xFF0000FF));
+
+        ctx.setFillStyle(g);
+        ctx.setStrokeStyle(g);
+        break;
+      }
+    }
 
     switch (_op) {
       case 0: {
@@ -151,7 +201,7 @@ public:
         size_t n = _poly.size();
         BLPath path;
         path.moveTo(poly[0]);
-        for (size_t i = 3; i < n; i += 2)
+        for (size_t i = 3; i <= n; i += 2)
           path.quadTo(poly[i - 2], poly[i - 1]);
 
         if (_op == 4) {
@@ -172,7 +222,7 @@ public:
         size_t n = _poly.size();
         BLPath path;
         path.moveTo(poly[0]);
-        for (size_t i = 4; i < n; i += 3)
+        for (size_t i = 4; i <= n; i += 3)
           path.cubicTo(poly[i - 3], poly[i - 2], poly[i - 1]);
 
         if (_op == 8) {
@@ -189,11 +239,47 @@ public:
 
   void onRenderQt(QPainter& ctx) noexcept {
     ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
-
     ctx.setRenderHint(QPainter::Antialiasing, true);
-    ctx.setBrush(QColor(255, 255, 255));
 
-    QPen pen(QColor(255, 255, 255));
+    int styleId = _styleSelect.currentIndex();
+    QBrush brush;
+
+    switch (styleId) {
+      default:
+      case 0: {
+        brush = QColor(255, 255, 255);
+        break;
+      }
+
+      case 1: {
+        double w = _canvas.blImage.width();
+        double h = _canvas.blImage.height();
+
+        QLinearGradient g(qreal(0), qreal(0), qreal(w), qreal(h));
+        g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
+        g.setColorAt(0.5f, QColor(0xAF, 0x00, 0xAF));
+        g.setColorAt(1.0f, QColor(0x00, 0x00, 0xFF));
+        brush = QBrush(g);
+        break;
+      }
+
+      case 2: {
+        double w = _canvas.blImage.width();
+        double h = _canvas.blImage.height();
+        double r = blMin(w, h);
+
+        QRadialGradient g(qreal(w * 0.5), qreal(h * 0.5), qreal(r * 0.5), qreal(w * 0.5), qreal(h * 0.5));
+        g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
+        g.setColorAt(0.5f, QColor(0xAF, 0x00, 0xAF));
+        g.setColorAt(1.0f, QColor(0x00, 0x00, 0xFF));
+        brush = QBrush(g);
+        break;
+      }
+    }
+
+    ctx.setBrush(brush);
+
+    QPen pen(brush, 1.0f);
     pen.setJoinStyle(Qt::MiterJoin);
 
     switch (_op) {
@@ -220,12 +306,12 @@ public:
         size_t n = _poly.size();
         QPainterPath path;
         path.moveTo(poly[0].x, poly[0].y);
-        for (size_t i = 3; i < n; i += 2)
+        for (size_t i = 3; i <= n; i += 2)
           path.quadTo(poly[i - 2].x, poly[i - 2].y, poly[i - 1].x, poly[i - 1].y);
 
         if (_op == 4) {
           path.setFillRule(Qt::OddEvenFill);
-          ctx.fillPath(path, QColor(255, 255, 255));
+          ctx.fillPath(path, brush);
         }
         else {
           pen.setWidth((_op - 5) * 2 + 1);
@@ -242,12 +328,12 @@ public:
         size_t n = _poly.size();
         QPainterPath path;
         path.moveTo(poly[0].x, poly[0].y);
-        for (size_t i = 4; i < n; i += 3)
+        for (size_t i = 4; i <= n; i += 3)
           path.cubicTo(poly[i - 3].x, poly[i - 3].y, poly[i - 2].x, poly[i - 2].y, poly[i - 1].x, poly[i - 1].y);
 
         if (_op == 8) {
           path.setFillRule(Qt::OddEvenFill);
-          ctx.fillPath(path, QColor(255, 255, 255));
+          ctx.fillPath(path, brush);
         }
         else {
           pen.setWidth((_op - 9) * 2 + 1);

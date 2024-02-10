@@ -18,9 +18,11 @@ public:
   QBLCanvas _canvas;
 
   BLRandom _random;
-  std::vector<BLPointI> _coords;
-  std::vector<BLPointI> _steps;
+  std::vector<BLPoint> _coords;
+  std::vector<BLPoint> _steps;
   std::vector<uint32_t> _spriteIds;
+
+  bool _animate = true;
   BLCompOp _compOp = BL_COMP_OP_SRC_OVER;
 
   BLImage _spritesB2D[4];
@@ -45,13 +47,21 @@ public:
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
     _compOpSelect.addItem("SrcOver", QVariant(int(BL_COMP_OP_SRC_OVER)));
     _compOpSelect.addItem("SrcCopy", QVariant(int(BL_COMP_OP_SRC_COPY)));
+    _compOpSelect.addItem("SrcAtop", QVariant(int(BL_COMP_OP_SRC_ATOP)));
     _compOpSelect.addItem("DstAtop", QVariant(int(BL_COMP_OP_DST_ATOP)));
     _compOpSelect.addItem("Xor", QVariant(int(BL_COMP_OP_XOR)));
     _compOpSelect.addItem("Plus", QVariant(int(BL_COMP_OP_PLUS)));
+    _compOpSelect.addItem("Multiply", QVariant(int(BL_COMP_OP_MULTIPLY)));
     _compOpSelect.addItem("Screen", QVariant(int(BL_COMP_OP_SCREEN)));
+    _compOpSelect.addItem("Overlay", QVariant(int(BL_COMP_OP_OVERLAY)));
+    _compOpSelect.addItem("Darken", QVariant(int(BL_COMP_OP_DARKEN)));
     _compOpSelect.addItem("Lighten", QVariant(int(BL_COMP_OP_LIGHTEN)));
+    _compOpSelect.addItem("Color Dodge", QVariant(int(BL_COMP_OP_COLOR_DODGE)));
+    _compOpSelect.addItem("Color Burn", QVariant(int(BL_COMP_OP_COLOR_BURN)));
     _compOpSelect.addItem("Hard Light", QVariant(int(BL_COMP_OP_HARD_LIGHT)));
+    _compOpSelect.addItem("Soft Light", QVariant(int(BL_COMP_OP_SOFT_LIGHT)));
     _compOpSelect.addItem("Difference", QVariant(int(BL_COMP_OP_DIFFERENCE)));
+    _compOpSelect.addItem("Exclusion", QVariant(int(BL_COMP_OP_EXCLUSION)));
 
     _limitFpsCheck.setText(QLatin1String("Limit FPS"));
 
@@ -85,6 +95,8 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
+
     onInit();
   }
 
@@ -118,26 +130,37 @@ public:
 
   double randomSign() noexcept { return _random.nextDouble() < 0.5 ? 1.0 : -1.0; }
 
+  Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
   Q_SLOT void onCompOpChanged(int index) { _compOp = (BLCompOp)_compOpSelect.itemData(index).toInt(); };
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
   Q_SLOT void onCountChanged(int value) { setCount(size_t(value)); }
 
   Q_SLOT void onTimer() {
-    int w = _canvas.blImage.width();
-    int h = _canvas.blImage.height();
+    if (_animate) {
+      double w = _canvas.blImage.width();
+      double h = _canvas.blImage.height();
 
-    size_t size = _coords.size();
-    for (size_t i = 0; i < size; i++) {
-      BLPointI& vertex = _coords[i];
-      BLPointI& step = _steps[i];
+      size_t size = _coords.size();
+      for (size_t i = 0; i < size; i++) {
+        BLPoint& vertex = _coords[i];
+        BLPoint& step = _steps[i];
 
-      vertex += step;
-      if (vertex.x < 0 || vertex.x >= w)
-        step.x = -step.x;
+        vertex += step;
+        if (vertex.x < 0 || vertex.x >= w) {
+          vertex.x -= step.x;
+          if (vertex.x < 0) vertex.x = 0;
+          if (vertex.x >= w) vertex.x = w - 1;
+          step.x = -step.x;
+        }
 
-      if (vertex.y < 0 || vertex.y >= h)
-        step.y = -step.y;
+        if (vertex.y < 0 || vertex.y >= h) {
+          vertex.y -= step.y;
+          if (vertex.y < 0) vertex.y = 0;
+          if (vertex.y >= h) vertex.y = h - 1;
+          step.y = -step.y;
+        }
+      }
     }
 
     _canvas.updateCanvas(true);
@@ -145,7 +168,8 @@ public:
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.fillAll(BLRgba32(0xFF000000));
+    ctx.setCompOp(BL_COMP_OP_SRC_COPY);
+    ctx.fillAll(blBackgroundForCompOp(_compOp));
     ctx.setCompOp(_compOp);
 
     size_t size = _coords.size();
@@ -153,14 +177,15 @@ public:
     int halfSize = rectSize / 2;
 
     for (size_t i = 0; i < size; i++) {
-      int x = _coords[i].x - halfSize;
-      int y = _coords[i].y - halfSize;
+      int x = int(_coords[i].x) - halfSize;
+      int y = int(_coords[i].y) - halfSize;
       ctx.blitImage(BLPointI(x, y), _spritesB2D[_spriteIds[i]]);
     }
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
+    ctx.setCompositionMode(QPainter::CompositionMode_Source);
+    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), blRgbaToQColor(blBackgroundForCompOp(_compOp)));
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setCompositionMode(blCompOpToQPainterCompositionMode(_compOp));
 
@@ -169,8 +194,8 @@ public:
     int halfSize = rectSize / 2;
 
     for (size_t i = 0; i < size; i++) {
-      int x = _coords[i].x - halfSize;
-      int y = _coords[i].y - halfSize;
+      int x = int(_coords[i].x) - halfSize;
+      int y = int(_coords[i].y) - halfSize;
       ctx.drawImage(QPoint(x, y), _spritesQt[_spriteIds[i]]);
     }
   }
@@ -188,10 +213,10 @@ public:
     _spriteIds.resize(size);
 
     while (i < size) {
-      _coords[i].reset(int(_random.nextDouble() * w),
-                       int(_random.nextDouble() * h));
-      _steps[i].reset(int((_random.nextDouble() * 2 + 1) * randomSign()),
-                      int((_random.nextDouble() * 2 + 1) * randomSign()));
+      _coords[i].reset(_random.nextDouble() * (w - 1),
+                       _random.nextDouble() * (h - 1));
+      _steps[i].reset((_random.nextDouble() * 2 + 1) * randomSign(),
+                      (_random.nextDouble() * 2 + 1) * randomSign());
       _spriteIds[i] = _random.nextUInt32() % 4u;
       i++;
     }

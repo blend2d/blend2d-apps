@@ -174,11 +174,11 @@ public:
   QSlider _slider;
   Tiger _tiger;
 
-  double _rot = 0.0;
-  double _scale = 1.0;
-  bool _rotateEachFrame = true;
+  bool _animate = true;
   bool _cacheStroke = false;
   bool _renderStroke = true;
+  double _rot = 0.0;
+  double _scale = 1.0;
 
   MainWindow() {
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -228,8 +228,8 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
     connect(new QShortcut(QKeySequence(Qt::Key_R), this), SIGNAL(activated()), SLOT(onToggleRenderer()));
-    connect(new QShortcut(QKeySequence(Qt::Key_B), this), SIGNAL(activated()), SLOT(onToggleRotate()));
     connect(new QShortcut(QKeySequence(Qt::Key_S), this), SIGNAL(activated()), SLOT(onToggleStroke()));
     connect(new QShortcut(QKeySequence(Qt::Key_Q), this), SIGNAL(activated()), SLOT(onRotatePrev()));
     connect(new QShortcut(QKeySequence(Qt::Key_W), this), SIGNAL(activated()), SLOT(onRotateNext()));
@@ -251,14 +251,14 @@ public:
   Q_SLOT void onCachingChanged(int index) { _cacheStroke = index != 0; }
   Q_SLOT void onZoomChanged(int value) { _scale = (double(value) / 1000.0); }
 
+  Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onToggleRenderer() { _rendererSelect.setCurrentIndex(_rendererSelect.currentIndex() ^ 1); }
-  Q_SLOT void onToggleRotate() { _rotateEachFrame = !_rotateEachFrame; }
   Q_SLOT void onToggleStroke() { _renderStroke = !_renderStroke; }
   Q_SLOT void onRotatePrev() { _rot -= 0.25; }
   Q_SLOT void onRotateNext() { _rot += 0.25; }
 
   Q_SLOT void onTimer() {
-    if (_rotateEachFrame) {
+    if (_animate) {
       _rot += 0.25;
       if (_rot >= 360) _rot -= 360.0;
     }

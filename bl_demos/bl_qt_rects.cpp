@@ -18,6 +18,7 @@ public:
   QBLCanvas _canvas;
 
   BLRandom _random;
+  bool _animate = true;
   std::vector<BLPoint> _coords;
   std::vector<BLPoint> _steps;
   std::vector<BLRgba32> _colors;
@@ -44,13 +45,21 @@ public:
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
     _compOpSelect.addItem("SrcOver", QVariant(int(BL_COMP_OP_SRC_OVER)));
     _compOpSelect.addItem("SrcCopy", QVariant(int(BL_COMP_OP_SRC_COPY)));
+    _compOpSelect.addItem("SrcAtop", QVariant(int(BL_COMP_OP_SRC_ATOP)));
     _compOpSelect.addItem("DstAtop", QVariant(int(BL_COMP_OP_DST_ATOP)));
     _compOpSelect.addItem("Xor", QVariant(int(BL_COMP_OP_XOR)));
     _compOpSelect.addItem("Plus", QVariant(int(BL_COMP_OP_PLUS)));
+    _compOpSelect.addItem("Multiply", QVariant(int(BL_COMP_OP_MULTIPLY)));
     _compOpSelect.addItem("Screen", QVariant(int(BL_COMP_OP_SCREEN)));
+    _compOpSelect.addItem("Overlay", QVariant(int(BL_COMP_OP_OVERLAY)));
+    _compOpSelect.addItem("Darken", QVariant(int(BL_COMP_OP_DARKEN)));
     _compOpSelect.addItem("Lighten", QVariant(int(BL_COMP_OP_LIGHTEN)));
+    _compOpSelect.addItem("Color Dodge", QVariant(int(BL_COMP_OP_COLOR_DODGE)));
+    _compOpSelect.addItem("Color Burn", QVariant(int(BL_COMP_OP_COLOR_BURN)));
     _compOpSelect.addItem("Hard Light", QVariant(int(BL_COMP_OP_HARD_LIGHT)));
+    _compOpSelect.addItem("Soft Light", QVariant(int(BL_COMP_OP_SOFT_LIGHT)));
     _compOpSelect.addItem("Difference", QVariant(int(BL_COMP_OP_DIFFERENCE)));
+    _compOpSelect.addItem("Exclusion", QVariant(int(BL_COMP_OP_EXCLUSION)));
 
     _shapeTypeSelect.addItem("Rect", QVariant(int(kShapeRect)));
     _shapeTypeSelect.addItem("RectPath", QVariant(int(kShapeRectPath)));
@@ -102,6 +111,8 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
+
     onInit();
   }
 
@@ -118,6 +129,7 @@ public:
   double randomSign() noexcept { return _random.nextDouble() < 0.5 ? 1.0 : -1.0; }
   BLRgba32 randomColor() noexcept { return BLRgba32(_random.nextUInt32()); }
 
+  Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
   Q_SLOT void onCompOpChanged(int index) { _compOp = (BLCompOp)_compOpSelect.itemData(index).toInt(); };
   Q_SLOT void onShapeTypeChanged(int index) { _shapeType = _shapeTypeSelect.itemData(index).toInt(); };
@@ -126,23 +138,25 @@ public:
   Q_SLOT void onCountChanged(int value) { setCount(size_t(value)); }
 
   Q_SLOT void onTimer() {
-    double w = _canvas.blImage.width();
-    double h = _canvas.blImage.height();
+    if (_animate) {
+      double w = _canvas.blImage.width();
+      double h = _canvas.blImage.height();
 
-    size_t size = _coords.size();
-    for (size_t i = 0; i < size; i++) {
-      BLPoint& vertex = _coords[i];
-      BLPoint& step = _steps[i];
+      size_t size = _coords.size();
+      for (size_t i = 0; i < size; i++) {
+        BLPoint& vertex = _coords[i];
+        BLPoint& step = _steps[i];
 
-      vertex += step;
-      if (vertex.x <= 0.0 || vertex.x >= w) {
-        step.x = -step.x;
-        vertex.x = blMin(vertex.x + step.x, w);
-      }
+        vertex += step;
+        if (vertex.x <= 0.0 || vertex.x >= w) {
+          step.x = -step.x;
+          vertex.x = blMin(vertex.x + step.x, w);
+        }
 
-      if (vertex.y <= 0.0 || vertex.y >= h) {
-        step.y = -step.y;
-        vertex.y = blMin(vertex.y + step.y, h);
+        if (vertex.y <= 0.0 || vertex.y >= h) {
+          step.y = -step.y;
+          vertex.y = blMin(vertex.y + step.y, h);
+        }
       }
     }
 
@@ -151,15 +165,15 @@ public:
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.fillAll(BLRgba32(0xFF000000));
+    ctx.setCompOp(BL_COMP_OP_SRC_COPY);
+    ctx.fillAll(blBackgroundForCompOp(_compOp));
+    ctx.setCompOp(_compOp);
 
     size_t i;
     size_t size = _coords.size();
 
     double rectSize = _rectSize;
     double halfSize = _rectSize * 0.5;
-
-    ctx.setCompOp(_compOp);
 
     switch (_shapeType) {
       case kShapeRect:
@@ -208,8 +222,8 @@ public:
 }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
-
+    ctx.setCompositionMode(QPainter::CompositionMode_Source);
+    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), blRgbaToQColor(blBackgroundForCompOp(_compOp)));
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setCompositionMode(blCompOpToQPainterCompositionMode(_compOp));
 

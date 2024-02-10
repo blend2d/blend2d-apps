@@ -13,16 +13,17 @@ namespace blbench {
 
 struct BenchApp {
   // Command line
-  int _argc;
-  char** _argv;
+  int _argc {};
+  char** _argv {};
 
   // Configuration.
-  bool _isolated;
-  bool _deepBench;
-  bool _saveImages;
-  uint32_t _compOp;
-  uint32_t _repeat;
-  uint32_t _quantity;
+  bool _isolated {};
+  bool _deepBench {};
+  bool _saveImages {};
+  uint32_t _compOp {};
+  uint32_t _repeat {};
+  uint32_t _quantity {};
+  const char* _compOpString {};
 
   // Assets.
   BLImage _sprites[4];

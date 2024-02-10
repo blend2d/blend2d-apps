@@ -26,11 +26,15 @@ public:
 
   BLRandom _rnd;
   std::vector<Particle> _particles;
+
+  bool _animate = true;
   int maxAge = 650;
   double radiusScale = 6;
 
-  enum { kCategoryCount = 5 };
+  enum { kCategoryCount = 7 };
   BLRgba32 colors[kCategoryCount] = {
+    BLRgba32(0xFF4F00FF),
+    BLRgba32(0xFFFF004F),
     BLRgba32(0xFFFF7F00),
     BLRgba32(0xFFFF3F9F),
     BLRgba32(0xFF7F4FFF),
@@ -84,6 +88,8 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
+
     onInit();
   }
 
@@ -97,46 +103,49 @@ public:
     _updateTitle();
   }
 
+  Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
-    size_t i = 0;
-    size_t j = 0;
-    size_t count = _particles.size();
+    if (_animate) {
+      size_t i = 0;
+      size_t j = 0;
+      size_t count = _particles.size();
 
-    double rot = double(_rotationSlider.value()) * 0.02 / 1000;
-    double PI = 3.14159265359;
-    BLMatrix2D m = BLMatrix2D::makeRotation(rot);
+      double rot = double(_rotationSlider.value()) * 0.02 / 1000;
+      double PI = 3.14159265359;
+      BLMatrix2D m = BLMatrix2D::makeRotation(rot);
 
-    while (i < count) {
-      Particle& p = _particles[i++];
-      p.p += p.v;
-      p.v = m.mapPoint(p.v);
-      if (++p.age >= maxAge)
-        continue;
-      _particles[j++] = p;
-    }
-    _particles.resize(j);
+      while (i < count) {
+        Particle& p = _particles[i++];
+        p.p += p.v;
+        p.v = m.mapPoint(p.v);
+        if (++p.age >= maxAge)
+          continue;
+        _particles[j++] = p;
+      }
+      _particles.resize(j);
 
-    size_t maxParticles = size_t(_countSlider.value());
-    size_t n = size_t(_rnd.nextDouble() * maxParticles / 60 + 0.95);
+      size_t maxParticles = size_t(_countSlider.value());
+      size_t n = size_t(_rnd.nextDouble() * maxParticles / 60 + 0.95);
 
-    for (i = 0; i < n; i++) {
-      if (_particles.size() >= maxParticles)
-        break;
+      for (i = 0; i < n; i++) {
+        if (_particles.size() >= maxParticles)
+          break;
 
-      double angle = _rnd.nextDouble() * PI * 2.0;
-      double speed = blMax(_rnd.nextDouble() * 2.0, 0.05);
-      double aSin = std::sin(angle);
-      double aCos = std::cos(angle);
+        double angle = _rnd.nextDouble() * PI * 2.0;
+        double speed = blMax(_rnd.nextDouble() * 2.0, 0.05);
+        double aSin = std::sin(angle);
+        double aCos = std::cos(angle);
 
-      Particle part;
-      part.p.reset();
-      part.v.reset(aCos * speed, aSin * speed);
-      part.age = int(blMin(_rnd.nextDouble(), 0.5) * maxAge);
-      part.category = int(_rnd.nextDouble() * kCategoryCount);
-      _particles.push_back(part);
+        Particle part;
+        part.p.reset();
+        part.v.reset(aCos * speed, aSin * speed);
+        part.age = int(blMin(_rnd.nextDouble(), 0.5) * maxAge);
+        part.category = int(_rnd.nextDouble() * kCategoryCount);
+        _particles.push_back(part);
+      }
     }
 
     _canvas.updateCanvas(true);

@@ -190,6 +190,7 @@ bool BenchApp::init() {
   _deepBench = hasArg("--deep");
   _saveImages = hasArg("--save");
   _compOp = 0xFFFFFFFFu;
+  _compOpString = nullptr;
   _repeat = intValueOf("--repeat", 1);
   _quantity = intValueOf("--quantity", 1000);
 
@@ -203,9 +204,9 @@ bool BenchApp::init() {
     return false;
   }
 
-  const char* compOpName = valueOf("--compOp");
-  if (compOpName != NULL)
-    _compOp = searchStringList(benchCompOpList, ARRAY_SIZE(benchCompOpList), compOpName);
+  _compOpString = valueOf("--compOp");
+  if (_compOpString != NULL)
+    _compOp = searchStringList(benchCompOpList, ARRAY_SIZE(benchCompOpList), _compOpString);
 
   info();
 
@@ -242,12 +243,14 @@ void BenchApp::info() {
     "  --isolated   [%s] Use Blend2D isolated context (useful for development)\n"
     "  --repeat=N   [%d] Number of repeats of each test to select the best time\n"
     "  --quantity=N [%d] Override the default quantity of each operation\n"
+    "  --comp-op=X  [%s] Benchmark a specific composition operator\n"
     "\n",
     no_yes[_deepBench],
     no_yes[_saveImages],
     no_yes[_isolated],
     _repeat,
-    _quantity);
+    _quantity,
+    _compOpString ? _compOpString : "");
 }
 
 bool BenchApp::readImage(BLImage& image, const char* name, const void* data, size_t size) noexcept {

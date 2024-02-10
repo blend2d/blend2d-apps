@@ -14,6 +14,8 @@ public:
   QCheckBox _limitFpsCheck;
   QSlider _countSlider;
   QBLCanvas _canvas;
+
+  bool _animate = true;
   double _angle {};
   int _count {};
 
@@ -54,6 +56,8 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
+
     onInit();
   }
 
@@ -68,13 +72,16 @@ public:
     _updateTitle();
   }
 
+  Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
-    _angle += 0.05;
-    if (_angle >= 360)
-      _angle -= 360;
+    if (_animate) {
+      _angle += 0.05;
+      if (_angle >= 360)
+        _angle -= 360;
+    }
 
     _canvas.updateCanvas(true);
     _updateTitle();

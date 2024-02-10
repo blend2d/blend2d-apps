@@ -107,4 +107,35 @@ static BL_INLINE QPainter::CompositionMode blCompOpToQPainterCompositionMode(BLC
   }
 }
 
+static inline BLRgba32 blBackgroundForCompOp(BLCompOp compOp) noexcept {
+  switch (compOp) {
+    case BL_COMP_OP_SRC_OVER   : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_SRC_COPY   : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_SRC_IN     : return BLRgba32(0xFFFFFFFF);
+    case BL_COMP_OP_SRC_OUT    : return BLRgba32(0x00000000);
+    case BL_COMP_OP_SRC_ATOP   : return BLRgba32(0xFFFFFFFF);
+    case BL_COMP_OP_DST_OVER   : return BLRgba32(0xFFFFFFFF);
+    case BL_COMP_OP_DST_COPY   : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_DST_IN     : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_DST_OUT    : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_DST_ATOP   : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_XOR        : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_PLUS       : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_MULTIPLY   : return BLRgba32(0xFFFFFFFF);
+    case BL_COMP_OP_SCREEN     : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_OVERLAY    : return BLRgba32(0x00000000);
+    case BL_COMP_OP_DARKEN     : return BLRgba32(0xFFFFFFFF);
+    case BL_COMP_OP_LIGHTEN    : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_COLOR_DODGE: return BLRgba32(0x00000000);
+    case BL_COMP_OP_COLOR_BURN : return BLRgba32(0x00000000);
+    case BL_COMP_OP_HARD_LIGHT : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_SOFT_LIGHT : return BLRgba32(0x00000000);
+    case BL_COMP_OP_DIFFERENCE : return BLRgba32(0xFF000000);
+    case BL_COMP_OP_EXCLUSION  : return BLRgba32(0xFFFFFFFF);
+
+    default:
+      return BLRgba32(0xFF000000);
+  }
+}
+
 #endif // QT_BL_CANVAS_H_INCLUDED

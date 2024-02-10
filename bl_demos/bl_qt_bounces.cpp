@@ -12,6 +12,8 @@ public:
   QComboBox _rendererSelect;
   QComboBox _styleSelect;
   QCheckBox _limitFpsCheck;
+
+  bool _animate = true;
   double _time {};
   int _count {};
 
@@ -46,11 +48,11 @@ public:
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
     grid->addWidget(&_rendererSelect, 0, 1);
 
-    grid->addWidget(new QLabel("Style:"), 1, 0);
-    grid->addWidget(&_styleSelect, 1, 1);
+    grid->addWidget(new QLabel("Style:"), 0, 2);
+    grid->addWidget(&_styleSelect, 0, 3);
 
-    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 2);
-    grid->addWidget(&_limitFpsCheck, 0, 3, Qt::AlignRight);
+    grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 4);
+    grid->addWidget(&_limitFpsCheck, 0, 5, Qt::AlignRight);
 
     _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
     _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
@@ -60,6 +62,8 @@ public:
     setLayout(vBox);
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
+
     onInit();
   }
 
@@ -74,11 +78,15 @@ public:
     _updateTitle();
   }
 
+  Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
-    _time += 2.0;
+    if (_animate) {
+      _time += 2.0;
+    }
+
     _updateTitle();
     _canvas.updateCanvas(true);
   }
