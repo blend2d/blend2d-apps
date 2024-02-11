@@ -407,7 +407,7 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params) {
           if (_saveImages) {
             // Save only the last two as these are easier to compare visually.
             if (sizeId >= ARRAY_SIZE(benchShapeSizeList) - 2) {
-              sprintf(fileName, "%s-%s-%s-%s-%c.png",
+              snprintf(fileName, 256, "%s-%s-%s-%s-%c.png",
                 mod._name,
                 benchIdNameList[params.benchId],
                 benchCompOpList[params.compOp],
