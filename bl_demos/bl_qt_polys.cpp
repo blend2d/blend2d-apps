@@ -72,7 +72,7 @@ public:
     grid->addWidget(&_rendererSelect, 0, 1);
     grid->addWidget(new QLabel("Op:"), 0, 2);
     grid->addWidget(&_operationSelect, 0, 3);
-    grid->addWidget(new QLabel("Op:"), 0, 4);
+    grid->addWidget(new QLabel("Style:"), 0, 4);
     grid->addWidget(&_styleSelect, 0, 5);
 
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 6);

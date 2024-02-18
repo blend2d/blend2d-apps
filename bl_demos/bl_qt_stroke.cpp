@@ -170,7 +170,7 @@ public:
 
     if (event->type() == QEvent::MouseMove) {
       if (_grabbedVertex == SIZE_MAX) {
-        _path.getClosestVertex(BLPoint(double(event->position().x()), double(event->position().y())), 5, &_closestVertex);;
+        _path.getClosestVertex(BLPoint(double(event->position().x()), double(event->position().y())), 5, &_closestVertex);
         _canvas.updateCanvas();
       }
       else {
