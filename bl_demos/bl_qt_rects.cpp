@@ -27,13 +27,14 @@ public:
   double _rectSize = 64.0;
 
   enum ShapeType {
-    kShapeRect,
+    kShapeRectA,
+    kShapeRectU,
     kShapeRectPath,
     kShapeRoundRect,
     kShapePolyPath,
   };
 
-  MainWindow() : _random(0x1234) {
+  MainWindow() : _random(0x123456789ABCDEF) {
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
     vBox->setSpacing(0);
@@ -61,7 +62,8 @@ public:
     _compOpSelect.addItem("Difference", QVariant(int(BL_COMP_OP_DIFFERENCE)));
     _compOpSelect.addItem("Exclusion", QVariant(int(BL_COMP_OP_EXCLUSION)));
 
-    _shapeTypeSelect.addItem("Rect", QVariant(int(kShapeRect)));
+    _shapeTypeSelect.addItem("RectA", QVariant(int(kShapeRectA)));
+    _shapeTypeSelect.addItem("RectU", QVariant(int(kShapeRectU)));
     _shapeTypeSelect.addItem("RectPath", QVariant(int(kShapeRectPath)));
     _shapeTypeSelect.addItem("RoundRect", QVariant(int(kShapeRoundRect)));
     _shapeTypeSelect.addItem("Polygon", QVariant(int(kShapePolyPath)));
@@ -69,7 +71,7 @@ public:
     _limitFpsCheck.setText(QLatin1String("Limit FPS"));
 
     _sizeSlider.setOrientation(Qt::Horizontal);
-    _sizeSlider.setMinimum(8);
+    _sizeSlider.setMinimum(1);
     _sizeSlider.setMaximum(128);
     _sizeSlider.setSliderPosition(64);
 
@@ -112,6 +114,7 @@ public:
 
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
     connect(new QShortcut(QKeySequence(Qt::Key_P), this), SIGNAL(activated()), SLOT(onToggleAnimate()));
+    connect(new QShortcut(QKeySequence(Qt::Key_S), this), SIGNAL(activated()), SLOT(onStep()));
 
     onInit();
   }
@@ -130,6 +133,8 @@ public:
   BLRgba32 randomColor() noexcept { return BLRgba32(_random.nextUInt32()); }
 
   Q_SLOT void onToggleAnimate() { _animate = !_animate; }
+  Q_SLOT void onStep() { step(); }
+
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
   Q_SLOT void onCompOpChanged(int index) { _compOp = (BLCompOp)_compOpSelect.itemData(index).toInt(); };
   Q_SLOT void onShapeTypeChanged(int index) { _shapeType = _shapeTypeSelect.itemData(index).toInt(); };
@@ -139,29 +144,33 @@ public:
 
   Q_SLOT void onTimer() {
     if (_animate) {
-      double w = _canvas.blImage.width();
-      double h = _canvas.blImage.height();
-
-      size_t size = _coords.size();
-      for (size_t i = 0; i < size; i++) {
-        BLPoint& vertex = _coords[i];
-        BLPoint& step = _steps[i];
-
-        vertex += step;
-        if (vertex.x <= 0.0 || vertex.x >= w) {
-          step.x = -step.x;
-          vertex.x = blMin(vertex.x + step.x, w);
-        }
-
-        if (vertex.y <= 0.0 || vertex.y >= h) {
-          step.y = -step.y;
-          vertex.y = blMin(vertex.y + step.y, h);
-        }
-      }
+      step();
     }
 
     _canvas.updateCanvas(true);
     _updateTitle();
+  }
+
+  void step() noexcept {
+    double w = _canvas.blImage.width();
+    double h = _canvas.blImage.height();
+
+    size_t size = _coords.size();
+    for (size_t i = 0; i < size; i++) {
+      BLPoint& vertex = _coords[i];
+      BLPoint& step = _steps[i];
+
+      vertex += step;
+      if (vertex.x <= 0.0 || vertex.x >= w) {
+        step.x = -step.x;
+        vertex.x = blMin(vertex.x + step.x, w);
+      }
+
+      if (vertex.y <= 0.0 || vertex.y >= h) {
+        step.y = -step.y;
+        vertex.y = blMin(vertex.y + step.y, h);
+      }
+    }
   }
 
   void onRenderB2D(BLContext& ctx) noexcept {
@@ -176,15 +185,26 @@ public:
     double halfSize = _rectSize * 0.5;
 
     switch (_shapeType) {
-      case kShapeRect:
+      case kShapeRectA: {
+        int rectSizeI = int(_rectSize);
+        for (i = 0; i < size; i++) {
+          int x = int(_coords[i].x - halfSize);
+          int y = int(_coords[i].y - halfSize);
+          ctx.fillRect(BLRectI(x, y, rectSizeI, rectSizeI), _colors[i]);
+        }
+        break;
+      }
+
+      case kShapeRectU: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
-          ctx.fillRect(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize, _colors[i]);
+          ctx.fillRect(x, y, rectSize, rectSize, _colors[i]);
         }
         break;
+      }
 
-      case kShapeRectPath:
+      case kShapeRectPath: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
@@ -194,8 +214,9 @@ public:
           ctx.fillPath(path, _colors[i]);
         }
         break;
+      }
 
-      case kShapePolyPath:
+      case kShapePolyPath: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
@@ -209,8 +230,9 @@ public:
           ctx.fillPath(path, _colors[i]);
         }
         break;
+      }
 
-      case kShapeRoundRect:
+      case kShapeRoundRect: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
@@ -218,8 +240,9 @@ public:
           ctx.fillRoundRect(BLRoundRect(x, y, rectSize, rectSize, 10), _colors[i]);
         }
         break;
+      }
     }
-}
+  }
 
   void onRenderQt(QPainter& ctx) noexcept {
     ctx.setCompositionMode(QPainter::CompositionMode_Source);
@@ -234,15 +257,26 @@ public:
     double halfSize = _rectSize * 0.5;
 
     switch (_shapeType) {
-      case kShapeRect:
+      case kShapeRectA: {
+        int rectSizeI = int(_rectSize);
+        for (i = 0; i < size; i++) {
+          int x = int(_coords[i].x - halfSize);
+          int y = int(_coords[i].y - halfSize);
+          ctx.fillRect(QRect(x, y, rectSizeI, rectSizeI), blRgbaToQColor(_colors[i]));
+        }
+        break;
+      }
+
+      case kShapeRectU: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
           ctx.fillRect(QRectF(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize), blRgbaToQColor(_colors[i]));
         }
         break;
+      }
 
-      case kShapeRectPath:
+      case kShapeRectPath: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
@@ -252,8 +286,9 @@ public:
           ctx.fillPath(path, blRgbaToQColor(_colors[i]));
         }
         break;
+      }
 
-      case kShapePolyPath:
+      case kShapePolyPath: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
@@ -267,8 +302,9 @@ public:
           ctx.fillPath(path, blRgbaToQColor(_colors[i]));
         }
         break;
+      }
 
-      case kShapeRoundRect:
+      case kShapeRoundRect: {
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
@@ -278,6 +314,7 @@ public:
           ctx.fillPath(path, blRgbaToQColor(_colors[i]));
         }
         break;
+      }
     }
   }
 
@@ -293,8 +330,8 @@ public:
     while (i < size) {
       _coords[i].reset(_random.nextDouble() * w,
                        _random.nextDouble() * h);
-      _steps[i].reset((_random.nextDouble() * 0.5 + 0.05) * randomSign(),
-                      (_random.nextDouble() * 0.5 + 0.05) * randomSign());
+      _steps[i].reset((_random.nextDouble() * 0.5 + 0.04) * randomSign(),
+                      (_random.nextDouble() * 0.5 + 0.04) * randomSign());
       _colors[i].reset(randomColor());
       i++;
     }
