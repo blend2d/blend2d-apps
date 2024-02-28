@@ -311,14 +311,11 @@ void CairoModule::onDoRectAligned(bool stroke) {
     BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
     setupStyle<BLRectI>(style, rect);
 
-    if (stroke) {
-      cairo_rectangle(_cairoContext, rect.x + 0.5, rect.y + 0.5, rect.w, rect.h);
+    cairo_rectangle(_cairoContext, rect.x, rect.y, rect.w, rect.h);
+    if (stroke)
       cairo_stroke(_cairoContext);
-    }
-    else {
-      cairo_rectangle(_cairoContext, rect.x, rect.y, rect.w, rect.h);
+    else
       cairo_fill(_cairoContext);
-    }
   }
 }
 
