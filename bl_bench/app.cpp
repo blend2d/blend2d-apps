@@ -27,6 +27,10 @@
   #include "./module_skia.h"
 #endif // BLEND2D_APPS_ENABLE_SKIA
 
+#if defined(BLEND2D_APPS_ENABLE_CTX)
+  #include "./module_ctx.h"
+#endif // BLEND2D_APPS_ENABLE_CTX
+
 #define ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
 
 namespace blbench {
@@ -310,6 +314,8 @@ int BenchApp::run() {
   else {
     BenchModule* mod;
 
+
+
     mod = createBlend2DModule(0);
     runModule(*mod, params);
     delete mod;
@@ -320,6 +326,12 @@ int BenchApp::run() {
 
     mod = createBlend2DModule(4);
     runModule(*mod, params);
+
+#if defined(BLEND2D_APPS_ENABLE_CTX)
+    mod = createCtxModule();
+    runModule(*mod, params);
+    delete mod;
+#endif
 
 #if defined(BLEND2D_APPS_ENABLE_AGG)
     mod = createAggModule();
