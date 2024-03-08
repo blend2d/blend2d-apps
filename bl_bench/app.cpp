@@ -249,8 +249,8 @@ void BenchApp::info() {
     "  --quantity=N [%d] Override the default quantity of each operation\n"
     "  --comp-op=X  [%s] Benchmark a specific composition operator\n"
     "\n",
-    no_yes[_deepBench],
     no_yes[_saveImages],
+    no_yes[_deepBench],
     no_yes[_isolated],
     _repeat,
     _quantity,
