@@ -19,6 +19,7 @@ include("${BLEND2D_DIR}/CMakeLists.txt")
 # Dependencies - Probe
 # ====================
 
+pkg_check_modules(CTX ctx)
 pkg_check_modules(CAIRO cairo)
 find_package(unofficial-skia CONFIG)
 find_package(Qt6 COMPONENTS Core Gui Widgets)
@@ -201,6 +202,13 @@ if(CAIRO_FOUND)
   set(DEPENDENCY_CAIRO_DEFINITIONS BLEND2D_APPS_ENABLE_CAIRO)
 endif()
 
+if(CTX_FOUND)
+  message("-- [blend2d-apps] adding support for ctx")
+  set(DEPENDENCY_CTX_LIBRARIES ${CTX_LIBRARIES})
+  set(DEPENDENCY_CTX_INCLUDE_DIRS ${CTX_INCLUDE_DIRS})
+  set(DEPENDENCY_CTX_DEFINITIONS BLEND2D_APPS_ENABLE_CTX)
+endif()
+
 # Dependencies - SKIA (Optional)
 # ==============================
 
@@ -234,6 +242,8 @@ set(BLEND2D_BENCH_SRC
   bl_bench/module_blend2d.h
   bl_bench/module_cairo.cpp
   bl_bench/module_cairo.h
+  bl_bench/module_ctx.cpp
+  bl_bench/module_ctx.h
   bl_bench/module_qt.cpp
   bl_bench/module_qt.h
   bl_bench/module_skia.cpp
@@ -245,9 +255,9 @@ set(BLEND2D_BENCH_SRC
 add_executable(bl_bench ${BLEND2D_BENCH_SRC} ${ANTIGRAIN_SRC})
 target_compile_features(bl_bench PUBLIC cxx_std_11)
 set_property(TARGET bl_bench PROPERTY CXX_VISIBILITY_PRESET hidden)
-target_include_directories(bl_bench PRIVATE ${DEPENDENCY_AGG_INCLUDE_DIRS} ${DEPENDENCY_CAIRO_INCLUDE_DIRS})
-target_compile_definitions(bl_bench PRIVATE ${DEPENDENCY_AGG_DEFINITIONS} ${DEPENDENCY_CAIRO_DEFINITIONS} ${DEPENDENCY_QT_DEFINITIONS} ${DEPENDENCY_SKIA_DEFINITIONS})
-target_link_libraries(bl_bench blend2d::blend2d ${DEPENDENCY_AGG_LIBRARUES} ${DEPENDENCY_CAIRO_LIBRARIES} ${DEPENDENCY_QT_LIBRARIES} ${DEPENDENCY_SKIA_LIBRARIES})
+target_include_directories(bl_bench PRIVATE ${DEPENDENCY_AGG_INCLUDE_DIRS} ${DEPENDENCY_CAIRO_INCLUDE_DIRS} ${DEPENDENCY_CTX_INCLUDE_DITS})
+target_compile_definitions(bl_bench PRIVATE ${DEPENDENCY_AGG_DEFINITIONS} ${DEPENDENCY_CAIRO_DEFINITIONS} ${DEPENDENCY_QT_DEFINITIONS} ${DEPENDENCY_SKIA_DEFINITIONS} ${DEPENDENCY_CTX_DEFINITIONS})
+target_link_libraries(bl_bench blend2d::blend2d ${DEPENDENCY_AGG_LIBRARUES} ${DEPENDENCY_CAIRO_LIBRARIES} ${DEPENDENCY_QT_LIBRARIES} ${DEPENDENCY_SKIA_LIBRARIES} ${DEPENDENCY_CTX_LIBRARIES})
 target_link_directories(bl_bench PRIVATE ${DEPENDENCY_CAIRO_LIBRARY_DIRS})
 
 # Blend2D-Apps - Qt Demos

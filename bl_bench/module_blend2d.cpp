@@ -210,7 +210,7 @@ void Blend2DModule::onDoRectAligned(bool stroke) {
         BLRgba32 color(_rndColor.nextRgba32());
 
         if (opType == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h), color);
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), color);
         else
           _context.fillRect(rect, color);
       }
@@ -235,7 +235,7 @@ void Blend2DModule::onDoRectAligned(bool stroke) {
         _context.setStyle(opType, gradient);
 
         if (opType == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h));
         else
           _context.fillRect(rect);
 
@@ -252,10 +252,10 @@ void Blend2DModule::onDoRectAligned(bool stroke) {
         BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
 
         if (opType == BL_CONTEXT_STYLE_SLOT_STROKE) {
-          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x + 0.5, rect.y + 0.5));
+          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
           _context.save();
           _context.setStrokeStyle(pattern);
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h));
           _context.restore();
         }
         else {

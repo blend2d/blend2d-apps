@@ -3,13 +3,38 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#ifdef BLEND2D_APPS_ENABLE_CAIRO
+#ifdef BLEND2D_APPS_ENABLE_CTX
+
+#if 0
+ // if uncommented this causes us to build and include our own ctx
+ // implementation we lose benefit of SIMD acceleration of solid-source-over
+ // and nearest neighbor textures, there are some other slight performance loss
+ // over a built library, but those seem within 10%
+
+#include <stdint.h>
+#define CTX_RASTERIZER_AA  3
+#define CTX_FORCE_INLINES  1
+#define CTX_PROTOCOL_U8_COLOR 1
+#define CTX_IMPLEMENTATION 1
+#define CTX_TERMINAL_EVENTS 0
+#define CTX_FORMATTER 0
+#define CTX_FAST_FILL_RECT 1
+#define CTX_FAST_STROKE_RECT 1
+#define CTX_FRAGMENT_SPECIALIZE 1
+#define CTX_INLINED_NORMAL 1
+#define CTX_DITHER 0
+#define CTX_ENABLE_CM 0 
+#define CTX_ENABLE_CMYK 0 
+#define CTX_RASTERIZER_SWITCH_DISPATCH 1
+#define CTX_EVENTS 0
+#define CTX_RASTERIZER_O3 1
+#endif
 
 #include "./app.h"
-#include "./module_cairo.h"
+#include "./module_ctx.h"
 
 #include <algorithm>
-#include <cairo.h>
+#include <ctx.h>
 
 namespace blbench {
 
@@ -18,21 +43,22 @@ static inline double u8ToUnit(int x) {
   return double(x) * kDiv255;
 }
 
-static uint32_t toCairoFormat(uint32_t format) {
+static uint32_t toCtxFormat(uint32_t format) {
   switch (format) {
-    case BL_FORMAT_PRGB32: return CAIRO_FORMAT_ARGB32;
-    case BL_FORMAT_XRGB32: return CAIRO_FORMAT_RGB24;
-    case BL_FORMAT_A8    : return CAIRO_FORMAT_A8;
+    case BL_FORMAT_PRGB32: return CTX_FORMAT_RGBA8;
+    case BL_FORMAT_XRGB32: return CTX_FORMAT_RGBA8;
+    case BL_FORMAT_A8    : return CTX_FORMAT_GRAYA8;
     default:
       return 0xFFFFFFFFu;
   }
 }
 
-static uint32_t toCairoOperator(uint32_t compOp) {
+static uint32_t toCtxOperator(uint32_t compOp) {
   switch (compOp) {
-    case BL_COMP_OP_SRC_OVER   : return CAIRO_OPERATOR_OVER;
-    case BL_COMP_OP_SRC_COPY   : return CAIRO_OPERATOR_SOURCE;
-    case BL_COMP_OP_SRC_IN     : return CAIRO_OPERATOR_IN;
+    case BL_COMP_OP_SRC_OVER   : return CTX_COMPOSITE_SOURCE_OVER;
+    case BL_COMP_OP_SRC_COPY   : return CTX_COMPOSITE_COPY;
+    case BL_COMP_OP_SRC_IN     : return CTX_COMPOSITE_CLEAR;
+#if 0
     case BL_COMP_OP_SRC_OUT    : return CAIRO_OPERATOR_OUT;
     case BL_COMP_OP_SRC_ATOP   : return CAIRO_OPERATOR_ATOP;
     case BL_COMP_OP_DST_OVER   : return CAIRO_OPERATOR_DEST_OVER;
@@ -54,13 +80,13 @@ static uint32_t toCairoOperator(uint32_t compOp) {
     case BL_COMP_OP_SOFT_LIGHT : return CAIRO_OPERATOR_SOFT_LIGHT;
     case BL_COMP_OP_DIFFERENCE : return CAIRO_OPERATOR_DIFFERENCE;
     case BL_COMP_OP_EXCLUSION  : return CAIRO_OPERATOR_EXCLUSION;
-
+#endif
     default:
       return 0xFFFFFFFFu;
   }
 }
 
-static void roundRect(cairo_t* ctx, const BLRect& rect, double radius) {
+static void roundRect(Ctx* ctx, const BLRect& rect, double radius) {
   double rw2 = rect.w * 0.5;
   double rh2 = rect.h * 0.5;
 
@@ -76,33 +102,33 @@ static void roundRect(cairo_t* ctx, const BLRect& rect, double radius) {
   double x1 = rect.x + rect.w;
   double y1 = rect.y + rect.h;
 
-  cairo_move_to(ctx, x0 + rx, y0);
-  cairo_line_to(ctx, x1 - rx, y0);
-  cairo_curve_to(ctx, x1 - kx, y0, x1, y0 + ky, x1, y0 + ry);
+  ctx_move_to(ctx, x0 + rx, y0);
+  ctx_line_to(ctx, x1 - rx, y0);
+  ctx_curve_to(ctx, x1 - kx, y0, x1, y0 + ky, x1, y0 + ry);
 
-  cairo_line_to(ctx, x1, y1 - ry);
-  cairo_curve_to(ctx, x1, y1 - ky, x1 - kx, y1, x1 - rx, y1);
+  ctx_line_to(ctx, x1, y1 - ry);
+  ctx_curve_to(ctx, x1, y1 - ky, x1 - kx, y1, x1 - rx, y1);
 
-  cairo_line_to(ctx, x0 + rx, y1);
-  cairo_curve_to(ctx, x0 + kx, y1, x0, y1 - ky, x0, y1 - ry);
+  ctx_line_to(ctx, x0 + rx, y1);
+  ctx_curve_to(ctx, x0 + kx, y1, x0, y1 - ky, x0, y1 - ry);
 
-  cairo_line_to(ctx, x0, y0 + ry);
-  cairo_curve_to(ctx, x0, y0 + ky, x0 + kx, y0, x0 + rx, y0);
+  ctx_line_to(ctx, x0, y0 + ry);
+  ctx_curve_to(ctx, x0, y0 + ky, x0 + kx, y0, x0 + rx, y0);
 
-  cairo_close_path(ctx);
+  ctx_close_path(ctx);
 }
 
-struct CairoModule : public BenchModule {
-  cairo_surface_t* _cairoSurface;
-  cairo_surface_t* _cairoSprites[kBenchNumSprites];
-  cairo_t* _cairoContext;
+struct CtxModule : public BenchModule {
+  //ctx_surface_t* _ctxSurface;
+  //ctx_surface_t* _ctxSprites[kBenchNumSprites];
+  Ctx* _ctxContext;
 
   // Initialized by onBeforeRun().
   uint32_t _patternExtend;
   uint32_t _patternFilter;
 
-  CairoModule();
-  virtual ~CairoModule();
+  CtxModule();
+  virtual ~CtxModule();
 
   template<typename RectT>
   void setupStyle(uint32_t style, const RectT& rect);
@@ -122,20 +148,20 @@ struct CairoModule : public BenchModule {
   virtual void onDoShape(bool stroke, const BLPoint* pts, size_t count);
 };
 
-CairoModule::CairoModule() {
-  strcpy(_name, "Cairo");
-  _cairoSurface = NULL;
-  _cairoContext = NULL;
-  memset(_cairoSprites, 0, sizeof(_cairoSprites));
+CtxModule::CtxModule() {
+  strcpy(_name, "Ctx");
+  //_ctxSurface = NULL;
+  _ctxContext = NULL;
+  //memset(_ctxSprites, 0, sizeof(_ctxSprites));
 }
-CairoModule::~CairoModule() {}
+CtxModule::~CtxModule() {}
 
 template<typename RectT>
-void CairoModule::setupStyle(uint32_t style, const RectT& rect) {
+void CtxModule::setupStyle(uint32_t style, const RectT& rect) {
   switch (style) {
     case kBenchStyleSolid: {
       BLRgba32 c(_rndColor.nextRgba32());
-      cairo_set_source_rgba(_cairoContext, u8ToUnit(c.r()), u8ToUnit(c.g()), u8ToUnit(c.b()), u8ToUnit(c.a()));
+      ctx_rgba(_ctxContext, u8ToUnit(c.r()), u8ToUnit(c.g()), u8ToUnit(c.b()), u8ToUnit(c.a()));
       return;
     }
 
@@ -152,62 +178,79 @@ void CairoModule::setupStyle(uint32_t style, const RectT& rect) {
       BLRgba32 c1(_rndColor.nextRgba32());
       BLRgba32 c2(_rndColor.nextRgba32());
 
-      cairo_pattern_t* pattern = NULL;
-      if (style < kBenchStyleRadialPad) {
+      //ctx_pattern_t* pattern = NULL;
+     if (style < kBenchStyleRadialPad) {
         // Linear gradient.
         double x0 = rect.x + rect.w * 0.2;
         double y0 = rect.y + rect.h * 0.2;
         double x1 = rect.x + rect.w * 0.8;
         double y1 = rect.y + rect.h * 0.8;
-        pattern = cairo_pattern_create_linear(x0, y0, x1, y1);
+        ctx_linear_gradient (_ctxContext, x0, y0, x1, y1);
 
-        cairo_pattern_add_color_stop_rgba(pattern, 0.0, u8ToUnit(c0.r()), u8ToUnit(c0.g()), u8ToUnit(c0.b()), u8ToUnit(c0.a()));
-        cairo_pattern_add_color_stop_rgba(pattern, 0.5, u8ToUnit(c1.r()), u8ToUnit(c1.g()), u8ToUnit(c1.b()), u8ToUnit(c1.a()));
-        cairo_pattern_add_color_stop_rgba(pattern, 1.0, u8ToUnit(c2.r()), u8ToUnit(c2.g()), u8ToUnit(c2.b()), u8ToUnit(c2.a()));
+        ctx_gradient_add_stop (_ctxContext, 0.0, u8ToUnit(c0.r()), u8ToUnit(c0.g()), u8ToUnit(c0.b()), u8ToUnit(c0.a()));
+        ctx_gradient_add_stop (_ctxContext, 0.5, u8ToUnit(c1.r()), u8ToUnit(c1.g()), u8ToUnit(c1.b()), u8ToUnit(c1.a()));
+        ctx_gradient_add_stop (_ctxContext, 1.0, u8ToUnit(c2.r()), u8ToUnit(c2.g()), u8ToUnit(c2.b()), u8ToUnit(c2.a()));
       }
-      else {
+       else {
         // Radial gradient.
+        ctx_gradient_add_stop(_ctxContext, 0.0, u8ToUnit(c2.r()), u8ToUnit(c2.g()), u8ToUnit(c2.b()), u8ToUnit(c2.a()));
+        ctx_gradient_add_stop(_ctxContext, 0.5, u8ToUnit(c1.r()), u8ToUnit(c1.g()), u8ToUnit(c1.b()), u8ToUnit(c1.a()));
+        ctx_gradient_add_stop(_ctxContext, 1.0, u8ToUnit(c0.r()), u8ToUnit(c0.g()), u8ToUnit(c0.b()), u8ToUnit(c0.a()));
         x += double(rect.w) / 2.0;
         y += double(rect.h) / 2.0;
 
         double r = double(rect.w + rect.h) / 4.0;
-        pattern = cairo_pattern_create_radial(x, y, r, x - r / 2, y - r / 2, 0.0);
+        ctx_radial_gradient (_ctxContext, x, y, r, x - r / 2, y - r / 2, 0.0);
 
-        // Color stops in Cairo's radial gradient are reverse to Blend/Qt.
-        cairo_pattern_add_color_stop_rgba(pattern, 0.0, u8ToUnit(c2.r()), u8ToUnit(c2.g()), u8ToUnit(c2.b()), u8ToUnit(c2.a()));
-        cairo_pattern_add_color_stop_rgba(pattern, 0.5, u8ToUnit(c1.r()), u8ToUnit(c1.g()), u8ToUnit(c1.b()), u8ToUnit(c1.a()));
-        cairo_pattern_add_color_stop_rgba(pattern, 1.0, u8ToUnit(c0.r()), u8ToUnit(c0.g()), u8ToUnit(c0.b()), u8ToUnit(c0.a()));
+        // Color stops in Ctx's radial gradient are reverse to Blend/Qt.
+        ctx_gradient_add_stop(_ctxContext, 0.0, u8ToUnit(c2.r()), u8ToUnit(c2.g()), u8ToUnit(c2.b()), u8ToUnit(c2.a()));
+        ctx_gradient_add_stop(_ctxContext, 0.5, u8ToUnit(c1.r()), u8ToUnit(c1.g()), u8ToUnit(c1.b()), u8ToUnit(c1.a()));
+        ctx_gradient_add_stop(_ctxContext, 1.0, u8ToUnit(c0.r()), u8ToUnit(c0.g()), u8ToUnit(c0.b()), u8ToUnit(c0.a()));
       }
 
-      cairo_pattern_set_extend(pattern, cairo_extend_t(_patternExtend));
-      cairo_set_source(_cairoContext, pattern);
-      cairo_pattern_destroy(pattern);
+      //ctx_extend(_ctxContext, CTX_EXTEND_NONE);
+
+      //ctx_pattern_set_extend(pattern, ctx_extend_t(_patternExtend));
+      //ctx_set_source(_ctxContext, pattern);
+      //ctx_pattern_destroy(pattern);
       return;
     }
 
     case kBenchStylePatternNN:
     case kBenchStylePatternBI: {
-      // Matrix associated with cairo_pattern_t is inverse to Blend/Qt.
-      cairo_matrix_t matrix;
-      cairo_matrix_init_translate(&matrix, -rect.x, -rect.y);
+      int id = nextSpriteId();
+      const BLImage& sprite = _sprites[id];
+      BLImageData spriteData;
+      sprite.getData(&spriteData);
+      int stride = int(spriteData.stride);
+      int format = toCtxFormat(spriteData.format);
+      unsigned char* pixels = static_cast<unsigned char*>(spriteData.pixelData);
 
-      cairo_pattern_t* pattern = cairo_pattern_create_for_surface(_cairoSprites[nextSpriteId()]);
-      cairo_pattern_set_matrix(pattern, &matrix);
-      cairo_pattern_set_extend(pattern, cairo_extend_t(_patternExtend));
-      cairo_pattern_set_filter(pattern, cairo_filter_t(_patternFilter));
+      char eid[64];
+      sprintf (eid, "texture-%i", id);
+      ctx_extend(_ctxContext, CTX_EXTEND_NONE);
+      ctx_define_texture (_ctxContext, eid,
+         spriteData.size.w, spriteData.size.h, stride,
+         format, pixels, NULL);
+      CtxMatrix mat;
+      ctx_matrix_identity (&mat);
+      ctx_matrix_translate (&mat, rect.x, rect.y);
+      ctx_source_transform_matrix (_ctxContext, &mat);
 
-      cairo_set_source(_cairoContext, pattern);
-      cairo_pattern_destroy(pattern);
+      if (style == kBenchStylePatternNN)
+        ctx_image_smoothing (_ctxContext, 0);
+      else
+        ctx_image_smoothing (_ctxContext, 1);
       return;
     }
   }
 }
 
-bool CairoModule::supportsCompOp(BLCompOp compOp) const {
-  return toCairoOperator(compOp) != 0xFFFFFFFFu;
+bool CtxModule::supportsCompOp(BLCompOp compOp) const {
+  return toCtxOperator(compOp) != 0xFFFFFFFFu;
 }
 
-bool CairoModule::supportsStyle(uint32_t style) const {
+bool CtxModule::supportsStyle(uint32_t style) const {
   return style == kBenchStyleSolid         ||
          style == kBenchStyleLinearPad     ||
          style == kBenchStyleLinearRepeat  ||
@@ -219,27 +262,11 @@ bool CairoModule::supportsStyle(uint32_t style) const {
          style == kBenchStylePatternBI     ;
 }
 
-void CairoModule::onBeforeRun() {
+void CtxModule::onBeforeRun() {
   int w = int(_params.screenW);
   int h = int(_params.screenH);
   uint32_t style = _params.style;
 
-  // Initialize the sprites.
-  for (uint32_t i = 0; i < kBenchNumSprites; i++) {
-    const BLImage& sprite = _sprites[i];
-
-    BLImageData spriteData;
-    sprite.getData(&spriteData);
-
-    int stride = int(spriteData.stride);
-    int format = toCairoFormat(spriteData.format);
-    unsigned char* pixels = static_cast<unsigned char*>(spriteData.pixelData);
-
-    cairo_surface_t* cairoSprite = cairo_image_surface_create_for_data(
-      pixels, cairo_format_t(format), spriteData.size.w, spriteData.size.h, stride);
-
-    _cairoSprites[i] = cairoSprite;
-  }
 
   // Initialize the surface and the context.
   {
@@ -248,31 +275,49 @@ void CairoModule::onBeforeRun() {
     _surface.makeMutable(&surfaceData);
 
     int stride = int(surfaceData.stride);
-    int format = toCairoFormat(surfaceData.format);
+    int format = toCtxFormat(surfaceData.format);
     unsigned char* pixels = (unsigned char*)surfaceData.pixelData;
 
-    _cairoSurface = cairo_image_surface_create_for_data(
-      pixels, cairo_format_t(format), w, h, stride);
+    memset (pixels, 0, h * stride);
+    _ctxContext = ctx_new_for_framebuffer (pixels, w, h, stride, CtxPixelFormat(format));
 
-    if (_cairoSurface == NULL)
+    if (_ctxContext == NULL)
       return;
+  }
+  // Initialize the sprites.
+  for (uint32_t i = 0; i < kBenchNumSprites; i++) {
+    const BLImage& sprite = _sprites[i];
 
-    _cairoContext = cairo_create(_cairoSurface);
-    if (_cairoContext == NULL)
-      return;
+    BLImageData spriteData;
+    sprite.getData(&spriteData);
+
+    int stride = int(spriteData.stride);
+    int format = toCtxFormat(spriteData.format);
+    unsigned char* pixels = static_cast<unsigned char*>(spriteData.pixelData);
+
+    char *eid = (char*)malloc (40);
+    sprintf (eid, "texture-%i", i);
+    ctx_define_texture (_ctxContext, eid,
+       spriteData.size.w, spriteData.size.h, stride,
+       format,
+       pixels,
+       NULL);
+    free (eid);
+
+    //_ctxSprites[i] = ctxSprite;
   }
 
   // Setup the context.
-  cairo_set_operator(_cairoContext, CAIRO_OPERATOR_CLEAR);
-  cairo_rectangle(_cairoContext, 0, 0, w, h);
-  cairo_fill(_cairoContext);
+  ctx_compositing_mode(_ctxContext, CTX_COMPOSITE_CLEAR);
+  ctx_paint(_ctxContext);
 
-  cairo_set_operator(_cairoContext, cairo_operator_t(toCairoOperator(_params.compOp)));
-  cairo_set_line_width(_cairoContext, _params.strokeWidth);
+  ctx_compositing_mode(_ctxContext, CtxCompositingMode(toCtxOperator(_params.compOp)));
+  ctx_line_width(_ctxContext, _params.strokeWidth);
 
   // Setup globals.
-  _patternExtend = CAIRO_EXTEND_REPEAT;
-  _patternFilter = CAIRO_FILTER_NEAREST;
+  _patternExtend = CTX_EXTEND_REPEAT;
+#if 0
+  _patternFilter = CTX_FILTER_NEAREST;
 
   switch (style) {
     case kBenchStyleLinearPad      : _patternExtend = CAIRO_EXTEND_PAD     ; break;
@@ -284,24 +329,26 @@ void CairoModule::onBeforeRun() {
     case kBenchStylePatternNN      : _patternFilter = CAIRO_FILTER_NEAREST ; break;
     case kBenchStylePatternBI      : _patternFilter = CAIRO_FILTER_BILINEAR; break;
   }
+#endif
 }
 
-void CairoModule::onAfterRun() {
+void CtxModule::onAfterRun() {
   // Free the surface & the context.
-  cairo_destroy(_cairoContext);
-  cairo_surface_destroy(_cairoSurface);
+  ctx_destroy(_ctxContext);
+  //ctx_surface_destroy(_ctxSurface);
 
-  _cairoContext = NULL;
-  _cairoSurface = NULL;
-
+  _ctxContext = NULL;
+  //_ctxSurface = NULL;
+#if 0
   // Free the sprites.
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
-    cairo_surface_destroy(_cairoSprites[i]);
-    _cairoSprites[i] = NULL;
+    ctx_surface_destroy(_ctxSprites[i]);
+    _ctxSprites[i] = NULL;
   }
+#endif
 }
 
-void CairoModule::onDoRectAligned(bool stroke) {
+void CtxModule::onDoRectAligned(bool stroke) {
   BLSizeI bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
 
@@ -311,15 +358,15 @@ void CairoModule::onDoRectAligned(bool stroke) {
     BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
     setupStyle<BLRectI>(style, rect);
 
-    cairo_rectangle(_cairoContext, rect.x, rect.y, rect.w, rect.h);
+    ctx_rectangle(_ctxContext, rect.x, rect.y, rect.w, rect.h);
     if (stroke)
-      cairo_stroke(_cairoContext);
-    else
-      cairo_fill(_cairoContext);
+      ctx_stroke(_ctxContext);
+    else 
+      ctx_fill(_ctxContext);
   }
 }
 
-void CairoModule::onDoRectSmooth(bool stroke) {
+void CtxModule::onDoRectSmooth(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
 
@@ -329,16 +376,16 @@ void CairoModule::onDoRectSmooth(bool stroke) {
     BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
 
     setupStyle<BLRect>(style, rect);
-    cairo_rectangle(_cairoContext, rect.x, rect.y, rect.w, rect.h);
+    ctx_rectangle(_ctxContext, rect.x, rect.y, rect.w, rect.h);
 
     if (stroke)
-      cairo_stroke(_cairoContext);
+      ctx_stroke(_ctxContext);
     else
-      cairo_fill(_cairoContext);
+      ctx_fill(_ctxContext);
   }
 }
 
-void CairoModule::onDoRectRotated(bool stroke) {
+void CtxModule::onDoRectRotated(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
 
@@ -350,23 +397,23 @@ void CairoModule::onDoRectRotated(bool stroke) {
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
     BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
 
-    cairo_translate(_cairoContext, cx, cy);
-    cairo_rotate(_cairoContext, angle);
-    cairo_translate(_cairoContext, -cx, -cy);
+    ctx_translate(_ctxContext, cx, cy);
+    ctx_rotate(_ctxContext, angle);
+    ctx_translate(_ctxContext, -cx, -cy);
 
     setupStyle<BLRect>(style, rect);
-    cairo_rectangle(_cairoContext, rect.x, rect.y, rect.w, rect.h);
+    ctx_rectangle(_ctxContext, rect.x, rect.y, rect.w, rect.h);
 
     if (stroke)
-      cairo_stroke(_cairoContext);
+      ctx_stroke(_ctxContext);
     else
-      cairo_fill(_cairoContext);
+      ctx_fill(_ctxContext);
 
-    cairo_identity_matrix(_cairoContext);
+    ctx_identity(_ctxContext);
   }
 }
 
-void CairoModule::onDoRoundSmooth(bool stroke) {
+void CtxModule::onDoRoundSmooth(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
 
@@ -377,16 +424,16 @@ void CairoModule::onDoRoundSmooth(bool stroke) {
     double radius = _rndExtra.nextDouble(4.0, 40.0);
 
     setupStyle<BLRect>(style, rect);
-    roundRect(_cairoContext, rect, radius);
+    roundRect(_ctxContext, rect, radius);
 
     if (stroke)
-      cairo_stroke(_cairoContext);
+      ctx_stroke(_ctxContext);
     else
-      cairo_fill(_cairoContext);
+      ctx_fill(_ctxContext);
   }
 }
 
-void CairoModule::onDoRoundRotated(bool stroke) {
+void CtxModule::onDoRoundRotated(bool stroke) {
   BLSize bounds(_params.screenW, _params.screenH);
   uint32_t style = _params.style;
 
@@ -399,23 +446,23 @@ void CairoModule::onDoRoundRotated(bool stroke) {
     BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
     double radius = _rndExtra.nextDouble(4.0, 40.0);
 
-    cairo_translate(_cairoContext, cx, cy);
-    cairo_rotate(_cairoContext, angle);
-    cairo_translate(_cairoContext, -cx, -cy);
+    ctx_translate(_ctxContext, cx, cy);
+    ctx_rotate(_ctxContext, angle);
+    ctx_translate(_ctxContext, -cx, -cy);
 
     setupStyle<BLRect>(style, rect);
-    roundRect(_cairoContext, rect, radius);
+    roundRect(_ctxContext, rect, radius);
 
     if (stroke)
-      cairo_stroke(_cairoContext);
+      ctx_stroke(_ctxContext);
     else
-      cairo_fill(_cairoContext);
+      ctx_fill(_ctxContext);
 
-    cairo_identity_matrix(_cairoContext);
+    ctx_identity(_ctxContext);
   }
 }
 
-void CairoModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
+void CtxModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
   BLSizeI bounds(_params.screenW - _params.shapeSize,
                  _params.screenH - _params.shapeSize);
   uint32_t style = _params.style;
@@ -423,8 +470,8 @@ void CairoModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
 
   double wh = double(_params.shapeSize);
 
-  if (mode == 0) cairo_set_fill_rule(_cairoContext, CAIRO_FILL_RULE_WINDING);
-  if (mode == 1) cairo_set_fill_rule(_cairoContext, CAIRO_FILL_RULE_EVEN_ODD);
+  if (mode == 0) ctx_fill_rule(_ctxContext, CTX_FILL_RULE_WINDING);
+  if (mode == 1) ctx_fill_rule(_ctxContext, CTX_FILL_RULE_EVEN_ODD);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
     BLPoint base(_rndCoord.nextPoint(bounds));
@@ -432,35 +479,37 @@ void CairoModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
     double x = _rndCoord.nextDouble(base.x, base.x + wh);
     double y = _rndCoord.nextDouble(base.y, base.y + wh);
 
-    cairo_move_to(_cairoContext, x, y);
+    ctx_move_to(_ctxContext, x, y);
     for (uint32_t p = 1; p < complexity; p++) {
       x = _rndCoord.nextDouble(base.x, base.x + wh);
       y = _rndCoord.nextDouble(base.y, base.y + wh);
-      cairo_line_to(_cairoContext, x, y);
+      ctx_line_to(_ctxContext, x, y);
     }
     setupStyle<BLRect>(style, BLRect(base.x, base.y, wh, wh));
 
     if (stroke)
-      cairo_stroke(_cairoContext);
+      ctx_stroke(_ctxContext);
     else
-      cairo_fill(_cairoContext);
+      ctx_fill(_ctxContext);
   }
 }
 
-void CairoModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
+
+void CtxModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
   BLSizeI bounds(_params.screenW - _params.shapeSize,
                  _params.screenH - _params.shapeSize);
   uint32_t style = _params.style;
 
-  // No idea who invented this, but you need a `cairo_t` to create a `cairo_path_t`.
-  cairo_path_t* path = nullptr;
 
+  float wh =float(_params.shapeSize);
+
+  // this mechanism is not only for paths..
+  // it also applies to 
+  Ctx *drawlist = ctx_new_drawlist(-1,-1);
   bool start = true;
-  double wh = double(_params.shapeSize);
-
   for (size_t i = 0; i < count; i++) {
-    double x = pts[i].x;
-    double y = pts[i].y;
+    float x = pts[i].x;
+    float y = pts[i].y;
 
     if (x == -1.0 && y == -1.0) {
       start = true;
@@ -468,39 +517,35 @@ void CairoModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
     }
 
     if (start) {
-      cairo_move_to(_cairoContext, x * wh, y * wh);
+      ctx_move_to(drawlist, x * wh, y * wh);
       start = false;
     }
     else {
-      cairo_line_to(_cairoContext, x * wh, y * wh);
+      ctx_line_to(drawlist, x * wh, y * wh);
     }
   }
 
-  path = cairo_copy_path(_cairoContext);
-  cairo_new_path(_cairoContext);
-
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    cairo_save(_cairoContext);
+    ctx_save(_ctxContext);
 
     BLPoint base(_rndCoord.nextPoint(bounds));
     setupStyle<BLRect>(style, BLRect(base.x, base.y, wh, wh));
-
-    cairo_translate(_cairoContext, base.x, base.y);
-    cairo_append_path(_cairoContext, path);
+    
+    ctx_translate(_ctxContext, base.x, base.y);
+    ctx_render_ctx(drawlist, _ctxContext);
 
     if (stroke)
-      cairo_stroke(_cairoContext);
+      ctx_stroke(_ctxContext);
     else
-      cairo_fill(_cairoContext);
+      ctx_fill(_ctxContext);
 
-    cairo_restore(_cairoContext);
-  }
-
-  cairo_path_destroy(path);
+    ctx_restore(_ctxContext);
+ }
+ ctx_destroy(drawlist);
 }
 
-BenchModule* createCairoModule() {
-  return new CairoModule();
+BenchModule* createCtxModule() {
+  return new CtxModule();
 }
 } // {blbench}
 
