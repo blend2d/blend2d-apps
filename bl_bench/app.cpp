@@ -407,7 +407,10 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params) {
           params.shapeSize = benchShapeSizeList[sizeId];
 
           uint64_t duration = std::numeric_limits<uint64_t>::max();
-          for (uint32_t attempt = 0; attempt < _repeat; attempt++) {
+	  int repeats = _repeat;
+	  if (testId <= 5)
+	    repeats *= 4;
+          for (uint32_t attempt = 0; attempt < repeats; attempt++) {
             mod.run(*this, params);
 
             if (duration > mod._duration)
