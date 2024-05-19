@@ -12,7 +12,7 @@
  // over a built library, but those seem within 10%
 
 #include <stdint.h>
-#define CTX_RASTERIZER_AA  3
+//#define CTX_RASTERIZER_AA  5
 #define CTX_FORCE_INLINES  1
 #define CTX_PROTOCOL_U8_COLOR 1
 #define CTX_IMPLEMENTATION 1
@@ -27,7 +27,6 @@
 #define CTX_ENABLE_CMYK 0 
 #define CTX_RASTERIZER_SWITCH_DISPATCH 1
 #define CTX_EVENTS 0
-#define CTX_RASTERIZER_O3 1
 #endif
 
 #include "./app.h"
@@ -164,6 +163,18 @@ void CtxModule::setupStyle(uint32_t style, const RectT& rect) {
       ctx_rgba(_ctxContext, u8ToUnit(c.r()), u8ToUnit(c.g()), u8ToUnit(c.b()), u8ToUnit(c.a()));
       return;
     }
+    case kBenchStyleConic: {
+      BLRgba32 c0(_rndColor.nextRgba32());
+      BLRgba32 c1(_rndColor.nextRgba32());
+      BLRgba32 c2(_rndColor.nextRgba32());
+      float x0 = rect.x + (rect.w / 2);
+      float y0 = rect.y + (rect.h / 2);
+      ctx_conic_gradient(_ctxContext, x0, y0, 0.0f, 1.0f);
+        ctx_gradient_add_stop(_ctxContext, 0.0, u8ToUnit(c2.r()), u8ToUnit(c2.g()), u8ToUnit(c2.b()), u8ToUnit(c2.a()));
+        ctx_gradient_add_stop(_ctxContext, 0.5, u8ToUnit(c1.r()), u8ToUnit(c1.g()), u8ToUnit(c1.b()), u8ToUnit(c1.a()));
+        ctx_gradient_add_stop(_ctxContext, 1.0, u8ToUnit(c0.r()), u8ToUnit(c0.g()), u8ToUnit(c0.b()), u8ToUnit(c0.a()));
+				   return;
+    }
 
     case kBenchStyleLinearPad:
     case kBenchStyleLinearRepeat:
@@ -252,6 +263,7 @@ bool CtxModule::supportsCompOp(BLCompOp compOp) const {
 
 bool CtxModule::supportsStyle(uint32_t style) const {
   return style == kBenchStyleSolid         ||
+         style == kBenchStyleConic         ||
          style == kBenchStyleLinearPad     ||
          style == kBenchStyleLinearRepeat  ||
          style == kBenchStyleLinearReflect ||
