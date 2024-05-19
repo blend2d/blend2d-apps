@@ -54,6 +54,7 @@ static const char* benchIdNameList[] = {
   "StrokeRectRot",
   "StrokeRoundU",
   "StrokeRoundRot",
+  "StrokeLine",
   "StrokeTriangle",
   "StrokePoly10",
   "StrokePoly20",

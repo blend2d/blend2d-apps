@@ -40,6 +40,7 @@ enum BenchId : uint32_t {
   kBenchIdStrokeRotatedRect,
   kBenchIdStrokeSmoothRound,
   kBenchIdStrokeRotatedRound,
+  kBenchIdStrokeLine,
   kBenchIdStrokeTriangle,
   kBenchIdStrokePolygon10,
   kBenchIdStrokePolygon20,

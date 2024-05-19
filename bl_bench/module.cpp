@@ -74,6 +74,7 @@ void BenchModule::run(const BenchApp& app, const BenchParams& params) {
     case kBenchIdStrokeRotatedRect : onDoRectRotated(true); break;
     case kBenchIdStrokeSmoothRound : onDoRoundSmooth(true); break;
     case kBenchIdStrokeRotatedRound: onDoRoundRotated(true); break;
+    case kBenchIdStrokeLine        : onDoPolygon(2, 2); break;
     case kBenchIdStrokeTriangle    : onDoPolygon(2, 3); break;
     case kBenchIdStrokePolygon10   : onDoPolygon(2, 10); break;
     case kBenchIdStrokePolygon20   : onDoPolygon(2, 20); break;
