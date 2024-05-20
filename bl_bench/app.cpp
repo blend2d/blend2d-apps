@@ -27,6 +27,10 @@
   #include "./module_skia.h"
 #endif // BLEND2D_APPS_ENABLE_SKIA
 
+#if defined(BLEND2D_APPS_ENABLE_CTX)
+  #include "./module_ctx.h"
+#endif // BLEND2D_APPS_ENABLE_CTX
+
 #define ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
 
 namespace blbench {
@@ -50,6 +54,7 @@ static const char* benchIdNameList[] = {
   "StrokeRectRot",
   "StrokeRoundU",
   "StrokeRoundRot",
+  "StrokeLine",
   "StrokeTriangle",
   "StrokePoly10",
   "StrokePoly20",
@@ -245,8 +250,8 @@ void BenchApp::info() {
     "  --quantity=N [%d] Override the default quantity of each operation\n"
     "  --comp-op=X  [%s] Benchmark a specific composition operator\n"
     "\n",
-    no_yes[_deepBench],
     no_yes[_saveImages],
+    no_yes[_deepBench],
     no_yes[_isolated],
     _repeat,
     _quantity,
@@ -310,6 +315,8 @@ int BenchApp::run() {
   else {
     BenchModule* mod;
 
+
+
     mod = createBlend2DModule(0);
     runModule(*mod, params);
     delete mod;
@@ -320,6 +327,12 @@ int BenchApp::run() {
 
     mod = createBlend2DModule(4);
     runModule(*mod, params);
+
+#if defined(BLEND2D_APPS_ENABLE_CTX)
+    mod = createCtxModule();
+    runModule(*mod, params);
+    delete mod;
+#endif
 
 #if defined(BLEND2D_APPS_ENABLE_AGG)
     mod = createAggModule();
@@ -394,7 +407,10 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params) {
           params.shapeSize = benchShapeSizeList[sizeId];
 
           uint64_t duration = std::numeric_limits<uint64_t>::max();
-          for (uint32_t attempt = 0; attempt < _repeat; attempt++) {
+	  int repeats = _repeat;
+	  if (testId <= 5)
+	    repeats *= 4;
+          for (uint32_t attempt = 0; attempt < repeats; attempt++) {
             mod.run(*this, params);
 
             if (duration > mod._duration)
