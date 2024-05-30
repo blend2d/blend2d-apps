@@ -6,7 +6,7 @@
 #ifndef BLBENCH_MODULE_SKIA_H
 #define BLBENCH_MODULE_SKIA_H
 
-#include "./module.h"
+#include "module.h"
 
 namespace blbench {
 

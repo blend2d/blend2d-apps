@@ -3,17 +3,16 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#include "./app.h"
-#include "./module.h"
-#include "./shapes_data.h"
+#include "app.h"
+#include "module.h"
+#include "shapes_data.h"
 
 #include <chrono>
 
 namespace blbench {
 
-// ============================================================================
-// [bench::BenchModule - Construction / Destruction]
-// ============================================================================
+// blbench::BenchModule - Construction & Destruction
+// =================================================
 
 BenchModule::BenchModule()
   : _name(),
@@ -25,9 +24,8 @@ BenchModule::BenchModule()
     _rndSpriteId(0) {}
 BenchModule::~BenchModule() {}
 
-// ============================================================================
-// [bench::BenchModule - Run]
-// ============================================================================
+// blbench::BenchModule - Run
+// ==========================
 
 static void BenchModule_onDoShapeHelper(BenchModule* mod, bool stroke, uint32_t shapeId) {
   ShapesData shape;
@@ -45,10 +43,7 @@ void BenchModule::run(const BenchApp& app, const BenchParams& params) {
 
   // Initialize the sprites.
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
-    BLImage::scale(
-      _sprites[i],
-      app._sprites[i],
-      BLSizeI(params.shapeSize, params.shapeSize), BL_IMAGE_SCALE_FILTER_BILINEAR);
+    _sprites[i] = app.getScaledSprite(i, params.shapeSize);
   }
 
   onBeforeRun();
@@ -87,5 +82,7 @@ void BenchModule::run(const BenchApp& app, const BenchParams& params) {
   std::chrono::duration<double> elapsed = end - start;
   _duration = uint64_t(elapsed.count() * 1000000);
 }
+
+void BenchModule::serializeInfo(JSONBuilder& json) const { (void)json; }
 
 } // {blbench}

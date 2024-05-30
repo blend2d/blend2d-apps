@@ -68,6 +68,7 @@ public:
     _styleSelect->addItem("Solid Color", QVariant(int(0)));
     _styleSelect->addItem("Linear Gradient", QVariant(int(1)));
     _styleSelect->addItem("Radial Gradient", QVariant(int(2)));
+    _styleSelect->addItem("Conic Gradient", QVariant(int(3)));
 
     _fileSelected = new QLineEdit("");
     _fileSelectButton = new QPushButton("Select...");
@@ -219,6 +220,20 @@ public:
         style = g;
         break;
       }
+
+      case 3: {
+        double w = _canvas->blImage.width();
+        double h = _canvas->blImage.height();
+
+        BLGradient g(BLConicGradientValues(w * 0.5, h * 0.5, 0.0));
+        g.addStop(0.00, BLRgba32(0xFFFF0000));
+        g.addStop(0.33, BLRgba32(0xFFAF00AF));
+        g.addStop(0.66, BLRgba32(0xFF0000FF));
+        g.addStop(1.00, BLRgba32(0xFFFF0000));
+
+        style = g;
+        break;
+      }
     }
 
     BLFont font;
@@ -284,6 +299,7 @@ public:
         g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
         g.setColorAt(0.5f, QColor(0xAF, 0x00, 0xAF));
         g.setColorAt(1.0f, QColor(0x00, 0x00, 0xFF));
+
         brush = QBrush(g);
         break;
       }
@@ -297,6 +313,21 @@ public:
         g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
         g.setColorAt(0.5f, QColor(0xAF, 0x00, 0xAF));
         g.setColorAt(1.0f, QColor(0x00, 0x00, 0xFF));
+
+        brush = QBrush(g);
+        break;
+      }
+
+      case 3: {
+        double w = _canvas->blImage.width();
+        double h = _canvas->blImage.height();
+
+        QConicalGradient g(qreal(w * 0.5), qreal(h * 0.5), 0.0);
+        g.setColorAt(0.00f, QColor(0xFF, 0x00, 0x00));
+        g.setColorAt(0.66f, QColor(0xAF, 0x00, 0xAF));
+        g.setColorAt(0.33f, QColor(0x00, 0x00, 0xFF));
+        g.setColorAt(1.00f, QColor(0xFF, 0x00, 0x00));
+
         brush = QBrush(g);
         break;
       }
@@ -338,4 +369,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_text.moc"
+#include "bl_text_demo.moc"

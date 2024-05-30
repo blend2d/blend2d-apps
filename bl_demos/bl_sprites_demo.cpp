@@ -224,7 +224,7 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Sprites Sample [%dx%d] [Count=%zu] [AvgTime=%.2fms FPS=%.1f]",
+    snprintf(buf, 256, "Sprites [%dx%d] [Count=%zu] [RenderTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _coords.size(),
@@ -248,4 +248,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_sprites.moc"
+#include "bl_sprites_demo.moc"

@@ -5,8 +5,8 @@
 
 #ifdef BLEND2D_APPS_ENABLE_SKIA
 
-#include "./app.h"
-#include "./module_skia.h"
+#include "app.h"
+#include "module_skia.h"
 
 #include <skia/core/SkBitmap.h>
 #include <skia/core/SkCanvas.h>

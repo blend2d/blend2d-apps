@@ -6,7 +6,7 @@
 #ifndef BLBENCH_MODULE_CAIRO_H
 #define BLBENCH_MODULE_CAIRO_H
 
-#include "./module.h"
+#include "module.h"
 
 namespace blbench {
 

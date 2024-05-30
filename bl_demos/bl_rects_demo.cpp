@@ -339,7 +339,7 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Rectangles [%dx%d] [Size=%d N=%zu] [AvgTime=%.2fms FPS=%.1f]",
+    snprintf(buf, 256, "Rects [%dx%d] [Size=%d Count=%zu] [RenderTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       int(_rectSize),
@@ -364,4 +364,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_rects.moc"
+#include "bl_rects_demo.moc"

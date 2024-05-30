@@ -1,0 +1,3 @@
+[submodule "3rdparty/litehtml"]
+	path = 3rdparty/litehtml
+	url = http://github.com/litehtml/litehtml
