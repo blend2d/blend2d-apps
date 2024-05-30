@@ -6,7 +6,7 @@
 #ifndef BLBENCH_MODULE_AGG_H
 #define BLBENCH_MODULE_AGG_H
 
-#include "./module.h"
+#include "module.h"
 
 namespace blbench {
 

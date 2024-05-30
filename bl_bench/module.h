@@ -7,14 +7,16 @@
 #define BLBENCH_MODULE_H
 
 #include <blend2d.h>
-#include "./module.h"
+
+#include "jsonbuilder.h"
+#include "module.h"
 
 namespace blbench {
 
 struct BenchApp;
 
-// bench - Constants
-// =================
+// blbench - Constants
+// ===================
 
 enum BenchMisc {
   kBenchNumSprites = 4
@@ -64,8 +66,8 @@ enum BenchStyle : uint32_t {
   kBenchStyleCount
 };
 
-// bench::BenchParams
-// ==================
+// blbench::BenchParams
+// ====================
 
 struct BenchParams {
   uint32_t screenW;
@@ -82,8 +84,8 @@ struct BenchParams {
   double strokeWidth;
 };
 
-// bench::BenchRandom
-// ==================
+// blbench::BenchRandom
+// ====================
 
 struct BenchRandom {
   inline BenchRandom(uint64_t seed)
@@ -156,8 +158,8 @@ struct BenchRandom {
   }
 };
 
-// bench::BenchModule
-// ==================
+// blbench::BenchModule
+// ====================
 
 struct BenchModule {
   //! Module name.
@@ -186,12 +188,16 @@ struct BenchModule {
 
   void run(const BenchApp& app, const BenchParams& params);
 
+  inline const char* name() const { return _name; }
+
   inline uint32_t nextSpriteId() {
     uint32_t i = _rndSpriteId;
     if (++_rndSpriteId >= kBenchNumSprites)
       _rndSpriteId = 0;
     return i;
   };
+
+  virtual void serializeInfo(JSONBuilder& json) const;
 
   virtual bool supportsCompOp(BLCompOp compOp) const = 0;
   virtual bool supportsStyle(uint32_t style) const = 0;

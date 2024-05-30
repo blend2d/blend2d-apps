@@ -10,8 +10,12 @@ public:
   QComboBox _rendererSelect;
   QComboBox _gradientTypeSelect;
   QComboBox _extendModeSelect;
-  QSlider _parameterSlider;
-  QSlider _stopSliders[6];
+  QSlider _parameterSlider1;
+  QSlider _parameterSlider2;
+  QLabel _parameterLabel1;
+  QLabel _parameterLabel2;
+  QSlider _stopSliders[9];
+  QCheckBox _controlCheck;
   QCheckBox _ditherCheck;
   QBLCanvas _canvas;
 
@@ -26,7 +30,7 @@ public:
   int _grabbedY = 0;
 
   MainWindow() {
-    setWindowTitle(QLatin1String("Gradients Sample"));
+    setWindowTitle(QLatin1String("Gradients"));
 
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
@@ -49,22 +53,39 @@ public:
     _extendModeSelect.addItem("Reflect", QVariant(int(BL_EXTEND_MODE_REFLECT)));
     connect(&_extendModeSelect, SIGNAL(activated(int)), SLOT(onExtendModeChanged(int)));
 
-    _parameterSlider.setOrientation(Qt::Horizontal);
-    _parameterSlider.setMinimum(0);
-    _parameterSlider.setMaximum(720);
-    _parameterSlider.setSliderPosition(720);
-    connect(&_parameterSlider, SIGNAL(valueChanged(int)), SLOT(onParameterChanged(int)));
+    _parameterSlider1.setOrientation(Qt::Horizontal);
+    _parameterSlider1.setMinimum(0);
+    _parameterSlider1.setMaximum(720);
+    _parameterSlider1.setSliderPosition(360);
+    connect(&_parameterSlider1, SIGNAL(valueChanged(int)), SLOT(onParameterChanged(int)));
+
+    _parameterSlider2.setOrientation(Qt::Horizontal);
+    _parameterSlider2.setMinimum(0);
+    _parameterSlider2.setMaximum(720);
+    _parameterSlider2.setSliderPosition(0);
+    connect(&_parameterSlider2, SIGNAL(valueChanged(int)), SLOT(onParameterChanged(int)));
+
+    _controlCheck.setText("Control");
+    _controlCheck.setChecked(true);
+    connect(&_controlCheck, SIGNAL(stateChanged(int)), SLOT(onParameterChanged(int)));
 
     _ditherCheck.setText("Dither");
     connect(&_ditherCheck, SIGNAL(stateChanged(int)), SLOT(onParameterChanged(int)));
 
-    for (uint32_t stopId = 0; stopId < 2; stopId++) {
-      for (uint32_t component = 0; component < 3; component++) {
+    const uint32_t initialColors[3] = {
+      0xFF000000,
+      0xFFFF0000,
+      0xFFFFFFFF
+    };
+
+    for (uint32_t stopId = 0; stopId < 3; stopId++) {
+      uint32_t color = initialColors[stopId];
+      for (uint32_t component = 0; component < 3; component++, color <<= 8) {
         uint32_t sliderId = stopId * 3 + component;
         _stopSliders[sliderId].setOrientation(Qt::Horizontal);
         _stopSliders[sliderId].setMinimum(0);
         _stopSliders[sliderId].setMaximum(255);
-        _stopSliders[sliderId].setSliderPosition(stopId * 255);
+        _stopSliders[sliderId].setSliderPosition((color >> 16) & 0xFF);
 
         static const char channels[] = "R:\0G:\0B:\0";
         grid->addWidget(new QLabel(QString::fromLatin1(channels + component * 3, 2)), component, stopId * 2 + 2);
@@ -87,10 +108,14 @@ public:
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 7);
     grid->addWidget(randomizeButton, 0, 8);
 
-    grid->addWidget(new QLabel("Rad/Angle:"), 3, 0, Qt::AlignRight);
-    grid->addWidget(&_parameterSlider, 3, 1, 1, 8);
+    grid->addWidget(&_parameterLabel1, 3, 0, Qt::AlignRight);
+    grid->addWidget(&_parameterSlider1, 3, 1, 1, 8);
 
-    grid->addWidget(&_ditherCheck, 3, 11);
+    grid->addWidget(&_parameterLabel2, 4, 0, Qt::AlignRight);
+    grid->addWidget(&_parameterSlider2, 4, 1, 1, 8);
+
+    grid->addWidget(&_controlCheck, 1, 8);
+    grid->addWidget(&_ditherCheck, 2, 8);
 
     vBox->addItem(grid);
     vBox->addWidget(&_canvas);
@@ -101,6 +126,26 @@ public:
     _canvas.onMouseEvent = std::bind(&MainWindow::onMouseEvent, this, std::placeholders::_1);
 
     onInit();
+    updateLabels();
+  }
+
+  void updateLabels() {
+    switch (_gradientType) {
+      case BL_GRADIENT_TYPE_LINEAR:
+        _parameterLabel1.setText("(Unused)");
+        _parameterLabel2.setText("(Unused)");
+        break;
+
+      case BL_GRADIENT_TYPE_RADIAL:
+        _parameterLabel1.setText("Center Rad");
+        _parameterLabel2.setText("Focal Rad");
+        break;
+
+      case BL_GRADIENT_TYPE_CONIC:
+        _parameterLabel1.setText("Angle");
+        _parameterLabel2.setText("Repeat");
+        break;
+    }
   }
 
   void keyPressEvent(QKeyEvent *event) override {}
@@ -124,7 +169,7 @@ public:
   }
 
   double sliderAngle(double scale) {
-    return double(_parameterSlider.value()) / 720.0 * scale;
+    return double(_parameterSlider1.value()) / 720.0 * scale;
   }
 
   void onMouseEvent(QMouseEvent* event) {
@@ -170,6 +215,7 @@ public:
   Q_SLOT void onGradientTypeChanged(int index) {
     _numPoints = index == BL_GRADIENT_TYPE_CONIC ? 1 : 2;
     _gradientType = BLGradientType(index);
+    updateLabels();
     _canvas.updateCanvas();
   }
 
@@ -200,8 +246,8 @@ public:
     gradient.setExtendMode(_gradientExtendMode);
     gradient.resetStops();
 
-    const double offsets[] = { 0.0, 1.0 };
-    for (uint32_t stopId = 0; stopId < 2; stopId++) {
+    constexpr double offsets[] = { 0.0, 0.5, 1.0 };
+    for (uint32_t stopId = 0; stopId < 3; stopId++) {
       uint32_t r = uint32_t(_stopSliders[stopId * 3 + 0].value());
       uint32_t g = uint32_t(_stopSliders[stopId * 3 + 1].value());
       uint32_t b = uint32_t(_stopSliders[stopId * 3 + 2].value());
@@ -209,19 +255,38 @@ public:
     }
 
     if (_gradientType == BL_GRADIENT_TYPE_LINEAR) {
-      gradient.setValues(BLLinearGradientValues { _pts[0].x, _pts[0].y, _pts[1].x, _pts[1].y });
+      gradient.setValues(
+        BLLinearGradientValues(
+          _pts[0].x,
+          _pts[0].y,
+          _pts[1].x,
+          _pts[1].y));
     }
     else if (_gradientType == BL_GRADIENT_TYPE_RADIAL) {
-      gradient.setValues(BLRadialGradientValues { _pts[0].x, _pts[0].y, _pts[1].x, _pts[1].y, double(_parameterSlider.value()) });
+      gradient.setValues(
+        BLRadialGradientValues(
+          _pts[0].x,
+          _pts[0].y,
+          _pts[1].x,
+          _pts[1].y,
+          double(_parameterSlider1.value()),
+          double(_parameterSlider2.value())));
     }
     else {
-      gradient.setValues(BLConicGradientValues { _pts[0].x, _pts[0].y, sliderAngle(3.14159265358979323846 * 2)});
+      gradient.setValues(
+        BLConicGradientValues(
+          _pts[0].x,
+          _pts[0].y,
+          sliderAngle(3.14159265358979323846 * 2.0),
+          double(_parameterSlider2.value()) / 100.0 + 1.0));
     }
 
     ctx.fillAll(gradient);
 
-    for (size_t i = 0; i < _numPoints; i++) {
-      ctx.strokeCircle(_pts[i].x, _pts[i].y, 3, i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
+    if (_controlCheck.isChecked()) {
+      for (size_t i = 0; i < _numPoints; i++) {
+        ctx.strokeCircle(_pts[i].x, _pts[i].y, 3, i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
+      }
     }
   }
 
@@ -230,8 +295,8 @@ public:
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
     QGradientStops stops;
-    const double offsets[] = { 0.0, 1.0 };
-    for (uint32_t stopId = 0; stopId < 2; stopId++) {
+    const double offsets[] = { 0.0, 0.5, 1.0 };
+    for (uint32_t stopId = 0; stopId < 3; stopId++) {
       uint32_t r = uint32_t(_stopSliders[stopId * 3 + 0].value());
       uint32_t g = uint32_t(_stopSliders[stopId * 3 + 1].value());
       uint32_t b = uint32_t(_stopSliders[stopId * 3 + 2].value());
@@ -252,7 +317,9 @@ public:
       }
 
       case BL_GRADIENT_TYPE_RADIAL: {
-        QRadialGradient g(_pts[0].x, _pts[0].y, double(_parameterSlider.value()), _pts[1].x, _pts[1].y);
+        QRadialGradient g(
+          qreal(_pts[0].x), qreal(_pts[0].y), qreal(_parameterSlider1.value()),
+          qreal(_pts[1].x), qreal(_pts[1].y), qreal(_parameterSlider2.value()));
         g.setStops(stops);
         g.setSpread(spread);
         ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QBrush(g));
@@ -268,11 +335,13 @@ public:
       }
     }
 
-    for (size_t i = 0; i < _numPoints; i++) {
-      QColor color = blRgbaToQColor(i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
-      ctx.setPen(QPen(Qt::NoPen));
-      ctx.setBrush(color);
-      ctx.drawEllipse(QPointF(_pts[i].x, _pts[i].y), 2, 2);
+    if (_controlCheck.isChecked()) {
+      for (size_t i = 0; i < _numPoints; i++) {
+        QColor color = blRgbaToQColor(i == _closestVertex ? BLRgba32(0xFF00FFFFu) : BLRgba32(0xFF007FFFu));
+        ctx.setPen(QPen(color, 1.0f));
+        ctx.setBrush(QBrush());
+        ctx.drawEllipse(QPointF(_pts[i].x, _pts[i].y), 3, 3);
+      }
     }
   }
 };
@@ -287,4 +356,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_gradients.moc"
+#include "bl_gradients_demo.moc"

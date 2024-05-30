@@ -5,8 +5,8 @@
 
 #ifdef BLEND2D_APPS_ENABLE_AGG
 
-#include "./app.h"
-#include "./module_agg.h"
+#include "app.h"
+#include "module_agg.h"
 
 #include <algorithm>
 #include "agg2d/agg2d.h"

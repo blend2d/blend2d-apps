@@ -1,6 +1,6 @@
 #include "bl_qt_headers.h"
 #include "bl_qt_canvas.h"
-#include "bl_qt_tiger.h"
+#include "bl_tiger_demo.h"
 
 #include <stdlib.h>
 
@@ -351,7 +351,7 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Tiger Sample [%dx%d] [AvgTime=%.2fms FPS=%.1f]",
+    snprintf(buf, 256, "Tiger [%dx%d] [RenderTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _canvas.averageRenderTime(),
@@ -374,4 +374,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_tiger.moc"
+#include "bl_tiger_demo.moc"

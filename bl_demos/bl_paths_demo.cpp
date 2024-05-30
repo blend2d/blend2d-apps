@@ -53,6 +53,7 @@ public:
     _styleSelect.addItem("Solid Color", QVariant(int(0)));
     _styleSelect.addItem("Linear Gradient", QVariant(int(1)));
     _styleSelect.addItem("Radial Gradient", QVariant(int(2)));
+    _styleSelect.addItem("Conic Gradient", QVariant(int(3)));
 
     _slider.setOrientation(Qt::Horizontal);
     _slider.setMinimum(3);
@@ -103,6 +104,7 @@ public:
   double randomSign() noexcept { return _random.nextDouble() < 0.5 ? 1.0 : -1.0; }
 
   Q_SLOT void onToggleAnimate() { _animate = !_animate; }
+  Q_SLOT void onStyleChanged(int index) { _canvas.updateCanvas(); }
   Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
   Q_SLOT void onOperationChanged(int index) { _op = index; }
@@ -172,6 +174,21 @@ public:
         g.addStop(0.0, BLRgba32(0xFFFF0000));
         g.addStop(0.5, BLRgba32(0xFFAF00AF));
         g.addStop(1.0, BLRgba32(0xFF0000FF));
+
+        ctx.setFillStyle(g);
+        ctx.setStrokeStyle(g);
+        break;
+      }
+
+      case 3: {
+        double w = _canvas.blImage.width();
+        double h = _canvas.blImage.height();
+
+        BLGradient g(BLConicGradientValues(w * 0.5, h * 0.5, 0.0));
+        g.addStop(0.00, BLRgba32(0xFFFF0000));
+        g.addStop(0.33, BLRgba32(0xFFAF00AF));
+        g.addStop(0.66, BLRgba32(0xFF0000FF));
+        g.addStop(1.00, BLRgba32(0xFFFF0000));
 
         ctx.setFillStyle(g);
         ctx.setStrokeStyle(g);
@@ -259,6 +276,7 @@ public:
         g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
         g.setColorAt(0.5f, QColor(0xAF, 0x00, 0xAF));
         g.setColorAt(1.0f, QColor(0x00, 0x00, 0xFF));
+
         brush = QBrush(g);
         break;
       }
@@ -272,6 +290,21 @@ public:
         g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
         g.setColorAt(0.5f, QColor(0xAF, 0x00, 0xAF));
         g.setColorAt(1.0f, QColor(0x00, 0x00, 0xFF));
+
+        brush = QBrush(g);
+        break;
+      }
+
+      case 3: {
+        double w = _canvas.blImage.width();
+        double h = _canvas.blImage.height();
+
+        QConicalGradient g(qreal(w * 0.5), qreal(h * 0.5), 0.0);
+        g.setColorAt(0.00f, QColor(0xFF, 0x00, 0x00));
+        g.setColorAt(0.66f, QColor(0xAF, 0x00, 0xAF));
+        g.setColorAt(0.33f, QColor(0x00, 0x00, 0xFF));
+        g.setColorAt(1.00f, QColor(0xFF, 0x00, 0x00));
+
         brush = QBrush(g);
         break;
       }
@@ -363,7 +396,7 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Polygons Sample [%dx%d] [N=%zu] [AvgTime=%.2fms FPS=%.1f]",
+    snprintf(buf, 256, "Paths [%dx%d] [Size=%zu] [RenderTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _poly.size(),
@@ -387,4 +420,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_polys.moc"
+#include "bl_paths_demo.moc"

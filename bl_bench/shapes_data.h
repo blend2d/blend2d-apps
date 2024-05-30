@@ -6,7 +6,7 @@
 #ifndef BLBENCH_SHAPES_DATA_H
 #define BLBENCH_SHAPES_DATA_H
 
-#include "./module.h"
+#include "module.h"
 
 namespace blbench {
 

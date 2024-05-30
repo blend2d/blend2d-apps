@@ -5,8 +5,8 @@
 
 #ifdef BLEND2D_APPS_ENABLE_CAIRO
 
-#include "./app.h"
-#include "./module_cairo.h"
+#include "app.h"
+#include "module_cairo.h"
 
 #include <algorithm>
 #include <cairo.h>
@@ -104,6 +104,8 @@ struct CairoModule : public BenchModule {
   CairoModule();
   virtual ~CairoModule();
 
+  virtual void serializeInfo(JSONBuilder& json) const;
+
   template<typename RectT>
   void setupStyle(uint32_t style, const RectT& rect);
 
@@ -129,6 +131,15 @@ CairoModule::CairoModule() {
   memset(_cairoSprites, 0, sizeof(_cairoSprites));
 }
 CairoModule::~CairoModule() {}
+
+void CairoModule::serializeInfo(JSONBuilder& json) const {
+  BLRuntimeBuildInfo buildInfo;
+  BLRuntime::queryBuildInfo(&buildInfo);
+
+  json.beforeRecord()
+      .addKey("version")
+      .addString(cairo_version_string());
+}
 
 template<typename RectT>
 void CairoModule::setupStyle(uint32_t style, const RectT& rect) {

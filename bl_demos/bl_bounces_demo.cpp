@@ -130,7 +130,7 @@ public:
         break;
       case StyleId::kConic:
         gr.setType(BL_GRADIENT_TYPE_CONIC);
-        gr.setValues(BLConicGradientValues(kHalfSize, kHalfSize, M_PI / -2.0));
+        gr.setValues(BLConicGradientValues(kHalfSize, kHalfSize, M_PI / -2.0, 1.0));
         break;
     }
 
@@ -270,7 +270,7 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Bounces Sample [%dx%d] [%d objects] [AvgTime=%.2fms FPS=%.1f]",
+    snprintf(buf, 256, "Bounces [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _count,
@@ -294,4 +294,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_bounces.moc"
+#include "bl_bounces_demo.moc"

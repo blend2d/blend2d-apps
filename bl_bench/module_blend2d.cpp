@@ -3,8 +3,8 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#include "./app.h"
-#include "./module_blend2d.h"
+#include "app.h"
+#include "module_blend2d.h"
 
 #include <blend2d.h>
 #include <stdio.h>
@@ -22,16 +22,16 @@ public:
   BLGradientType _gradientType;
   BLExtendMode _gradientExtend;
 
-  // --------------------------------------------------------------------------
-  // [Construction / Destruction]
-  // --------------------------------------------------------------------------
+  // Construction & Destruction
+  // --------------------------
 
   explicit Blend2DModule(uint32_t threadCount = 0, uint32_t cpuFeatures = 0);
   virtual ~Blend2DModule();
 
-  // --------------------------------------------------------------------------
-  // [Interface]
-  // --------------------------------------------------------------------------
+  // Interface
+  // ---------
+
+  virtual void serializeInfo(JSONBuilder& json) const;
 
   virtual bool supportsCompOp(BLCompOp compOp) const;
   virtual bool supportsStyle(uint32_t style) const;
@@ -54,14 +54,19 @@ Blend2DModule::Blend2DModule(uint32_t threadCount, uint32_t cpuFeatures) {
 
   const char* feature = nullptr;
 
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE2  ) feature = "[SSE2]";
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE3  ) feature = "[SSE3]";
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSSE3 ) feature = "[SSSE3]";
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE4_1) feature = "[SSE4.1]";
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE4_2) feature = "[SSE4.2]";
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_AVX   ) feature = "[AVX]";
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_AVX2  ) feature = "[AVX2]";
-  if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_AVX512) feature = "[AVX512]";
+  if (_cpuFeatures == 0xFFFFFFFFu) {
+    feature = "[NO JIT]";
+  }
+  else {
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE2  ) feature = "[SSE2]";
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE3  ) feature = "[SSE3]";
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSSE3 ) feature = "[SSSE3]";
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE4_1) feature = "[SSE4.1]";
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_SSE4_2) feature = "[SSE4.2]";
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_AVX   ) feature = "[AVX]";
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_AVX2  ) feature = "[AVX2]";
+    if (_cpuFeatures & BL_RUNTIME_CPU_FEATURE_X86_AVX512) feature = "[AVX512]";
+  }
 
   if (!_threadCount)
     snprintf(_name, sizeof(_name), "Blend2D ST%s%s", feature ? " " : "", feature ? feature : "");
@@ -71,13 +76,22 @@ Blend2DModule::Blend2DModule(uint32_t threadCount, uint32_t cpuFeatures) {
 
 Blend2DModule::~Blend2DModule() {}
 
+void Blend2DModule::serializeInfo(JSONBuilder& json) const {
+  BLRuntimeBuildInfo buildInfo;
+  BLRuntime::queryBuildInfo(&buildInfo);
+
+  json.beforeRecord()
+      .addKey("version")
+      .addStringf("%u.%u.%u", buildInfo.majorVersion, buildInfo.minorVersion, buildInfo.patchVersion);
+}
+
 template<typename RectT>
 static void BlendUtil_setupGradient(Blend2DModule* self, BLGradient& gradient, uint32_t style, const RectT& rect) {
   switch (style) {
     case kBenchStyleLinearPad:
     case kBenchStyleLinearRepeat:
     case kBenchStyleLinearReflect: {
-      BLLinearGradientValues values;
+      BLLinearGradientValues values {};
       values.x0 = rect.x + rect.w * 0.2;
       values.y0 = rect.y + rect.h * 0.2;
       values.x1 = rect.x + rect.w * 0.8;
@@ -94,7 +108,7 @@ static void BlendUtil_setupGradient(Blend2DModule* self, BLGradient& gradient, u
     case kBenchStyleRadialPad:
     case kBenchStyleRadialRepeat:
     case kBenchStyleRadialReflect: {
-      BLRadialGradientValues values;
+      BLRadialGradientValues values {};
       values.x0 = rect.x + (rect.w / 2);
       values.y0 = rect.y + (rect.h / 2);
       values.r0 = (rect.w + rect.h) / 4;
@@ -110,7 +124,7 @@ static void BlendUtil_setupGradient(Blend2DModule* self, BLGradient& gradient, u
     }
 
     default: {
-      BLConicGradientValues values;
+      BLConicGradientValues values {};
       values.x0 = rect.x + (rect.w / 2);
       values.y0 = rect.y + (rect.h / 2);
       values.angle = 0;
@@ -154,7 +168,10 @@ void Blend2DModule::onBeforeRun() {
   BLContextCreateInfo createInfo {};
   createInfo.threadCount = _threadCount;
 
-  if (_cpuFeatures) {
+  if (_cpuFeatures == 0xFFFFFFFFu) {
+    createInfo.flags = BL_CONTEXT_CREATE_FLAG_DISABLE_JIT;
+  }
+  else  if (_cpuFeatures) {
     createInfo.flags = BL_CONTEXT_CREATE_FLAG_ISOLATED_JIT_RUNTIME |
                        BL_CONTEXT_CREATE_FLAG_OVERRIDE_CPU_FEATURES;
     createInfo.cpuFeatures = _cpuFeatures;

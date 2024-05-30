@@ -5,8 +5,8 @@
 
 #ifdef BLEND2D_APPS_ENABLE_QT
 
-#include "./app.h"
-#include "./module_qt.h"
+#include "app.h"
+#include "module_qt.h"
 
 #include <QtCore>
 #include <QtGui>
@@ -70,6 +70,8 @@ struct QtModule : public BenchModule {
   QtModule();
   virtual ~QtModule();
 
+  virtual void serializeInfo(JSONBuilder& json) const;
+
   template<typename RectT>
   inline QBrush setupStyle(uint32_t style, const RectT& rect);
 
@@ -95,6 +97,12 @@ QtModule::QtModule() {
   memset(_qtSprites, 0, sizeof(_qtSprites));
 }
 QtModule::~QtModule() {}
+
+void QtModule::serializeInfo(JSONBuilder& json) const {
+  json.beforeRecord()
+      .addKey("version")
+      .addString(qVersion());
+}
 
 template<typename RectT>
 inline QBrush QtModule::setupStyle(uint32_t style, const RectT& rect) {

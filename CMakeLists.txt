@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+
+cmake_policy(PUSH)
 cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
+cmake_policy(SET CMP0077 NEW) # option() honors normal variables.
 
 # Blend2D-Apps - Configuration
 # ============================
@@ -219,13 +222,15 @@ if(Qt6Gui_FOUND)
   list(APPEND DEPENDENCY_QT_DEFINITIONS BLEND2D_APPS_ENABLE_QT)
 endif()
 
-# Blend2D-Apps - Bl-Bench
-# =======================
+# Blend2D-Apps - Blend2D Bench
+# ============================
 
 set(BLEND2D_BENCH_SRC
   bl_bench/app.cpp
   bl_bench/app.h
   bl_bench/images_data.h
+  bl_bench/jsonbuilder.cpp
+  bl_bench/jsonbuilder.h
   bl_bench/module.cpp
   bl_bench/module.h
   bl_bench/module_agg.cpp
@@ -250,27 +255,29 @@ target_compile_definitions(bl_bench PRIVATE ${DEPENDENCY_AGG_DEFINITIONS} ${DEPE
 target_link_libraries(bl_bench blend2d::blend2d ${DEPENDENCY_AGG_LIBRARUES} ${DEPENDENCY_CAIRO_LIBRARIES} ${DEPENDENCY_QT_LIBRARIES} ${DEPENDENCY_SKIA_LIBRARIES})
 target_link_directories(bl_bench PRIVATE ${DEPENDENCY_CAIRO_LIBRARY_DIRS})
 
-# Blend2D-Apps - Qt Demos
-# =======================
+# Blend2D-Apps - Blend2D Qt Demos
+# ===============================
 
-set(BLEND2D_DEMOS
-  bl_qt_gradients
-  bl_qt_ellipticarc
-  bl_qt_stroke
-  bl_qt_text
+set(BLEND2D_QT_DEMOS
+  bl_gradients_demo
+  bl_elliptic_arc_demo
+  bl_stroke_demo
+  bl_text_demo
 
-  bl_qt_bounces
-  bl_qt_circles
-  bl_qt_particles
-  bl_qt_pattern_fill
-  bl_qt_polys
-  bl_qt_rects
-  bl_qt_sprites
-  bl_qt_tiger
+  bl_bounces_demo
+  bl_bubbles_demo
+  bl_circles_demo
+  bl_particles_demo
+  bl_pattern_demo
+  bl_paths_demo
+  bl_rects_demo
+  bl_sprites_demo
+  bl_tiger_demo
 )
 
 if(Qt6Gui_FOUND)
-  foreach(target ${BLEND2D_DEMOS})
+  message("-- [blend2d-apps] adding Blend2D + Qt demos")
+  foreach(target ${BLEND2D_QT_DEMOS})
     add_executable(${target} WIN32
       "bl_demos/${target}.cpp"
       "bl_demos/bl_qt_canvas.cpp"
@@ -282,3 +289,30 @@ if(Qt6Gui_FOUND)
     target_link_libraries(${target} blend2d::blend2d Qt6::Gui Qt6::Widgets)
   endforeach()
 endif()
+
+# Blend2D-Apps - Blend2D LiteHtml Demo
+# ====================================
+
+set(BLEND2D_LITEHTML_DEMO_SRCS
+  bl_litehtml/bl_litehtml_container.h
+  bl_litehtml/bl_litehtml_container.cpp
+  bl_litehtml/bl_litehtml_demo.cpp
+  bl_litehtml/bl_litehtml_view.h
+  bl_litehtml/bl_litehtml_view.cpp
+)
+
+if(Qt6Gui_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/litehtml/CMakeLists.txt")
+  set(LITEHTML_DIR "${CMAKE_CURRENT_LIST_DIR}/3rdparty/litehtml")
+  add_definitions(-DLITEHTML_UTF8)
+  option(LITEHTML_BUILD_TESTING OFF)
+  add_subdirectory(3rdparty/litehtml)
+
+  message("-- [blend2d-apps] adding Blend2D + Qt + LiteHtml demo")
+  add_executable(bl_litehtml_demo WIN32 ${BLEND2D_LITEHTML_DEMO_SRCS})
+  target_compile_features(bl_litehtml_demo PUBLIC cxx_std_11)
+  set_property(TARGET bl_litehtml_demo PROPERTY AUTOMOC TRUE)
+  set_property(TARGET bl_litehtml_demo PROPERTY CXX_VISIBILITY_PRESET hidden)
+  target_link_libraries(bl_litehtml_demo blend2d::blend2d Qt6::Gui Qt6::Widgets litehtml)
+endif()
+
+cmake_policy(POP)

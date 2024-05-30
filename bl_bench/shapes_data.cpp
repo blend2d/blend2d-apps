@@ -3,7 +3,7 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#include "./shapes_data.h"
+#include "shapes_data.h"
 
 #define ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
 

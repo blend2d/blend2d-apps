@@ -145,7 +145,7 @@ public:
 
   void _updateTitle() {
     char buf[256];
-    snprintf(buf, 256, "Circles Sample [%dx%d] [%d circles] [AvgTime=%.2fms FPS=%.1f]",
+    snprintf(buf, 256, "Circles [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _countSlider.value(),
@@ -169,4 +169,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_circles.moc"
+#include "bl_circles_demo.moc"

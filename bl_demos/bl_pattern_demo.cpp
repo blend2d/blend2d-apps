@@ -16,6 +16,7 @@ public:
   QComboBox _extendModeSelect;
   QCheckBox _limitFpsCheck;
   QCheckBox _bilinearCheck;
+  QCheckBox _fillPathCheck;
   QSlider _fracX;
   QSlider _fracY;
   QSlider _angle;
@@ -36,6 +37,7 @@ public:
     QBLCanvas::initRendererSelectBox(&_rendererSelect);
     _limitFpsCheck.setText(QLatin1String("Limit FPS"));
     _bilinearCheck.setText(QLatin1String("Bilinear"));
+    _fillPathCheck.setText(QLatin1String("Fill Path"));
 
     static const char* extendModeNames[] = {
       "PAD",
@@ -96,6 +98,7 @@ public:
     connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
     connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
     connect(&_bilinearCheck, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
+    connect(&_fillPathCheck, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
     connect(&_extendModeSelect, SIGNAL(activated(int)), SLOT(onSliderChanged(int)));
     connect(&_fracX, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
     connect(&_fracY, SIGNAL(valueChanged(int)), SLOT(onSliderChanged(int)));
@@ -116,6 +119,9 @@ public:
 
     grid->addItem(new QSpacerItem(1, 0, QSizePolicy::Expanding), 0, 4);
     grid->addWidget(&_bilinearCheck, 1, 5);
+
+    grid->addItem(new QSpacerItem(2, 0, QSizePolicy::Expanding), 0, 4);
+    grid->addWidget(&_fillPathCheck, 2, 5);
 
     grid->addWidget(new QLabel("Fy Offset:"), 1, 2);
     grid->addWidget(&_fracY, 1, 3, 1, 2);
@@ -196,7 +202,14 @@ public:
         : BL_PATTERN_QUALITY_NEAREST);
 
     ctx.setCompOp(BL_COMP_OP_SRC_COPY);
-    ctx.fillAll(pattern);
+
+    if (_fillPathCheck.isChecked()) {
+      ctx.clearAll();
+      ctx.fillCircle(rx, ry, blMin(rx, ry), pattern);
+    }
+    else {
+      ctx.fillAll(pattern);
+    }
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
@@ -211,16 +224,27 @@ public:
 
     QBrush brush(_spritesQt[0]);
     brush.setTransform(tr);
-    ctx.setCompositionMode(QPainter::CompositionMode_Source);
 
     ctx.setRenderHint(QPainter::SmoothPixmapTransform, _bilinearCheck.isChecked());
-    ctx.fillRect(QRect(0, 0, _canvas.width(), _canvas.height()), brush);
+    ctx.setRenderHint(QPainter::Antialiasing, true);
+    ctx.setCompositionMode(QPainter::CompositionMode_Source);
+
+    if (_fillPathCheck.isChecked()) {
+      double r = blMin(rx, ry);
+      ctx.fillRect(QRect(0, 0, _canvas.width(), _canvas.height()), QColor(0, 0, 0, 0));
+      ctx.setBrush(brush);
+      ctx.setPen(Qt::NoPen);
+      ctx.drawEllipse(QPointF(qreal(rx), qreal(ry)), qreal(r), qreal(r));
+    }
+    else {
+      ctx.fillRect(QRect(0, 0, _canvas.width(), _canvas.height()), brush);
+    }
   }
 
   void _updateTitle() {
     char buf[256];
 
-    snprintf(buf, 256, "Blend2D Pattern Fill Sample [%dx%d] [AvgTime=%.2fms FPS=%.1f]",
+    snprintf(buf, 256, "Patterns [%dx%d] [RenderTime=%.2fms FPS=%.1f]",
       _canvas.width(),
       _canvas.height(),
       _canvas.averageRenderTime(),
@@ -243,4 +267,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_pattern_fill.moc"
+#include "bl_pattern_demo.moc"

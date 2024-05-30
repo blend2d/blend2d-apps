@@ -1,5 +1,5 @@
-#ifndef BL_QT_TIGER_H
-#define BL_QT_TIGER_H
+#ifndef BL_TIGER_DEMO_H
+#define BL_TIGER_DEMO_H
 
 // This data is originally from AmanithVG - An OpenVG implementation.
 namespace TigerData {
@@ -1923,4 +1923,4 @@ static const float points[] = {
 
 } // TigerData
 
-#endif // BL_QT_TIGER_H
+#endif // BL_TIGER_DEMO_H

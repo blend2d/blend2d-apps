@@ -25,7 +25,7 @@ public:
   int _grabbedY = 0;
 
   MainWindow() {
-    setWindowTitle(QLatin1String("SVG Elliptic Arcs"));
+    setWindowTitle(QLatin1String("Elliptic Arcs"));
 
     QVBoxLayout* vBox = new QVBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
@@ -219,4 +219,4 @@ int main(int argc, char *argv[]) {
   return app.exec();
 }
 
-#include "bl_qt_ellipticarc.moc"
+#include "bl_elliptic_arc_demo.moc"
