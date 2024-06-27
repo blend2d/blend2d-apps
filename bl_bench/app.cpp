@@ -5,6 +5,9 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#include <cmath>
+#include <limits>
 #include <type_traits>
 
 #include "./app.h"
