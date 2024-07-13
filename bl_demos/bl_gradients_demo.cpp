@@ -229,10 +229,10 @@ public:
   }
 
   Q_SLOT void onRandomizeVertices() {
-    _pts[0].x = (double(rand() % 65536) / 65535.0) * (_canvas.width()  - 1) + 0.5;
-    _pts[0].y = (double(rand() % 65536) / 65535.0) * (_canvas.height() - 1) + 0.5;
-    _pts[1].x = (double(rand() % 65536) / 65535.0) * (_canvas.width()  - 1) + 0.5;
-    _pts[1].y = (double(rand() % 65536) / 65535.0) * (_canvas.height() - 1) + 0.5;
+    _pts[0].x = (double(rand() % 65536) / 65535.0) * (_canvas.imageWidth()  - 1) + 0.5;
+    _pts[0].y = (double(rand() % 65536) / 65535.0) * (_canvas.imageHeight() - 1) + 0.5;
+    _pts[1].x = (double(rand() % 65536) / 65535.0) * (_canvas.imageWidth()  - 1) + 0.5;
+    _pts[1].y = (double(rand() % 65536) / 65535.0) * (_canvas.imageHeight() - 1) + 0.5;
     _canvas.updateCanvas();
   }
 
@@ -291,7 +291,7 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(255, 0, 0));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(255, 0, 0));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
     QGradientStops stops;
@@ -312,7 +312,7 @@ public:
         QLinearGradient g(_pts[0].x, _pts[0].y, _pts[1].x, _pts[1].y);
         g.setStops(stops);
         g.setSpread(spread);
-        ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QBrush(g));
+        ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QBrush(g));
         break;
       }
 
@@ -322,7 +322,7 @@ public:
           qreal(_pts[1].x), qreal(_pts[1].y), qreal(_parameterSlider2.value()));
         g.setStops(stops);
         g.setSpread(spread);
-        ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QBrush(g));
+        ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QBrush(g));
         break;
       }
 
@@ -330,7 +330,7 @@ public:
         QConicalGradient g(_pts[0].x, _pts[0].y, sliderAngle(360.0));
         g.setSpread(spread);
         g.setStops(stops);
-        ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QBrush(g));
+        ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QBrush(g));
         break;
       }
     }

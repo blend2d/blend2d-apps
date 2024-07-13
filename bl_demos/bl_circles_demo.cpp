@@ -98,8 +98,8 @@ public:
     int count = _countSlider.value();
     double PI = 3.14159265359;
 
-    double cx = _canvas.width() / 2;
-    double cy = _canvas.height() / 2;
+    double cx = _canvas.imageWidth() / 2;
+    double cy = _canvas.imageHeight() / 2;
     double maxDist = 1000.0;
     double baseAngle = _angle / 180.0 * PI;
 
@@ -117,7 +117,7 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
     QPainterPath p;
@@ -126,8 +126,8 @@ public:
     int count = _countSlider.value();
     double PI = 3.14159265359;
 
-    double cx = _canvas.width() / 2;
-    double cy = _canvas.height() / 2;
+    double cx = _canvas.imageWidth() / 2;
+    double cy = _canvas.imageHeight() / 2;
     double baseAngle = _angle / 180.0 * PI;
 
     for (int i = 0; i < count; i++) {
@@ -146,8 +146,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Circles [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       _countSlider.value(),
       _canvas.averageRenderTime(),
       _canvas.fps());

@@ -15,6 +15,7 @@ class QBLCanvas : public QWidget {
 
 public:
   QImage qtImage;
+  QImage qtImageNonScaling;
   BLImage blImage;
 
   enum RendererType : uint32_t {
@@ -58,6 +59,10 @@ public:
   void _resizeCanvas();
   void _renderCanvas();
   void _afterRender();
+
+  inline BLSizeI imageSize() const { return blImage.size(); }
+  inline int imageWidth() const { return blImage.width(); }
+  inline int imageHeight() const { return blImage.height(); }
 
   inline uint32_t rendererType() const { return _rendererType; }
   inline double fps() const { return _fps; }

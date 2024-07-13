@@ -102,8 +102,8 @@ public:
     double kFullSize = kSquareSize + kMarginSize * 2.0;
     double kHalfSize = kFullSize / 2.0;
 
-    int w = (_canvas.width() + kFullSize - 1) / kFullSize;
-    int h = (_canvas.height() + kFullSize - 1) / kFullSize;
+    int w = (_canvas.imageWidth() + kFullSize - 1) / kFullSize;
+    int h = (_canvas.imageHeight() + kFullSize - 1) / kFullSize;
 
     int count = w * h;
     _count = count;
@@ -184,7 +184,7 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
 
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setPen(Qt::NoPen);
@@ -195,8 +195,8 @@ public:
     double kFullSize = kSquareSize + kMarginSize * 2.0;
     double kHalfSize = kFullSize / 2.0;
 
-    int w = (_canvas.width() + kFullSize - 1) / kFullSize;
-    int h = (_canvas.height() + kFullSize - 1) / kFullSize;
+    int w = (_canvas.imageWidth() + kFullSize - 1) / kFullSize;
+    int h = (_canvas.imageHeight() + kFullSize - 1) / kFullSize;
 
     int count = w * h;
     _count = count;
@@ -271,8 +271,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Bounces [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       _count,
       _canvas.averageRenderTime(),
       _canvas.fps());

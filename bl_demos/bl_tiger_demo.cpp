@@ -275,7 +275,7 @@ public:
     double minY = 53;
     double maxX = 562.0;
     double maxY = 613.0;
-    double s = blMin(_canvas.width() / (maxX - minX), _canvas.height() / (maxY - minY)) * _scale;
+    double s = blMin(_canvas.imageWidth() / (maxX - minX), _canvas.imageHeight() / (maxY - minY)) * _scale;
 
     BLMatrix2D transform;
     transform.reset();
@@ -283,7 +283,7 @@ public:
     transform.postTranslate(-maxX / 2, -maxY / 2);
 
     ctx.save();
-    ctx.translate(_canvas.width() / 2, _canvas.height() / 2);
+    ctx.translate(_canvas.imageWidth() / 2, _canvas.imageHeight() / 2);
     ctx.scale(s);
     ctx.applyTransform(transform);
 
@@ -312,14 +312,14 @@ public:
   void onRenderQt(QPainter& ctx) noexcept {
     bool renderStroke = _renderStroke;
 
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0x7F));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0x7F));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
     double minX = 17;
     double minY = 53;
     double maxX = 562.0;
     double maxY = 613.0;
-    double s = blMin(_canvas.width() / (maxX - minX), _canvas.height() / (maxY - minY)) * _scale;
+    double s = blMin(_canvas.imageWidth() / (maxX - minX), _canvas.imageHeight() / (maxY - minY)) * _scale;
 
     BLMatrix2D m;
     m.reset();
@@ -327,7 +327,7 @@ public:
     m.postTranslate(-maxX / 2, -maxY / 2);
 
     ctx.save();
-    ctx.translate(_canvas.width() / 2, _canvas.height() / 2);
+    ctx.translate(_canvas.imageWidth() / 2, _canvas.imageHeight() / 2);
     ctx.scale(s, s);
     ctx.setTransform(QTransform(m.m00, m.m01, m.m10, m.m11, m.m20, m.m21), true);
 
@@ -352,8 +352,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Tiger [%dx%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       _canvas.averageRenderTime(),
       _canvas.fps());
 

@@ -31,7 +31,7 @@ public:
   int maxAge = 650;
   double radiusScale = 6;
 
-  enum { kCategoryCount = 7 };
+  enum { kCategoryCount = 8 };
   BLRgba32 colors[kCategoryCount] = {
     BLRgba32(0xFF4F00FF),
     BLRgba32(0xFFFF004F),
@@ -39,6 +39,7 @@ public:
     BLRgba32(0xFFFF3F9F),
     BLRgba32(0xFF7F4FFF),
     BLRgba32(0xFFFF9F3F),
+    BLRgba32(0xFFFFFF00),
     BLRgba32(0xFFAF3F00)
   };
 
@@ -155,8 +156,8 @@ public:
   void onRenderB2D(BLContext& ctx) noexcept {
     ctx.fillAll(BLRgba32(0xFF000000u));
 
-    double cx = _canvas.width() / 2;
-    double cy = _canvas.height() / 2;
+    double cx = _canvas.imageWidth() / 2;
+    double cy = _canvas.imageHeight() / 2;
 
     if (_colorsCheck.isChecked()) {
       BLPath paths[kCategoryCount];
@@ -180,11 +181,11 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
-    double cx = _canvas.width() / 2;
-    double cy = _canvas.height() / 2;
+    double cx = _canvas.imageWidth() / 2;
+    double cy = _canvas.imageHeight() / 2;
 
     if (_colorsCheck.isChecked()) {
       QPainterPath paths[kCategoryCount];
@@ -218,8 +219,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Particles [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       int(_particles.size()),
       _canvas.averageRenderTime(),
       _canvas.fps());

@@ -112,8 +112,8 @@ public:
 
   Q_SLOT void onTimer() {
     if (_animate) {
-      double w = _canvas.blImage.width();
-      double h = _canvas.blImage.height();
+      double w = _canvas.imageWidth();
+      double h = _canvas.imageHeight();
 
       size_t size = _poly.size();
       for (size_t i = 0; i < size; i++) {
@@ -152,8 +152,8 @@ public:
       }
 
       case 1: {
-        double w = _canvas.blImage.width();
-        double h = _canvas.blImage.height();
+        double w = _canvas.imageWidth();
+        double h = _canvas.imageHeight();
 
         BLGradient g(BLLinearGradientValues(0, 0, w, h));
         g.addStop(0.0, BLRgba32(0xFFFF0000));
@@ -166,8 +166,8 @@ public:
       }
 
       case 2: {
-        double w = _canvas.blImage.width();
-        double h = _canvas.blImage.height();
+        double w = _canvas.imageWidth();
+        double h = _canvas.imageHeight();
         double r = blMin(w, h);
 
         BLGradient g(BLRadialGradientValues(w * 0.5, h * 0.5, w * 0.5, h * 0.5, r * 0.5));
@@ -181,8 +181,8 @@ public:
       }
 
       case 3: {
-        double w = _canvas.blImage.width();
-        double h = _canvas.blImage.height();
+        double w = _canvas.imageWidth();
+        double h = _canvas.imageHeight();
 
         BLGradient g(BLConicGradientValues(w * 0.5, h * 0.5, 0.0));
         g.addStop(0.00, BLRgba32(0xFFFF0000));
@@ -255,7 +255,7 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
     int styleId = _styleSelect.currentIndex();
@@ -269,8 +269,8 @@ public:
       }
 
       case 1: {
-        double w = _canvas.blImage.width();
-        double h = _canvas.blImage.height();
+        double w = _canvas.imageWidth();
+        double h = _canvas.imageHeight();
 
         QLinearGradient g(qreal(0), qreal(0), qreal(w), qreal(h));
         g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
@@ -282,8 +282,8 @@ public:
       }
 
       case 2: {
-        double w = _canvas.blImage.width();
-        double h = _canvas.blImage.height();
+        double w = _canvas.imageWidth();
+        double h = _canvas.imageHeight();
         double r = blMin(w, h);
 
         QRadialGradient g(qreal(w * 0.5), qreal(h * 0.5), qreal(r * 0.5), qreal(w * 0.5), qreal(h * 0.5));
@@ -296,8 +296,8 @@ public:
       }
 
       case 3: {
-        double w = _canvas.blImage.width();
-        double h = _canvas.blImage.height();
+        double w = _canvas.imageWidth();
+        double h = _canvas.imageHeight();
 
         QConicalGradient g(qreal(w * 0.5), qreal(h * 0.5), 0.0);
         g.setColorAt(0.00f, QColor(0xFF, 0x00, 0x00));
@@ -378,8 +378,8 @@ public:
   }
 
   void setPolySize(size_t size) {
-    double w = _canvas.blImage.width();
-    double h = _canvas.blImage.height();
+    double w = _canvas.imageWidth();
+    double h = _canvas.imageHeight();
     size_t prev = _poly.size();
 
     _poly.resize(size);
@@ -397,8 +397,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Paths [%dx%d] [Size=%zu] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       _poly.size(),
       _canvas.averageRenderTime(),
       _canvas.fps());

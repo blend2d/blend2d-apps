@@ -51,18 +51,30 @@ void QBLCanvas::updateCanvas(bool force) {
     _renderCanvas();
   else
     _dirty = true;
-  repaint(0, 0, width(), height());
+  repaint(0, 0, imageSize().w, imageSize().h);
 }
 
 void QBLCanvas::_resizeCanvas() {
   int w = width();
   int h = height();
 
-  if (qtImage.width() == w && qtImage.height() == h)
+  float s = devicePixelRatio();
+  int sw = int(float(w) * s);
+  int sh = int(float(h) * s);
+
+  if (qtImage.width() == sw && qtImage.height() == sh)
     return;
 
-  qtImage = QImage(w, h, QImage::Format_ARGB32_Premultiplied);
-  blImage.createFromData(qtImage.width(), qtImage.height(), BL_FORMAT_PRGB32, qtImage.bits(), qtImage.bytesPerLine());
+  QImage::Format qimage_format = QImage::Format_ARGB32_Premultiplied;
+
+  qtImage = QImage(sw, sh, qimage_format);
+  qtImage.setDevicePixelRatio(s);
+
+  unsigned char* qimage_bits = qtImage.bits();
+  qsizetype qimage_stride = qtImage.bytesPerLine();
+
+  qtImageNonScaling = QImage(qimage_bits, sw, sh, qimage_stride, qimage_format);
+  blImage.createFromData(sw, sh, BL_FORMAT_PRGB32, qimage_bits, intptr_t(qimage_stride));
 
   updateCanvas(false);
 }
@@ -72,7 +84,7 @@ void QBLCanvas::_renderCanvas() {
 
   if (_rendererType == RendererQt) {
     if (onRenderQt) {
-      QPainter ctx(&qtImage);
+      QPainter ctx(&qtImageNonScaling);
       onRenderQt(ctx);
     }
   }

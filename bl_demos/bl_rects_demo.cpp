@@ -152,8 +152,8 @@ public:
   }
 
   void step() noexcept {
-    double w = _canvas.blImage.width();
-    double h = _canvas.blImage.height();
+    double w = _canvas.imageWidth();
+    double h = _canvas.imageHeight();
 
     size_t size = _coords.size();
     for (size_t i = 0; i < size; i++) {
@@ -246,7 +246,7 @@ public:
 
   void onRenderQt(QPainter& ctx) noexcept {
     ctx.setCompositionMode(QPainter::CompositionMode_Source);
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), blRgbaToQColor(blBackgroundForCompOp(_compOp)));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), blRgbaToQColor(blBackgroundForCompOp(_compOp)));
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setCompositionMode(blCompOpToQPainterCompositionMode(_compOp));
 
@@ -319,8 +319,8 @@ public:
   }
 
   void setCount(size_t size) {
-    double w = _canvas.blImage.width();
-    double h = _canvas.blImage.height();
+    double w = _canvas.imageWidth();
+    double h = _canvas.imageHeight();
     size_t i = _coords.size();
 
     _coords.resize(size);
@@ -340,8 +340,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Rects [%dx%d] [Size=%d Count=%zu] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       int(_rectSize),
       _coords.size(),
       _canvas.averageRenderTime(),

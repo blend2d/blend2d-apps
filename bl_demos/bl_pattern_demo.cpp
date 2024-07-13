@@ -188,8 +188,8 @@ public:
   inline double scale() const { return double(_scale.value() + 100) / 100.0; }
 
   void onRenderB2D(BLContext& ctx) noexcept {
-    int rx = _canvas.width() / 2;
-    int ry = _canvas.height() / 2;
+    int rx = _canvas.imageWidth() / 2;
+    int ry = _canvas.imageHeight() / 2;
 
     BLPattern pattern(_spritesB2D[0], BLExtendMode(_extendModeSelect.currentData().toInt()));
     pattern.rotate(angleRad(), rx, ry);
@@ -213,8 +213,8 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    int rx = _canvas.width() / 2;
-    int ry = _canvas.height() / 2;
+    int rx = _canvas.imageWidth() / 2;
+    int ry = _canvas.imageHeight() / 2;
 
     QTransform tr;
     tr.translate(rx, ry);
@@ -231,13 +231,13 @@ public:
 
     if (_fillPathCheck.isChecked()) {
       double r = blMin(rx, ry);
-      ctx.fillRect(QRect(0, 0, _canvas.width(), _canvas.height()), QColor(0, 0, 0, 0));
+      ctx.fillRect(QRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight()), QColor(0, 0, 0, 0));
       ctx.setBrush(brush);
       ctx.setPen(Qt::NoPen);
       ctx.drawEllipse(QPointF(qreal(rx), qreal(ry)), qreal(r), qreal(r));
     }
     else {
-      ctx.fillRect(QRect(0, 0, _canvas.width(), _canvas.height()), brush);
+      ctx.fillRect(QRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight()), brush);
     }
   }
 
@@ -245,8 +245,8 @@ public:
     char buf[256];
 
     snprintf(buf, 256, "Patterns [%dx%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       _canvas.averageRenderTime(),
       _canvas.fps());
 

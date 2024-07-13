@@ -138,8 +138,8 @@ public:
 
   Q_SLOT void onTimer() {
     if (_animate) {
-      double w = _canvas.blImage.width();
-      double h = _canvas.blImage.height();
+      double w = _canvas.imageWidth();
+      double h = _canvas.imageHeight();
 
       size_t size = _coords.size();
       for (size_t i = 0; i < size; i++) {
@@ -185,7 +185,7 @@ public:
 
   void onRenderQt(QPainter& ctx) noexcept {
     ctx.setCompositionMode(QPainter::CompositionMode_Source);
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), blRgbaToQColor(blBackgroundForCompOp(_compOp)));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), blRgbaToQColor(blBackgroundForCompOp(_compOp)));
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setCompositionMode(blCompOpToQPainterCompositionMode(_compOp));
 
@@ -201,8 +201,8 @@ public:
   }
 
   void setCount(size_t size) {
-    int w = _canvas.width();
-    int h = _canvas.height();
+    int w = _canvas.imageWidth();
+    int h = _canvas.imageHeight();
     size_t i = _coords.size();
 
     if (w < 16) w = 128;
@@ -225,8 +225,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Sprites [%dx%d] [Count=%zu] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       _coords.size(),
       _canvas.averageRenderTime(),
       _canvas.fps());

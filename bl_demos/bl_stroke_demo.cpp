@@ -185,8 +185,8 @@ public:
   Q_SLOT void onSetRandom() {
     double minX = 25;
     double minY = 25;
-    double maxX = double(_canvas.width()) - minX;
-    double maxY = double(_canvas.height()) - minY;
+    double maxX = double(_canvas.imageWidth()) - minX;
+    double maxY = double(_canvas.imageHeight()) - minY;
 
     auto rx = [&]() { return _prng.nextDouble() * (maxX - minX) + minX; };
     auto ry = [&]() { return _prng.nextDouble() * (maxY - minY) + minY; };

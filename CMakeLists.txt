@@ -4,6 +4,9 @@ cmake_policy(PUSH)
 cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
 cmake_policy(SET CMP0077 NEW) # option() honors normal variables.
 
+# To avoid warnings when built with dependencies compiled by either homebrew or vcpkg.
+set(CMAKE_OSX_DEPLOYMENT_TARGET 14.3)
+
 # Blend2D-Apps - Configuration
 # ============================
 

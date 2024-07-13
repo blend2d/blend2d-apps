@@ -105,8 +105,8 @@ public:
   Q_SLOT void onTimer() {
     size_t count = unsigned(_countSlider.value());
 
-    double w = _canvas.width();
-    double h = _canvas.height();
+    double w = _canvas.imageWidth();
+    double h = _canvas.imageHeight();
 
     if (_bubbles.size() > count) {
       _bubbles.resize(count);
@@ -169,7 +169,7 @@ public:
     BLGradient g;
     g.setType(BL_GRADIENT_TYPE_RADIAL);
 
-    double h = _canvas.height();
+    double h = _canvas.imageHeight();
 
     for (const Bubble& bubble : _bubbles) {
       double r = bubble.r;
@@ -187,12 +187,12 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.width(), _canvas.height(), QColor(0, 0, 0));
+    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setCompositionMode(QPainter::CompositionMode_Plus);
     ctx.setPen(Qt::NoPen);
 
-    double h = _canvas.height();
+    double h = _canvas.imageHeight();
 
     for (const Bubble& bubble : _bubbles) {
       double r = bubble.r;
@@ -209,8 +209,8 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Bubbles [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.width(),
-      _canvas.height(),
+      _canvas.imageWidth(),
+      _canvas.imageHeight(),
       int(_bubbles.size()),
       _canvas.averageRenderTime(),
       _canvas.fps());
