@@ -77,7 +77,7 @@ public:
 
     _countSlider.setOrientation(Qt::Horizontal);
     _countSlider.setMinimum(1);
-    _countSlider.setMaximum(10000);
+    _countSlider.setMaximum(20000);
     _countSlider.setSliderPosition(200);
 
     _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);

@@ -299,6 +299,7 @@ endif()
 set(BLEND2D_LITEHTML_DEMO_SRCS
   bl_litehtml/bl_litehtml_container.h
   bl_litehtml/bl_litehtml_container.cpp
+  bl_litehtml/bl_litehtml_default_page.cpp
   bl_litehtml/bl_litehtml_demo.cpp
   bl_litehtml/bl_litehtml_view.h
   bl_litehtml/bl_litehtml_view.cpp

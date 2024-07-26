@@ -2,68 +2,100 @@
 #define BL_LITEHTML_CONTAINER_H_INCLUDED
 
 #include <stdio.h>
-#include <string>
-#include <unordered_map>
 
 #include <blend2d.h>
 #include <litehtml.h>
 
-class BLLiteHtmlContainer : public litehtml::document_container
-{
+namespace BLLiteHtmlUtils {
+
+BLStringView extractPath(BLStringView url);
+
+};
+
+class BLLiteHtmlContainer;
+
+class BLLiteHtmlDocument {
 public:
+  enum class Button {
+    kLeft = 0,
+    kRight = 1,
+    kMiddle = 2,
+    kUnknown = 0xFF
+  };
+
+  BLLiteHtmlContainer* _container {};
+  litehtml::document::ptr _document {};
+
+  bool _linkAccepted = false;
+  bool _urlIsDirectory = false;
+
   BLFontManager _fontManager;
-  BLGlyphBuffer _glyphBuffer;
-  BLSizeI _size {};
-  BLString _baseUrl;
-  BLString _fallbackFont;
+  BLString _fallbackFamily;
+  BLString _monospaceFamily;
 
-  std::unordered_map<std::string, BLImage> _images;
+  BLString _url;
+  size_t _urlPathEnd {};
+  BLString _acceptedLinkURL;
 
-  BLLiteHtmlContainer();
-  virtual ~BLLiteHtmlContainer();
+  BLSizeI _viewportSize {};
+  BLPointI _viewportPosition {};
 
-  void setSize(const BLSizeI& size) { _size = size; }
-  void setFontManager(const BLFontManager& fm) { _fontManager = fm; }
-  void setFallbackFontFace(BLStringView name) { _fallbackFont.assign(name); }
+  BLLiteHtmlDocument();
+  ~BLLiteHtmlDocument() noexcept;
 
-  const BLImage* getImage(const char* src , const char* baseurl) const;
+  inline litehtml::document::ptr& document() { return _document; }
+  inline const litehtml::document::ptr& document() const { return _document; }
 
-  virtual litehtml::uint_ptr create_font(const char* faceName, int size, int weight, litehtml::font_style italic, unsigned int decoration, litehtml::font_metrics* fm) override;
-  virtual void delete_font(litehtml::uint_ptr hFont) override;
-  virtual int text_width(const char* text, litehtml::uint_ptr hFont) override;
-  virtual void draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos) override;
+  BLFontManager& fontManager() { return _fontManager; }
+  const BLFontManager& fontManager() const { return _fontManager; }
 
-  virtual int pt_to_px(int pt) const override;
-  virtual int get_default_font_size() const override;
-  virtual const char* get_default_font_name() const override;
-  virtual void draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker& marker) override;
-  virtual void load_image(const char* src, const char* baseurl, bool redraw_on_ready) override;
-  virtual void get_image_size(const char* src, const char* baseurl, litehtml::size& sz) override;
+  //! \name Document & Viewport
+  //! \{
 
-  virtual void draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const std::string& url, const std::string& base_url) override;
-  virtual void draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::web_color& color) override;
-  virtual void draw_linear_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::linear_gradient& gradient) override;
-  virtual void draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::radial_gradient& gradient) override;
-  virtual void draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::conic_gradient& gradient) override;
-  virtual void draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) override;
+  BLSizeI documentSize() const;
 
-  virtual void transform_text(litehtml::string& text, litehtml::text_transform tt) override;
-  virtual void set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) override;
-  virtual void del_clip() override;
-  virtual void get_client_rect(litehtml::position& client) const override;
+  inline BLSizeI viewportSize() const noexcept { return _viewportSize; }
+  inline BLPointI viewportPosition() const noexcept { return _viewportPosition; }
 
-  virtual std::shared_ptr<litehtml::element> create_element(const char* tag_name, const litehtml::string_map& attributes, const std::shared_ptr<litehtml::document>& doc) override;
+  void setViewportSize(const BLSizeI& sz);
+  void setViewportPosition(const BLPointI& pt);
 
-  virtual void set_caption(const char* caption) override;
-  virtual void set_base_url(const char* base_url) override;
-  virtual void link(const std::shared_ptr<litehtml::document>& doc, const litehtml::element::ptr& el) override;
-  virtual void on_anchor_click(const char* url, const litehtml::element::ptr& el) override;
-  virtual void set_cursor(const char* cursor) override;
-  virtual void import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) override;
+  //! \}
 
-  virtual void get_media_features(litehtml::media_features& media) const override;
-  virtual void get_language(litehtml::string& language, litehtml::string & culture) const override;
-  virtual litehtml::string resolve_color(const litehtml::string& color) const override;
+  //! \name Link management
+  //! \{
+
+  inline const BLString& url() const noexcept { return _url; }
+  BLString resolveLink(BLStringView link, bool stripParams);
+
+  inline bool linkAccepted() const noexcept { return _linkAccepted; }
+  inline const BLString& acceptedLinkURL() const noexcept { return _acceptedLinkURL; }
+
+  void acceptLink(const char* url);
+
+  //! \}
+
+  void createFromURL(BLStringView url, BLStringView masterCSS);
+  void createFromHTML(BLStringView content, BLStringView masterCSS);
+
+  inline void setFontManager(const BLFontManager& mgr) { _fontManager = mgr; }
+
+  inline void setFallbackFamily(const BLString& name) { _fallbackFamily.assign(name); }
+  inline void setFallbackFamily(BLStringView name) { _fallbackFamily.assign(name); }
+
+  inline void setMonospaceFamily(const BLString& name) { _monospaceFamily.assign(name); }
+  inline void setMonospaceFamily(BLStringView name) { _monospaceFamily.assign(name); }
+
+  BLRectI mouseLeave();
+  BLRectI mouseMove(const BLPointI& pos);
+  BLRectI mouseDown(const BLPointI& pos, Button button);
+  BLRectI mouseUp(const BLPointI& pos, Button button);
+
+  // Callbacks from litehtml.
+  std::function<void(const char*)> onSetCursor;
+  std::function<void(const char*)> onLinkClick;
+
+  void draw(BLContext& ctx);
 };
 
 #endif // BL_LITEHTML_CONTAINER_H_INCLUDED

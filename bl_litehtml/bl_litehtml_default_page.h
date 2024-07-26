@@ -1,0 +1,6 @@
+#ifndef BL_LITEHTML_DEFAULT_PAGE_H_INCLUDED
+#define BL_LITEHTML_DEFAULT_PAGE_H_INCLUDED
+
+const char* get_default_page_content();
+
+#endif // BL_LITEHTML_DEFAULT_PAGE_H_INCLUDED

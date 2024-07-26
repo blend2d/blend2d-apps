@@ -1,5 +1,28 @@
 #include "bl_litehtml_container.h"
 
+#include <limits.h>
+
+#include <string>
+#include <unordered_map>
+
+namespace std {
+
+template<>
+struct hash<BLString> {
+  inline size_t operator()(const BLString& str) const {
+    size_t h = 11;
+    for (char c : str) {
+      h = h * 177 + c;
+    }
+    return h;
+  }
+};
+
+}
+
+// BLLiteHtml - Utilities
+// ======================
+
 static constexpr double kPI = 3.14159265358979323846;
 
 static inline bool isBorderVisible(const litehtml::border& b) noexcept {
@@ -39,23 +62,102 @@ static void urlToPath(std::string& out, const char* src, const char* baseurl) {
   out.append(src_view.data, src_view.size);
 }
 
-BLLiteHtmlContainer::BLLiteHtmlContainer() {
-  _size.reset();
+static BLRectI accumulateDirtyRects(const litehtml::position::vector& dirty_rects) noexcept {
+  if (dirty_rects.empty())
+    return BLRectI{};
+
+  BLBoxI dirty_acc(INT_MAX, INT_MAX, INT_MIN, INT_MIN);
+  for (const litehtml::position& dirty_rect : dirty_rects) {
+    dirty_acc = BLBoxI(blMin(dirty_acc.x0, dirty_rect.x),
+                       blMin(dirty_acc.y0, dirty_rect.y),
+                       blMax(dirty_acc.x1, dirty_rect.right()),
+                       blMax(dirty_acc.y1, dirty_rect.bottom()));
+  }
+
+  return BLRectI(dirty_acc.x0, dirty_acc.y0, dirty_acc.x1 - dirty_acc.x0, dirty_acc.y1 - dirty_acc.y0);
 }
+
+namespace BLLiteHtmlUtils {
+
+BLStringView extractPath(BLStringView url) {
+  const char* q = std::find(url.begin(), url.end(), '?');
+  const char* h = std::find(url.begin(), url.end(), '#');
+
+  const char* end = std::min(q, h);
+  return BLStringView{url.data, size_t(end - url.data)};
+}
+
+}
+
+// BLLiteHtml - Container
+// ======================
+
+class BLLiteHtmlContainer : public litehtml::document_container
+{
+public:
+  BLLiteHtmlDocument* _doc;
+  BLGlyphBuffer _glyphBuffer;
+  std::unordered_map<BLString, BLImage> _images;
+
+  explicit BLLiteHtmlContainer(BLLiteHtmlDocument* doc);
+  virtual ~BLLiteHtmlContainer() override;
+
+  inline BLLiteHtmlDocument* doc() const noexcept { return _doc; }
+
+  const BLImage* getImage(const char* src , const char* baseurl) const;
+
+  virtual litehtml::uint_ptr create_font(const char* faceName, int size, int weight, litehtml::font_style italic, unsigned int decoration, litehtml::font_metrics* fm) override;
+  virtual void delete_font(litehtml::uint_ptr hFont) override;
+  virtual int text_width(const char* text, litehtml::uint_ptr hFont) override;
+  virtual void draw_text(litehtml::uint_ptr hdc, const char* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos) override;
+
+  virtual int pt_to_px(int pt) const override;
+  virtual int get_default_font_size() const override;
+  virtual const char* get_default_font_name() const override;
+  virtual void draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker& marker) override;
+  virtual void load_image(const char* src, const char* baseurl, bool redraw_on_ready) override;
+  virtual void get_image_size(const char* src, const char* baseurl, litehtml::size& sz) override;
+
+  virtual void draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const std::string& url, const std::string& base_url) override;
+  virtual void draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::web_color& color) override;
+  virtual void draw_linear_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::linear_gradient& gradient) override;
+  virtual void draw_radial_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::radial_gradient& gradient) override;
+  virtual void draw_conic_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::conic_gradient& gradient) override;
+  virtual void draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) override;
+
+  virtual void transform_text(litehtml::string& text, litehtml::text_transform tt) override;
+  virtual void set_clip(const litehtml::position& pos, const litehtml::border_radiuses& bdr_radius) override;
+  virtual void del_clip() override;
+  virtual void get_client_rect(litehtml::position& client) const override;
+
+  virtual std::shared_ptr<litehtml::element> create_element(const char* tag_name, const litehtml::string_map& attributes, const std::shared_ptr<litehtml::document>& doc) override;
+
+  virtual void set_caption(const char* caption) override;
+  virtual void set_base_url(const char* base_url) override;
+  virtual void link(const std::shared_ptr<litehtml::document>& doc, const litehtml::element::ptr& el) override;
+  virtual void on_anchor_click(const char* url, const litehtml::element::ptr& el) override;
+  virtual void set_cursor(const char* cursor) override;
+  virtual void import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) override;
+
+  virtual void get_media_features(litehtml::media_features& media) const override;
+  virtual void get_language(litehtml::string& language, litehtml::string & culture) const override;
+  virtual litehtml::string resolve_color(const litehtml::string& color) const override;
+};
+
+BLLiteHtmlContainer::BLLiteHtmlContainer(BLLiteHtmlDocument* doc)
+  : _doc(doc) {}
 
 BLLiteHtmlContainer::~BLLiteHtmlContainer() {
 }
 
 const BLImage* BLLiteHtmlContainer::getImage(const char* src, const char* baseurl) const {
-  std::string path;
-  urlToPath(path, src, baseurl);
+  BLString path = _doc->resolveLink(BLStringView{src, strlen(src)}, true);
 
   auto it = _images.find(path);
   if (it != _images.end()) {
     return &it->second;
   }
   else {
-    printf("Image not found path=%s (src=%s baseurl=%s)\n", path.c_str(), src, baseurl);
     return nullptr;
   }
 }
@@ -64,7 +166,7 @@ litehtml::uint_ptr BLLiteHtmlContainer::create_font(const char* faceName, int si
   litehtml::string_vector fontNames;
   litehtml::split_string(faceName, fontNames, ",");
 
-  fontNames.push_back(std::string(_fallbackFont.data(), _fallbackFont.size()));
+  fontNames.push_back(std::string(_doc->_fallbackFamily.data(), _doc->_fallbackFamily.size()));
 
   BLFontQueryProperties properties {};
   properties.weight = int(weight);
@@ -78,10 +180,10 @@ litehtml::uint_ptr BLLiteHtmlContainer::create_font(const char* faceName, int si
   for (const auto& fontName : fontNames) {
     const char* fName = fontName.c_str();
 
-    if (fontName == "monospace")
-      fName = "Courier New";
+    if (fontName == "monospace" && !_doc->_monospaceFamily.empty())
+      fName = _doc->_monospaceFamily.data();
 
-    if (_fontManager.queryFace(fName, properties, face) == BL_SUCCESS) {
+    if (_doc->_fontManager.queryFace(fName, properties, face) == BL_SUCCESS) {
       BLFontMetrics blfm;
       blFontCreateFromFace(&font, &face, float(size));
       blFontGetMetrics(&font, &blfm);
@@ -168,21 +270,15 @@ void BLLiteHtmlContainer::draw_list_marker(litehtml::uint_ptr hdc, const litehtm
 }
 
 void BLLiteHtmlContainer::load_image(const char* src, const char* baseurl, bool redraw_on_ready) {
-  std::string path;
-  path.append(_baseUrl.data(), _baseUrl.size());
-  if (!path.empty() && path[path.size() - 1] != '/')
-    path.append(1, '/');
-
-  size_t pathIndex = path.size();
-  urlToPath(path, src, baseurl);
-
+  BLString path = _doc->resolveLink(BLStringView{src, strlen(src)}, true);
   BLImage img;
-  if (img.readFromFile(path.c_str()) == BL_SUCCESS) {
-    path.replace(0, pathIndex, "");
+
+  if (img.readFromFile(path.data()) == BL_SUCCESS) {
+    // path.replace(0, pathIndex, "");
     _images[path] = img;
   }
   else {
-    printf("Failed to read image %s (src=%s baseurl=%s)\n", path.data(), src, baseurl);
+    printf("Failed to load an image %s (src=%s baseurl=%s)\n", path.data(), src, baseurl);
   }
 }
 
@@ -252,8 +348,6 @@ void BLLiteHtmlContainer::draw_solid_fill(litehtml::uint_ptr hdc, const litehtml
 	if (color == litehtml::web_color::transparent)
 		return;
 
-  // printf("Rendering solid: %08X\n", rgba32FromWebColor(color).value);
-
   BLContext* ctx = (BLContext*)hdc;
   BLRectI rect(layer.border_box.x, layer.border_box.y, layer.border_box.width, layer.border_box.height);
 
@@ -307,7 +401,7 @@ void BLLiteHtmlContainer::draw_conic_gradient(litehtml::uint_ptr hdc, const lite
   BLContext* ctx = (BLContext*)hdc;
   BLGradient style(BLConicGradientValues(gradient.position.x, gradient.position.y, gradient.angle - kPI / 2.0, 1.0));
 
-  render_insert_gradient_stops(style, gradient.color_points, 1.0 / 360.0);
+  render_insert_gradient_stops(style, gradient.color_points, 1.0);
   render_styled(ctx, layer, style);
 }
 
@@ -378,10 +472,12 @@ void BLLiteHtmlContainer::del_clip() {
 }
 
 void BLLiteHtmlContainer::get_client_rect(litehtml::position& client) const {
+  BLSizeI size = _doc->viewportSize();
+
   client.x = 0;
   client.y = 0;
-  client.width = _size.w;
-  client.height = _size.h;
+  client.width = size.w;
+  client.height = size.h;
 }
 
 std::shared_ptr<litehtml::element> BLLiteHtmlContainer::create_element(const char* tag_name, const litehtml::string_map& attributes, const std::shared_ptr<litehtml::document>& doc) {
@@ -401,61 +497,46 @@ void BLLiteHtmlContainer::link(const std::shared_ptr<litehtml::document>& doc, c
 }
 
 void BLLiteHtmlContainer::on_anchor_click(const char* url, const litehtml::element::ptr& el) {
+  (void)el;
 
+  if (_doc->onLinkClick) {
+    litehtml::document::ptr doc = _doc->_document;
+    BLString resolved = _doc->resolveLink(BLStringView{url, strlen(url)}, false);
+
+    _doc->onLinkClick(resolved.data());
+  }
 }
 
 void BLLiteHtmlContainer::set_cursor(const char* cursor) {
-  printf("SetCursor %s\n", cursor);
+  if (_doc->onSetCursor)
+    _doc->onSetCursor(cursor);
 }
 
 void BLLiteHtmlContainer::import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) {
-  BLStringView url_string{url.c_str(), url.size()};
+  BLString resolved = _doc->resolveLink(BLStringView{url.data(), url.size()}, true);
 
-  const char* url_questionmark = strchr(url_string.data, '?');
-
-  if (url_questionmark) {
-    url_string.size = size_t(url_questionmark - url_string.data);
-  }
-
-  if (url_string.size == 0)
+  if (resolved.empty())
     return;
 
-  BLStringView base{nullptr, 0};
-  const char* s = url_string.data + url_string.size;
-  while (s != url_string.data) {
-    if (s[-1] == '/' || s[-1] == '\\') {
-      base.reset(url_string.data, size_t(s - url_string.data) - 1);
-      break;
-    }
-    s--;
-  }
-
-  if (base.size >= 2 && base.data[0] == '.' && base.data[1] == '/')
-    base = BLStringView{base.data + 2, base.size - 2};
-
-  if (base.size)
-    baseurl.assign(base.data, base.size);
-
-  BLString path;
-  path.append(_baseUrl);
-  path.append('/');
-  path.append(url_string);
-
   BLArray<uint8_t> content;
-  BLFileSystem::readFile(path.data(), content);
+  BLFileSystem::readFile(resolved.data(), content);
 
   if (!content.empty()) {
-    printf("Loaded CSS file %s (baseurl=%s)\n", url_string.data, baseurl.c_str());
     text.assign((const char*)content.data(), content.size());
+  }
+  else {
+    printf("Failed to load a CSS file: %s\n", resolved.data());
   }
 }
 
 void BLLiteHtmlContainer::get_media_features(litehtml::media_features& media) const {
+  BLSizeI size = _doc->viewportSize();
+
   media.type = litehtml::media_type_screen;
-  media.width = _size.w;
-  media.height = _size.h;
-  media.device_width = _size.w;
-  media.device_height = _size.h;
+  media.width = size.w;
+  media.height = size.h;
+  media.device_width = size.w;
+  media.device_height = size.h;
   media.color = 8;
   media.monochrome = 0;
   media.color_index = 256;
@@ -465,3 +546,225 @@ void BLLiteHtmlContainer::get_media_features(litehtml::media_features& media) co
 void BLLiteHtmlContainer::get_language(litehtml::string& language, litehtml::string & culture) const {}
 
 litehtml::string BLLiteHtmlContainer::resolve_color(const litehtml::string& color) const { return ""; }
+
+// BLLiteHtml - Document
+// =====================
+
+static bool isRelativePath(BLStringView str) noexcept {
+  return str.size >= 2 && str.data[0] == '.' && str.data[1] == '/';
+}
+
+static bool isParentRelativePath(BLStringView str) noexcept {
+  return str.size >= 2 && str.data[0] == '.' && str.data[1] == '.' && (str.size == 2 || str.data[2] == '/');
+}
+
+static bool endsWithSlash(BLStringView str) noexcept {
+  return str.size && str.data[str.size - 1] == '/';
+}
+
+BLLiteHtmlDocument::BLLiteHtmlDocument() {}
+
+BLLiteHtmlDocument::~BLLiteHtmlDocument() noexcept {
+  _document.reset();
+  if (_container)
+    delete _container;
+}
+
+BLSizeI BLLiteHtmlDocument::documentSize() const {
+  if (!_document)
+    return BLSizeI{};
+
+  return BLSizeI(_document->width(), _document->height());
+}
+
+void BLLiteHtmlDocument::setViewportSize(const BLSizeI& sz) {
+  if (_viewportSize != sz) {
+    _viewportSize = sz;
+    if (_document)
+      _document->render(sz.w);
+  }
+}
+
+void BLLiteHtmlDocument::setViewportPosition(const BLPointI& pt) {
+  if (_viewportPosition != pt) {
+    _viewportPosition = pt;
+  }
+}
+
+BLString BLLiteHtmlDocument::resolveLink(BLStringView link, bool stripParams) {
+  BLString resolved;
+
+  if (isRelativePath(link)) {
+    link = BLStringView{link.data + 2, link.size - 2};
+  }
+  else if (link.size == 1 && link.data[0] == '.')
+    link = BLStringView{nullptr, 0};
+
+  resolved.assign(BLStringView{_url.data(), _urlPathEnd});
+
+  bool dropBaseName = true;
+
+  while (isParentRelativePath(link) || dropBaseName) {
+    const char* p = resolved.end();
+    const char* b = resolved.begin();
+
+    while (p != b && p[-1] != '/')
+      p--;
+
+    if (p == b)
+      break;
+
+    resolved.truncate((size_t)(--p - resolved.begin()));
+
+    if (dropBaseName) {
+      dropBaseName = false;
+    }
+    else {
+      size_t cut = std::min<size_t>(link.size, 3);
+      link = BLStringView{link.data + cut, link.size - cut};
+    }
+  }
+
+  if (!endsWithSlash(resolved.view()))
+    resolved.append('/');
+
+  resolved.append(link);
+
+  if (stripParams) {
+    BLStringView path = BLLiteHtmlUtils::extractPath(resolved.view());
+    resolved.truncate(path.size);
+  }
+  return resolved;
+}
+
+void BLLiteHtmlDocument::acceptLink(const char* url) {
+  _acceptedLinkURL.assign(url);
+  _linkAccepted = true;
+}
+
+void BLLiteHtmlDocument::createFromURL(BLStringView url, BLStringView masterCSS) {
+  BLString path(BLLiteHtmlUtils::extractPath(url));
+  BLStringView params{path.end(), url.size - path.size()};
+
+  BLFileInfo fileInfo;
+  BLResult result;
+
+  result = BLFileSystem::fileInfo(path.data(), &fileInfo);
+  if (result != BL_SUCCESS) {
+    return;
+  }
+
+  if (fileInfo.isDirectory()) {
+    if (!endsWithSlash(path.view()))
+      path.append('/');
+  }
+
+  size_t urlPathEnd = path.size();
+
+  if (fileInfo.isDirectory()) {
+    path.append("index.html");
+  }
+
+  BLArray<uint8_t> content;
+  result = BLFileSystem::readFile(path.data(), content);
+
+  if (result != BL_SUCCESS) {
+    return;
+  }
+
+  _url.assign(BLStringView{path.data(), urlPathEnd});
+  _url.append(params);
+  _urlPathEnd = urlPathEnd;
+
+  BLStringView cv{reinterpret_cast<const char*>(content.data()), content.size()};
+  createFromHTML(cv, masterCSS);
+}
+
+void BLLiteHtmlDocument::createFromHTML(BLStringView content, BLStringView masterCSS) {
+  BLLiteHtmlContainer* container = new BLLiteHtmlContainer(this);
+
+  _viewportPosition.reset();
+  _linkAccepted = false;
+  _acceptedLinkURL.reset();
+
+  _document = litehtml::document::createFromString(std::string(content.data, content.size), container, std::string(masterCSS.data, masterCSS.size));
+
+  if (_container)
+    delete _container;
+
+  _container = container;
+  _document->render(viewportSize().w);
+}
+
+BLRectI BLLiteHtmlDocument::mouseLeave() {
+  if (!_document)
+    return BLRectI{};
+
+  litehtml::position::vector dirty_rects;
+
+  if (!_document->on_mouse_leave(dirty_rects))
+    return BLRectI{};
+
+  return accumulateDirtyRects(dirty_rects);
+}
+
+BLRectI BLLiteHtmlDocument::mouseMove(const BLPointI& pos) {
+  if (!_document)
+    return BLRectI{};
+
+  BLPoint vp = pos - _viewportPosition;
+  litehtml::position::vector dirty_rects;
+
+  if (!_document->on_mouse_over(pos.x, pos.y, vp.x, vp.y, dirty_rects))
+    return BLRectI{};
+
+  return accumulateDirtyRects(dirty_rects);
+}
+
+BLRectI BLLiteHtmlDocument::mouseDown(const BLPointI& pos, Button button) {
+  if (!_document)
+    return BLRectI{};
+
+  if (button != Button::kLeft)
+    return BLRectI{};
+
+  BLPoint vp = pos - _viewportPosition;
+  litehtml::position::vector dirty_rects;
+
+  if (!_document->on_lbutton_down(pos.x, pos.y, vp.x, vp.y, dirty_rects))
+    return BLRectI{};
+
+  return accumulateDirtyRects(dirty_rects);
+}
+
+BLRectI BLLiteHtmlDocument::mouseUp(const BLPointI& pos, Button button) {
+  if (!_document)
+    return BLRectI{};
+
+  if (button != Button::kLeft)
+    return BLRectI{};
+
+  BLPoint vp = pos - _viewportPosition;
+  litehtml::position::vector dirty_rects;
+
+  if (!_document->on_lbutton_up(pos.x, pos.y, vp.x, vp.y, dirty_rects))
+    return BLRectI{};
+
+  return accumulateDirtyRects(dirty_rects);
+}
+
+void BLLiteHtmlDocument::draw(BLContext& ctx) {
+  if (!_document)
+    return;
+
+  BLPointI vp = viewportPosition();
+  BLSizeI vs = viewportSize();
+
+  litehtml::position clip;
+  clip.x = 0;
+  clip.y = 0;
+  clip.width = vs.w;
+  clip.height = vs.h;
+
+  _document->draw((uintptr_t)&ctx, -vp.x, -vp.y, &clip);
+}
