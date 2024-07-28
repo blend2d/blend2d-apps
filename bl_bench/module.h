@@ -10,6 +10,7 @@
 
 #include "jsonbuilder.h"
 #include "module.h"
+#include "shape_data.h"
 
 namespace blbench {
 
@@ -18,53 +19,65 @@ struct BenchApp;
 // blbench - Constants
 // ===================
 
-enum BenchMisc {
-  kBenchNumSprites = 4
+enum class TestKind : uint32_t {
+  kFillAlignedRect,
+  kFillSmoothRect,
+  kFillRotatedRect,
+  kFillSmoothRound,
+  kFillRotatedRound,
+  kFillTriangle,
+  kFillPolygon10NZ,
+  kFillPolygon10EO,
+  kFillPolygon20NZ,
+  kFillPolygon20EO,
+  kFillPolygon40NZ,
+  kFillPolygon40EO,
+  kFillButterfly,
+  kFillFish,
+  kFillDragon,
+  kFillWorld,
+
+  kStrokeAlignedRect,
+  kStrokeSmoothRect,
+  kStrokeRotatedRect,
+  kStrokeSmoothRound,
+  kStrokeRotatedRound,
+  kStrokeTriangle,
+  kStrokePolygon10,
+  kStrokePolygon20,
+  kStrokePolygon40,
+  kStrokeButterfly,
+  kStrokeFish,
+  kStrokeDragon,
+  kStrokeWorld,
+
+  kMaxValue = kStrokeWorld
 };
 
-enum BenchId : uint32_t {
-  kBenchIdFillAlignedRect,
-  kBenchIdFillSmoothRect,
-  kBenchIdFillRotatedRect,
-  kBenchIdFillSmoothRound,
-  kBenchIdFillRotatedRound,
-  kBenchIdFillTriangle,
-  kBenchIdFillPolygon10NZ,
-  kBenchIdFillPolygon10EO,
-  kBenchIdFillPolygon20NZ,
-  kBenchIdFillPolygon20EO,
-  kBenchIdFillPolygon40NZ,
-  kBenchIdFillPolygon40EO,
-  kBenchIdFillShapeWorld,
+enum class StyleKind : uint32_t {
+  kSolid,
+  kLinearPad,
+  kLinearRepeat,
+  kLinearReflect,
+  kRadialPad,
+  kRadialRepeat,
+  kRadialReflect,
+  kConic,
+  kPatternNN,
+  kPatternBI,
 
-  kBenchIdStrokeAlignedRect,
-  kBenchIdStrokeSmoothRect,
-  kBenchIdStrokeRotatedRect,
-  kBenchIdStrokeSmoothRound,
-  kBenchIdStrokeRotatedRound,
-  kBenchIdStrokeTriangle,
-  kBenchIdStrokePolygon10,
-  kBenchIdStrokePolygon20,
-  kBenchIdStrokePolygon40,
-  kBenchIdStrokeShapeWorld,
-
-  kBenchIdCount
+  kMaxValue = kPatternBI
 };
 
-enum BenchStyle : uint32_t {
-  kBenchStyleSolid,
-  kBenchStyleLinearPad,
-  kBenchStyleLinearRepeat,
-  kBenchStyleLinearReflect,
-  kBenchStyleRadialPad,
-  kBenchStyleRadialRepeat,
-  kBenchStyleRadialReflect,
-  kBenchStyleConic,
-  kBenchStylePatternNN,
-  kBenchStylePatternBI,
-
-  kBenchStyleCount
+enum class RenderOp : uint32_t {
+  kFillNonZero,
+  kFillEvenOdd,
+  kStroke
 };
+
+static constexpr uint32_t kTestKindCount = uint32_t(TestKind::kMaxValue) + 1;
+static constexpr uint32_t kStyleKindCount = uint32_t(StyleKind::kMaxValue) + 1;
+static constexpr uint32_t kBenchNumSprites = 4;
 
 // blbench::BenchParams
 // ====================
@@ -76,9 +89,9 @@ struct BenchParams {
   BLFormat format;
   uint32_t quantity;
 
-  uint32_t benchId;
+  TestKind testKind;
+  StyleKind style;
   BLCompOp compOp;
-  uint32_t style;
   uint32_t shapeSize;
 
   double strokeWidth;
@@ -163,11 +176,11 @@ struct BenchRandom {
 
 struct BenchModule {
   //! Module name.
-  char _name[64];
+  char _name[64] {};
   //! Current parameters.
-  BenchParams _params;
+  BenchParams _params {};
   //! Current duration.
-  uint64_t _duration;
+  uint64_t _duration {};
 
   //! Random number generator for coordinates (points or rectangles).
   BenchRandom _rndCoord;
@@ -176,7 +189,7 @@ struct BenchModule {
   //! Random number generator for extras (radius).
   BenchRandom _rndExtra;
   //! Random number generator for sprites.
-  uint32_t _rndSpriteId;
+  uint32_t _rndSpriteId {};
 
   //! Blend surface (used by all modules).
   BLImage _surface;
@@ -200,18 +213,19 @@ struct BenchModule {
   virtual void serializeInfo(JSONBuilder& json) const;
 
   virtual bool supportsCompOp(BLCompOp compOp) const = 0;
-  virtual bool supportsStyle(uint32_t style) const = 0;
+  virtual bool supportsStyle(StyleKind style) const = 0;
 
-  virtual void onBeforeRun() = 0;
-  virtual void onAfterRun() = 0;
+  virtual void beforeRun() = 0;
+  virtual void flush() = 0;
+  virtual void afterRun() = 0;
 
-  virtual void onDoRectAligned(bool stroke) = 0;
-  virtual void onDoRectSmooth(bool stroke) = 0;
-  virtual void onDoRectRotated(bool stroke) = 0;
-  virtual void onDoRoundSmooth(bool stroke) = 0;
-  virtual void onDoRoundRotated(bool stroke) = 0;
-  virtual void onDoPolygon(uint32_t mode, uint32_t complexity) = 0;
-  virtual void onDoShape(bool stroke, const BLPoint* pts, size_t count) = 0;
+  virtual void renderRectA(RenderOp op) = 0;
+  virtual void renderRectF(RenderOp op) = 0;
+  virtual void renderRectRotated(RenderOp op) = 0;
+  virtual void renderRoundF(RenderOp op) = 0;
+  virtual void renderRoundRotated(RenderOp op) = 0;
+  virtual void renderPolygon(RenderOp op, uint32_t complexity) = 0;
+  virtual void renderShape(RenderOp op, ShapeData shape) = 0;
 };
 
 } // {blbench}

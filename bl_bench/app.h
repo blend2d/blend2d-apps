@@ -34,6 +34,7 @@ struct BenchApp {
   bool _disableCairo {};
   bool _disableQt {};
   bool _disableSkia {};
+  bool _disableCoreGraphics {};
 
   // Assets.
   using SpriteData = std::array<BLImage, 4>;
@@ -55,7 +56,7 @@ struct BenchApp {
 
   BLImage getScaledSprite(uint32_t id, uint32_t size) const;
 
-  bool isStyleEnabled(uint32_t style);
+  bool isStyleEnabled(StyleKind style);
 
   void serializeSystemInfo(JSONBuilder& json) const;
   void serializeParams(JSONBuilder& json, const BenchParams& params) const;

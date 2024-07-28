@@ -5,7 +5,7 @@
 
 #include "app.h"
 #include "module.h"
-#include "shapes_data.h"
+#include "shape_data.h"
 
 #include <chrono>
 
@@ -27,10 +27,10 @@ BenchModule::~BenchModule() {}
 // blbench::BenchModule - Run
 // ==========================
 
-static void BenchModule_onDoShapeHelper(BenchModule* mod, bool stroke, uint32_t shapeId) {
-  ShapesData shape;
-  getShapesData(shape, shapeId);
-  mod->onDoShape(stroke, shape.data, shape.count);
+static void BenchModule_onDoShapeHelper(BenchModule* mod, RenderOp op, ShapeKind shapeKind) {
+  ShapeData shapeData;
+  getShapeData(shapeData, shapeKind);
+  mod->renderShape(op, shapeData);
 }
 
 void BenchModule::run(const BenchApp& app, const BenchParams& params) {
@@ -46,41 +46,49 @@ void BenchModule::run(const BenchApp& app, const BenchParams& params) {
     _sprites[i] = app.getScaledSprite(i, params.shapeSize);
   }
 
-  onBeforeRun();
+  beforeRun();
   auto start = std::chrono::high_resolution_clock::now();
 
-  switch (_params.benchId) {
-    case kBenchIdFillAlignedRect   : onDoRectAligned(false); break;
-    case kBenchIdFillSmoothRect    : onDoRectSmooth(false); break;
-    case kBenchIdFillRotatedRect   : onDoRectRotated(false); break;
-    case kBenchIdFillSmoothRound   : onDoRoundSmooth(false); break;
-    case kBenchIdFillRotatedRound  : onDoRoundRotated(false); break;
-    case kBenchIdFillTriangle      : onDoPolygon(1, 3); break;
-    case kBenchIdFillPolygon10NZ   : onDoPolygon(0, 10); break;
-    case kBenchIdFillPolygon10EO   : onDoPolygon(1, 10); break;
-    case kBenchIdFillPolygon20NZ   : onDoPolygon(0, 20); break;
-    case kBenchIdFillPolygon20EO   : onDoPolygon(1, 20); break;
-    case kBenchIdFillPolygon40NZ   : onDoPolygon(0, 40); break;
-    case kBenchIdFillPolygon40EO   : onDoPolygon(1, 40); break;
-    case kBenchIdFillShapeWorld    : BenchModule_onDoShapeHelper(this, false, ShapesData::kIdWorld); break;
+  switch (_params.testKind) {
+    case TestKind::kFillAlignedRect   : renderRectA(RenderOp::kFillNonZero); break;
+    case TestKind::kFillSmoothRect    : renderRectF(RenderOp::kFillNonZero); break;
+    case TestKind::kFillRotatedRect   : renderRectRotated(RenderOp::kFillNonZero); break;
+    case TestKind::kFillSmoothRound   : renderRoundF(RenderOp::kFillNonZero); break;
+    case TestKind::kFillRotatedRound  : renderRoundRotated(RenderOp::kFillNonZero); break;
+    case TestKind::kFillTriangle      : renderPolygon(RenderOp::kFillNonZero, 3); break;
+    case TestKind::kFillPolygon10NZ   : renderPolygon(RenderOp::kFillNonZero, 10); break;
+    case TestKind::kFillPolygon10EO   : renderPolygon(RenderOp::kFillEvenOdd, 10); break;
+    case TestKind::kFillPolygon20NZ   : renderPolygon(RenderOp::kFillNonZero, 20); break;
+    case TestKind::kFillPolygon20EO   : renderPolygon(RenderOp::kFillEvenOdd, 20); break;
+    case TestKind::kFillPolygon40NZ   : renderPolygon(RenderOp::kFillNonZero, 40); break;
+    case TestKind::kFillPolygon40EO   : renderPolygon(RenderOp::kFillEvenOdd, 40); break;
+    case TestKind::kFillButterfly     : BenchModule_onDoShapeHelper(this, RenderOp::kFillNonZero, ShapeKind::kButterfly); break;
+    case TestKind::kFillFish          : BenchModule_onDoShapeHelper(this, RenderOp::kFillNonZero, ShapeKind::kFish); break;
+    case TestKind::kFillDragon        : BenchModule_onDoShapeHelper(this, RenderOp::kFillNonZero, ShapeKind::kDragon); break;
+    case TestKind::kFillWorld         : BenchModule_onDoShapeHelper(this, RenderOp::kFillNonZero, ShapeKind::kWorld); break;
 
-    case kBenchIdStrokeAlignedRect : onDoRectAligned(true); break;
-    case kBenchIdStrokeSmoothRect  : onDoRectSmooth(true); break;
-    case kBenchIdStrokeRotatedRect : onDoRectRotated(true); break;
-    case kBenchIdStrokeSmoothRound : onDoRoundSmooth(true); break;
-    case kBenchIdStrokeRotatedRound: onDoRoundRotated(true); break;
-    case kBenchIdStrokeTriangle    : onDoPolygon(2, 3); break;
-    case kBenchIdStrokePolygon10   : onDoPolygon(2, 10); break;
-    case kBenchIdStrokePolygon20   : onDoPolygon(2, 20); break;
-    case kBenchIdStrokePolygon40   : onDoPolygon(2, 40); break;
-    case kBenchIdStrokeShapeWorld  : BenchModule_onDoShapeHelper(this, true, ShapesData::kIdWorld); break;
+    case TestKind::kStrokeAlignedRect : renderRectA(RenderOp::kStroke); break;
+    case TestKind::kStrokeSmoothRect  : renderRectF(RenderOp::kStroke); break;
+    case TestKind::kStrokeRotatedRect : renderRectRotated(RenderOp::kStroke); break;
+    case TestKind::kStrokeSmoothRound : renderRoundF(RenderOp::kStroke); break;
+    case TestKind::kStrokeRotatedRound: renderRoundRotated(RenderOp::kStroke); break;
+    case TestKind::kStrokeTriangle    : renderPolygon(RenderOp::kStroke, 3); break;
+    case TestKind::kStrokePolygon10   : renderPolygon(RenderOp::kStroke, 10); break;
+    case TestKind::kStrokePolygon20   : renderPolygon(RenderOp::kStroke, 20); break;
+    case TestKind::kStrokePolygon40   : renderPolygon(RenderOp::kStroke, 40); break;
+    case TestKind::kStrokeButterfly   : BenchModule_onDoShapeHelper(this, RenderOp::kStroke, ShapeKind::kButterfly); break;
+    case TestKind::kStrokeFish        : BenchModule_onDoShapeHelper(this, RenderOp::kStroke, ShapeKind::kFish); break;
+    case TestKind::kStrokeDragon      : BenchModule_onDoShapeHelper(this, RenderOp::kStroke, ShapeKind::kDragon); break;
+    case TestKind::kStrokeWorld       : BenchModule_onDoShapeHelper(this, RenderOp::kStroke, ShapeKind::kWorld); break;
   }
 
-  onAfterRun();
+  flush();
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = end - start;
   _duration = uint64_t(elapsed.count() * 1000000);
+
+  afterRun();
 }
 
 void BenchModule::serializeInfo(JSONBuilder& json) const { (void)json; }

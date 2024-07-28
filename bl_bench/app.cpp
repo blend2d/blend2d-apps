@@ -30,11 +30,15 @@
   #include "./module_skia.h"
 #endif // BLEND2D_APPS_ENABLE_SKIA
 
+#if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
+  #include "./module_coregraphics.h"
+#endif // BLEND2D_APPS_ENABLE_COREGRAPHICS
+
 #define ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
 
 namespace blbench {
 
-static const char* benchIdNameList[] = {
+static const char* testKindNameList[] = {
   "FillRectA",
   "FillRectU",
   "FillRectRot",
@@ -47,6 +51,9 @@ static const char* benchIdNameList[] = {
   "FillPolyEOi20",
   "FillPolyNZi40",
   "FillPolyEOi40",
+  "FillButterfly",
+  "FillFish",
+  "FillDragon",
   "FillWorld",
   "StrokeRectA",
   "StrokeRectU",
@@ -57,10 +64,13 @@ static const char* benchIdNameList[] = {
   "StrokePoly10",
   "StrokePoly20",
   "StrokePoly40",
+  "StrokeButterfly",
+  "StrokeFish",
+  "StrokeDragon",
   "StrokeWorld"
 };
 
-static const char* benchCompOpList[] = {
+static const char* compOpNameList[] = {
   "SrcOver",
   "SrcCopy",
   "SrcIn",
@@ -92,7 +102,7 @@ static const char* benchCompOpList[] = {
   "Exclusion"
 };
 
-static const char* benchStyleModeList[] = {
+static const char* styleKindNameList[] = {
   "Solid",
   "Linear@Pad",
   "Linear@Repeat",
@@ -160,9 +170,13 @@ struct DurationFormat {
   char data[64];
 
   inline void format(double cpms) {
-    if (cpms < 10)
+    if (cpms <= 0.1)
+      snprintf(data, 64, "%0.4f", cpms);
+    else if (cpms <= 1.0)
+      snprintf(data, 64, "%0.3f", cpms);
+    else if (cpms < 10.0)
       snprintf(data, 64, "%0.2f", cpms);
-    if (cpms < 100)
+    else if (cpms < 100.0)
       snprintf(data, 64, "%0.1f", cpms);
     else
       snprintf(data, 64, "%llu", (unsigned long long)std::round(cpms));
@@ -236,6 +250,7 @@ bool BenchApp::init() {
   _disableCairo = hasArg("--disable-cairo");
   _disableQt = hasArg("--disable-qt");
   _disableSkia = hasArg("--disable-skia");
+  _disableCoreGraphics = hasArg("--disable-coregraphics");
 
   if (_repeat <= 0 || _repeat > 100) {
     printf("ERROR: Invalid repeat [%d] specified\n", _repeat);
@@ -253,8 +268,8 @@ bool BenchApp::init() {
   }
 
   _compOpString = valueOf("--compOp");
-  if (_compOpString != NULL)
-    _compOp = searchStringList(benchCompOpList, ARRAY_SIZE(benchCompOpList), _compOpString);
+  if (_compOpString != nullptr)
+    _compOp = searchStringList(compOpNameList, ARRAY_SIZE(compOpNameList), _compOpString);
 
   info();
 
@@ -293,8 +308,8 @@ void BenchApp::info() {
     "  --quantity=N [%d] Override the default quantity of each operation\n"
     "  --comp-op=X  [%s] Benchmark a specific composition operator\n"
     "\n",
-    no_yes[_deepBench],
     no_yes[_saveImages],
+    no_yes[_deepBench],
     no_yes[_isolated],
     _repeat,
     _quantity,
@@ -329,17 +344,17 @@ BLImage BenchApp::getScaledSprite(uint32_t id, uint32_t size) const {
   return scaled[id];
 }
 
-bool BenchApp::isStyleEnabled(uint32_t style) {
+bool BenchApp::isStyleEnabled(StyleKind style) {
   if (_deepBench)
     return true;
 
   // If this is not a deep run we just select the following styles to be tested:
-  return style == kBenchStyleSolid     ||
-         style == kBenchStyleLinearPad ||
-         style == kBenchStyleRadialPad ||
-         style == kBenchStyleConic     ||
-         style == kBenchStylePatternNN ||
-         style == kBenchStylePatternBI ;
+  return style == StyleKind::kSolid     ||
+         style == StyleKind::kLinearPad ||
+         style == StyleKind::kRadialPad ||
+         style == StyleKind::kConic     ||
+         style == StyleKind::kPatternNN ||
+         style == StyleKind::kPatternBI ;
 }
 
 void BenchApp::serializeSystemInfo(JSONBuilder& json) const {
@@ -470,6 +485,14 @@ int BenchApp::run() {
       delete mod;
     }
 #endif
+
+#if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
+    if (!_disableCoreGraphics) {
+      mod = createCGModule();
+      runModule(*mod, params, json);
+      delete mod;
+    }
+#endif
   }
 
   json.closeArray(true);
@@ -507,17 +530,18 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
     if (!mod.supportsCompOp(params.compOp))
       continue;
 
-    for (uint32_t style = 0; style < kBenchStyleCount; style++) {
+    for (uint32_t styleIdx = 0; styleIdx < kStyleKindCount; styleIdx++) {
+      StyleKind style = StyleKind(styleIdx);
       if (!isStyleEnabled(style) || !mod.supportsStyle(style))
         continue;
       params.style = style;
 
       // Remove '@' from the style name if not running a deep benchmark.
-      strcpy(styleString, benchStyleModeList[style]);
+      strcpy(styleString, styleKindNameList[styleIdx]);
 
       if (!_deepBench) {
         char* x = strchr(styleString, '@');
-        if (x != NULL) x[0] = '\0';
+        if (x != nullptr) x[0] = '\0';
       }
 
       memset(cpmsTotal, 0, sizeof(cpmsTotal));
@@ -526,8 +550,8 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
       printf(benchHeaderStr, mod._name);
       printf(benchBorderStr);
 
-      for (uint32_t testId = 0; testId < kBenchIdCount; testId++) {
-        params.benchId = testId;
+      for (uint32_t testIdx = 0; testIdx < kTestKindCount; testIdx++) {
+        params.testKind = TestKind(testIdx);
 
         for (uint32_t sizeId = 0; sizeId < kBenchShapeSizeCount; sizeId++) {
           params.shapeSize = benchShapeSizeList[sizeId];
@@ -541,8 +565,8 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
             if (sizeId >= kBenchShapeSizeCount - 2) {
               snprintf(fileName, 256, "%s-%s-%s-%s-%c.png",
                 mod._name,
-                benchIdNameList[params.benchId],
-                benchCompOpList[params.compOp],
+                testKindNameList[uint32_t(params.testKind)],
+                compOpNameList[uint32_t(params.compOp)],
                 styleString,
                 'A' + sizeId);
               mod._surface.writeToFile(fileName);
@@ -554,8 +578,8 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
           fmt[sizeId].format(cpms[sizeId]);
 
         printf(benchDataFmt,
-          benchIdNameList[params.benchId],
-          benchCompOpList[params.compOp],
+          testKindNameList[uint32_t(params.testKind)],
+          compOpNameList[uint32_t(params.compOp)],
           styleString,
           fmt[0].data,
           fmt[1].data,
@@ -566,8 +590,8 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
 
         json.beforeRecord()
             .openObject()
-            .addKey("test").addString(benchIdNameList[params.benchId])
-            .comma().alignTo(36).addKey("compOp").addString(benchCompOpList[params.compOp])
+            .addKey("test").addString(testKindNameList[uint32_t(params.testKind)])
+            .comma().alignTo(36).addKey("compOp").addString(compOpNameList[uint32_t(params.compOp)])
             .comma().alignTo(58).addKey("style").addString(styleString);
 
         json.addKey("rcpms").openArray();
@@ -585,7 +609,7 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
       printf(benchBorderStr);
       printf(benchDataFmt,
         "Total",
-        benchCompOpList[params.compOp],
+        compOpNameList[uint32_t(params.compOp)],
         styleString,
         fmt[0].data,
         fmt[1].data,
