@@ -60,41 +60,39 @@ static uint32_t toQtOperator(BLCompOp compOp) {
 }
 
 struct QtModule : public BenchModule {
-  QImage* _qtSurface;
-  QImage* _qtSprites[kBenchNumSprites];
-  QPainter* _qtContext;
+  QImage* _qtSurface {};
+  QImage* _qtSprites[kBenchNumSprites] {};
+  QPainter* _qtContext {};
 
-  // Initialized by onBeforeRun().
-  uint32_t _gradientSpread;
+  // Initialized by beforeRun().
+  uint32_t _gradientSpread {};
 
   QtModule();
-  virtual ~QtModule();
+  ~QtModule() override;
 
-  virtual void serializeInfo(JSONBuilder& json) const;
+  void serializeInfo(JSONBuilder& json) const override;
 
   template<typename RectT>
-  inline QBrush setupStyle(uint32_t style, const RectT& rect);
+  inline QBrush createBrush(StyleKind style, const RectT& rect);
 
-  virtual bool supportsCompOp(BLCompOp compOp) const;
-  virtual bool supportsStyle(uint32_t style) const;
+  bool supportsCompOp(BLCompOp compOp) const override;
+  bool supportsStyle(StyleKind style) const override;
 
-  virtual void onBeforeRun();
-  virtual void onAfterRun();
+  void beforeRun() override;
+  void flush() override;
+  void afterRun() override;
 
-  virtual void onDoRectAligned(bool stroke);
-  virtual void onDoRectSmooth(bool stroke);
-  virtual void onDoRectRotated(bool stroke);
-  virtual void onDoRoundSmooth(bool stroke);
-  virtual void onDoRoundRotated(bool stroke);
-  virtual void onDoPolygon(uint32_t mode, uint32_t complexity);
-  virtual void onDoShape(bool stroke, const BLPoint* pts, size_t count);
+  void renderRectA(RenderOp op) override;
+  void renderRectF(RenderOp op) override;
+  void renderRectRotated(RenderOp op) override;
+  void renderRoundF(RenderOp op) override;
+  void renderRoundRotated(RenderOp op) override;
+  void renderPolygon(RenderOp op, uint32_t complexity) override;
+  void renderShape(RenderOp op, ShapeData shape) override;
 };
 
 QtModule::QtModule() {
   strcpy(_name, "Qt6");
-  _qtSurface = NULL;
-  _qtContext = NULL;
-  memset(_qtSprites, 0, sizeof(_qtSprites));
 }
 QtModule::~QtModule() {}
 
@@ -105,11 +103,11 @@ void QtModule::serializeInfo(JSONBuilder& json) const {
 }
 
 template<typename RectT>
-inline QBrush QtModule::setupStyle(uint32_t style, const RectT& rect) {
+inline QBrush QtModule::createBrush(StyleKind style, const RectT& rect) {
   switch (style) {
-    case kBenchStyleLinearPad:
-    case kBenchStyleLinearRepeat:
-    case kBenchStyleLinearReflect: {
+    case StyleKind::kLinearPad:
+    case StyleKind::kLinearRepeat:
+    case StyleKind::kLinearReflect: {
       double x0 = rect.x + rect.w * 0.2;
       double y0 = rect.y + rect.h * 0.2;
       double x1 = rect.x + rect.w * 0.8;
@@ -123,9 +121,9 @@ inline QBrush QtModule::setupStyle(uint32_t style, const RectT& rect) {
       return QBrush(g);
     }
 
-    case kBenchStyleRadialPad:
-    case kBenchStyleRadialRepeat:
-    case kBenchStyleRadialReflect: {
+    case StyleKind::kRadialPad:
+    case StyleKind::kRadialRepeat:
+    case StyleKind::kRadialReflect: {
       double cx = rect.x + rect.w / 2;
       double cy = rect.y + rect.h / 2;
       double cr = (rect.w + rect.h) / 4;
@@ -140,7 +138,7 @@ inline QBrush QtModule::setupStyle(uint32_t style, const RectT& rect) {
       return QBrush(g);
     }
 
-    case kBenchStyleConic: {
+    case StyleKind::kConic: {
       double cx = rect.x + rect.w / 2;
       double cy = rect.y + rect.h / 2;
       QColor c(toQColor(_rndColor.nextRgba32()));
@@ -153,8 +151,8 @@ inline QBrush QtModule::setupStyle(uint32_t style, const RectT& rect) {
       return QBrush(g);
     }
 
-    case kBenchStylePatternNN:
-    case kBenchStylePatternBI:
+    case StyleKind::kPatternNN:
+    case StyleKind::kPatternBI:
     default: {
       QBrush brush(*_qtSprites[nextSpriteId()]);
 
@@ -162,7 +160,7 @@ inline QBrush QtModule::setupStyle(uint32_t style, const RectT& rect) {
       // an unscaled image. The test suite, however, expects that path to be
       // triggered. To fix this, we scale the image slightly (it should have no
       // visual impact) to prevent Qt using nearest-neighbor fast-path.
-      qreal scale =  style == kBenchStylePatternNN ? 1.0 : 1.00001;
+      qreal scale =  style == StyleKind::kPatternNN ? 1.0 : 1.00001;
 
       brush.setTransform(QTransform(scale, qreal(0), qreal(0), scale, qreal(rect.x), qreal(rect.y)));
       return brush;
@@ -174,23 +172,23 @@ bool QtModule::supportsCompOp(BLCompOp compOp) const {
   return toQtOperator(compOp) != 0xFFFFFFFFu;
 }
 
-bool QtModule::supportsStyle(uint32_t style) const {
-  return style == kBenchStyleSolid         ||
-         style == kBenchStyleLinearPad     ||
-         style == kBenchStyleLinearRepeat  ||
-         style == kBenchStyleLinearReflect ||
-         style == kBenchStyleRadialPad     ||
-         style == kBenchStyleRadialRepeat  ||
-         style == kBenchStyleRadialReflect ||
-         style == kBenchStyleConic         ||
-         style == kBenchStylePatternNN     ||
-         style == kBenchStylePatternBI     ;
+bool QtModule::supportsStyle(StyleKind style) const {
+  return style == StyleKind::kSolid         ||
+         style == StyleKind::kLinearPad     ||
+         style == StyleKind::kLinearRepeat  ||
+         style == StyleKind::kLinearReflect ||
+         style == StyleKind::kRadialPad     ||
+         style == StyleKind::kRadialRepeat  ||
+         style == StyleKind::kRadialReflect ||
+         style == StyleKind::kConic         ||
+         style == StyleKind::kPatternNN     ||
+         style == StyleKind::kPatternBI     ;
 }
 
-void QtModule::onBeforeRun() {
+void QtModule::beforeRun() {
   int w = int(_params.screenW);
   int h = int(_params.screenH);
-  uint32_t style = _params.style;
+  StyleKind style = _params.style;
 
   // Initialize the sprites.
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
@@ -219,11 +217,11 @@ void QtModule::onBeforeRun() {
   _qtSurface = new QImage(
     (unsigned char*)surfaceData.pixelData, w, h,
     stride, static_cast<QImage::Format>(qtFormat));
-  if (_qtSurface == NULL)
+  if (_qtSurface == nullptr)
     return;
 
   _qtContext = new QPainter(_qtSurface);
-  if (_qtContext == NULL)
+  if (_qtContext == nullptr)
     return;
 
   // Setup the context.
@@ -235,50 +233,57 @@ void QtModule::onBeforeRun() {
       toQtOperator(_params.compOp)));
 
   _qtContext->setRenderHint(QPainter::Antialiasing, true);
-  _qtContext->setRenderHint(QPainter::SmoothPixmapTransform, _params.style != kBenchStylePatternNN);
+  _qtContext->setRenderHint(QPainter::SmoothPixmapTransform, _params.style != StyleKind::kPatternNN);
 
   // Setup globals.
   _gradientSpread = QGradient::PadSpread;
 
   switch (style) {
-    case kBenchStyleLinearPad      : _gradientSpread = QGradient::PadSpread    ; break;
-    case kBenchStyleLinearRepeat   : _gradientSpread = QGradient::RepeatSpread ; break;
-    case kBenchStyleLinearReflect  : _gradientSpread = QGradient::ReflectSpread; break;
-    case kBenchStyleRadialPad      : _gradientSpread = QGradient::PadSpread    ; break;
-    case kBenchStyleRadialRepeat   : _gradientSpread = QGradient::RepeatSpread ; break;
-    case kBenchStyleRadialReflect  : _gradientSpread = QGradient::ReflectSpread; break;
+    case StyleKind::kLinearPad      : _gradientSpread = QGradient::PadSpread    ; break;
+    case StyleKind::kLinearRepeat   : _gradientSpread = QGradient::RepeatSpread ; break;
+    case StyleKind::kLinearReflect  : _gradientSpread = QGradient::ReflectSpread; break;
+    case StyleKind::kRadialPad      : _gradientSpread = QGradient::PadSpread    ; break;
+    case StyleKind::kRadialRepeat   : _gradientSpread = QGradient::RepeatSpread ; break;
+    case StyleKind::kRadialReflect  : _gradientSpread = QGradient::ReflectSpread; break;
+
+    default:
+      break;
   }
 }
 
-void QtModule::onAfterRun() {
+void QtModule::flush() {
+  // Nothing...
+}
+
+void QtModule::afterRun() {
   // Free the surface & the context.
   delete _qtContext;
   delete _qtSurface;
 
-  _qtContext = NULL;
-  _qtSurface = NULL;
+  _qtContext = nullptr;
+  _qtSurface = nullptr;
 
   // Free the sprites.
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
     delete _qtSprites[i];
-    _qtSprites[i] = NULL;
+    _qtSprites[i] = nullptr;
   }
 }
 
-void QtModule::onDoRectAligned(bool stroke) {
+void QtModule::renderRectA(RenderOp op) {
   BLSizeI bounds(_params.screenW, _params.screenH);
-  uint32_t style = _params.style;
+  StyleKind style = _params.style;
   int wh = _params.shapeSize;
 
-  if (stroke)
+  if (op == RenderOp::kStroke)
     _qtContext->setBrush(Qt::NoBrush);
 
-  if (style == kBenchStyleSolid) {
+  if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
       BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
       QColor color(toQColor(_rndColor.nextRgba32()));
 
-      if (stroke) {
+      if (op == RenderOp::kStroke) {
         _qtContext->setPen(color);
         _qtContext->drawRect(QRectF(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
       }
@@ -288,7 +293,7 @@ void QtModule::onDoRectAligned(bool stroke) {
     }
   }
   else {
-    if ((style == kBenchStylePatternNN || style == kBenchStylePatternBI) && !stroke) {
+    if ((style == StyleKind::kPatternNN || style == StyleKind::kPatternBI) && op != RenderOp::kStroke) {
       for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
         BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
         const QImage& sprite = *_qtSprites[nextSpriteId()];
@@ -299,8 +304,9 @@ void QtModule::onDoRectAligned(bool stroke) {
     else {
       for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
         BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
-        QBrush brush(setupStyle<BLRectI>(style, rect));
-        if (stroke) {
+        QBrush brush(createBrush<BLRectI>(style, rect));
+
+        if (op == RenderOp::kStroke) {
           QPen pen(brush, qreal(_params.strokeWidth));
           pen.setJoinStyle(Qt::MiterJoin);
           _qtContext->setPen(pen);
@@ -314,20 +320,20 @@ void QtModule::onDoRectAligned(bool stroke) {
   }
 }
 
-void QtModule::onDoRectSmooth(bool stroke) {
+void QtModule::renderRectF(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-  uint32_t style = _params.style;
+  StyleKind style = _params.style;
   double wh = _params.shapeSize;
 
-  if (stroke)
+  if (op == RenderOp::kStroke)
     _qtContext->setBrush(Qt::NoBrush);
 
-  if (style == kBenchStyleSolid) {
+  if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
       BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
       QColor color(toQColor(_rndColor.nextRgba32()));
 
-      if (stroke) {
+      if (op == RenderOp::kStroke) {
         _qtContext->setPen(color);
         _qtContext->drawRect(QRectF(rect.x, rect.y, rect.w, rect.h));
       }
@@ -339,11 +345,12 @@ void QtModule::onDoRectSmooth(bool stroke) {
   else {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
       BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-      QBrush brush(setupStyle<BLRect>(style, rect));
+      QBrush brush(createBrush<BLRect>(style, rect));
 
-      if (stroke) {
+      if (op == RenderOp::kStroke) {
         QPen pen(brush, qreal(_params.strokeWidth));
         pen.setJoinStyle(Qt::MiterJoin);
+
         _qtContext->setPen(pen);
         _qtContext->drawRect(QRectF(rect.x, rect.y, rect.w, rect.h));
       }
@@ -354,16 +361,16 @@ void QtModule::onDoRectSmooth(bool stroke) {
   }
 }
 
-void QtModule::onDoRectRotated(bool stroke) {
+void QtModule::renderRectRotated(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-  uint32_t style = _params.style;
+  StyleKind style = _params.style;
 
   double cx = double(_params.screenW) * 0.5;
   double cy = double(_params.screenH) * 0.5;
   double wh = _params.shapeSize;
   double angle = 0.0;
 
-  if (stroke)
+  if (op == RenderOp::kStroke)
     _qtContext->setBrush(Qt::NoBrush);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
@@ -375,12 +382,13 @@ void QtModule::onDoRectRotated(bool stroke) {
     transform.translate(-cx, -cy);
     _qtContext->setTransform(transform, false);
 
-    if (style == kBenchStyleSolid) {
+    if (style == StyleKind::kSolid) {
       QColor color(toQColor(_rndColor.nextRgba32()));
 
-      if (stroke) {
+      if (op == RenderOp::kStroke) {
         QPen pen(color, qreal(_params.strokeWidth));
         pen.setJoinStyle(Qt::MiterJoin);
+
         _qtContext->setPen(pen);
         _qtContext->drawRect(QRectF(rect.x, rect.y, rect.w, rect.h));
       }
@@ -389,11 +397,12 @@ void QtModule::onDoRectRotated(bool stroke) {
       }
     }
     else {
-      QBrush brush(setupStyle<BLRect>(style, rect));
+      QBrush brush(createBrush<BLRect>(style, rect));
 
-      if (stroke) {
+      if (op == RenderOp::kStroke) {
         QPen pen(brush, qreal(_params.strokeWidth));
         pen.setJoinStyle(Qt::MiterJoin);
+
         _qtContext->setPen(pen);
         _qtContext->drawRect(QRectF(rect.x, rect.y, rect.w, rect.h));
       }
@@ -406,12 +415,12 @@ void QtModule::onDoRectRotated(bool stroke) {
   }
 }
 
-void QtModule::onDoRoundSmooth(bool stroke) {
+void QtModule::renderRoundF(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-  uint32_t style = _params.style;
+  StyleKind style = _params.style;
   double wh = _params.shapeSize;
 
-  if (stroke)
+  if (op == RenderOp::kStroke)
     _qtContext->setBrush(Qt::NoBrush);
   else
     _qtContext->setPen(QPen(Qt::NoPen));
@@ -420,18 +429,18 @@ void QtModule::onDoRoundSmooth(bool stroke) {
     BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
     double radius = _rndExtra.nextDouble(4.0, 40.0);
 
-    if (style == kBenchStyleSolid) {
+    if (style == StyleKind::kSolid) {
       QColor color(toQColor(_rndColor.nextRgba32()));
 
-      if (stroke)
+      if (op == RenderOp::kStroke)
         _qtContext->setPen(QPen(color, qreal(_params.strokeWidth)));
       else
         _qtContext->setBrush(QBrush(color));
     }
     else {
-      QBrush brush(setupStyle<BLRect>(style, rect));
+      QBrush brush(createBrush<BLRect>(style, rect));
 
-      if (stroke)
+      if (op == RenderOp::kStroke)
         _qtContext->setPen(QPen(brush, qreal(_params.strokeWidth)));
       else
         _qtContext->setBrush(brush);
@@ -444,16 +453,16 @@ void QtModule::onDoRoundSmooth(bool stroke) {
   }
 }
 
-void QtModule::onDoRoundRotated(bool stroke) {
+void QtModule::renderRoundRotated(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-  uint32_t style = _params.style;
+  StyleKind style = _params.style;
 
   double cx = double(_params.screenW) * 0.5;
   double cy = double(_params.screenH) * 0.5;
   double wh = _params.shapeSize;
   double angle = 0.0;
 
-  if (stroke)
+  if (op == RenderOp::kStroke)
     _qtContext->setBrush(Qt::NoBrush);
   else
     _qtContext->setPen(QPen(Qt::NoPen));
@@ -468,16 +477,16 @@ void QtModule::onDoRoundRotated(bool stroke) {
     transform.translate(-cx, -cy);
     _qtContext->setTransform(transform, false);
 
-    if (style == kBenchStyleSolid) {
+    if (style == StyleKind::kSolid) {
       QColor color(toQColor(_rndColor.nextRgba32()));
-      if (stroke)
+      if (op == RenderOp::kStroke)
         _qtContext->setPen(QPen(color, qreal(_params.strokeWidth)));
       else
         _qtContext->setBrush(QBrush(color));
     }
     else {
-      QBrush brush(setupStyle<BLRect>(style, rect));
-      if (stroke)
+      QBrush brush(createBrush<BLRect>(style, rect));
+      if (op == RenderOp::kStroke)
         _qtContext->setPen(QPen(brush, qreal(_params.strokeWidth)));
       else
         _qtContext->setBrush(brush);
@@ -492,14 +501,13 @@ void QtModule::onDoRoundRotated(bool stroke) {
   }
 }
 
-void QtModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
+void QtModule::renderPolygon(RenderOp op, uint32_t complexity) {
   BLSizeI bounds(_params.screenW - _params.shapeSize,
                  _params.screenH - _params.shapeSize);
-  uint32_t style = _params.style;
+  StyleKind style = _params.style;
   double wh = double(_params.shapeSize);
 
-  bool stroke = (mode == 2);
-  Qt::FillRule fillRule = (mode != 0) ? Qt::OddEvenFill : Qt::WindingFill;
+  Qt::FillRule fillRule = op == RenderOp::kFillEvenOdd ? Qt::OddEvenFill : Qt::WindingFill;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
     BLPoint base(_rndCoord.nextPoint(bounds));
@@ -517,9 +525,10 @@ void QtModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
       path.lineTo(x, y);
     }
 
-    if (style == kBenchStyleSolid) {
+    if (style == StyleKind::kSolid) {
       QColor color(toQColor(_rndColor.nextRgba32()));
-      if (stroke) {
+
+      if (op == RenderOp::kStroke) {
         QPen pen(color, qreal(_params.strokeWidth));
         pen.setJoinStyle(Qt::MiterJoin);
         _qtContext->strokePath(path, pen);
@@ -530,9 +539,9 @@ void QtModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
     }
     else {
       BLRect rect(base.x, base.y, wh, wh);
-      QBrush brush(setupStyle<BLRect>(style, rect));
+      QBrush brush(createBrush<BLRect>(style, rect));
 
-      if (stroke) {
+      if (op == RenderOp::kStroke) {
         QPen pen(brush, qreal(_params.strokeWidth));
         pen.setJoinStyle(Qt::MiterJoin);
         _qtContext->strokePath(path, pen);
@@ -544,34 +553,39 @@ void QtModule::onDoPolygon(uint32_t mode, uint32_t complexity) {
   }
 }
 
-void QtModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
+void QtModule::renderShape(RenderOp op, ShapeData shape) {
   BLSizeI bounds(_params.screenW - _params.shapeSize,
                  _params.screenH - _params.shapeSize);
-  uint32_t style = _params.style;
-
-  // No idea who invented this, but you need a `cairo_t` to create a `cairo_path_t`.
-  QPainterPath path;
-
-  bool start = true;
+  StyleKind style = _params.style;
   double wh = double(_params.shapeSize);
 
-  for (size_t i = 0; i < count; i++) {
-    double x = pts[i].x;
-    double y = pts[i].y;
-
-    if (x == -1.0 && y == -1.0) {
-      start = true;
-      continue;
+  ShapeIterator it(shape);
+  QPainterPath path;
+  while (it.hasCommand()) {
+    if (it.isMoveTo()) {
+      path.moveTo(it.x(0) * wh, it.y(0) * wh);
     }
-
-    if (start) {
-      path.moveTo(qreal(x * wh), qreal(y * wh));
-      start = false;
+    else if (it.isLineTo()) {
+      path.lineTo(it.x(0) * wh, it.y(0) * wh);
+    }
+    else if (it.isQuadTo()) {
+      path.quadTo(
+        it.x(0) * wh, it.y(0) * wh,
+        it.x(1) * wh, it.y(1) * wh);
+    }
+    else if (it.isCubicTo()) {
+      path.cubicTo(
+        it.x(0) * wh, it.y(0) * wh,
+        it.x(1) * wh, it.y(1) * wh,
+        it.x(2) * wh, it.y(2) * wh);
     }
     else {
-      path.lineTo(qreal(x * wh), qreal(y * wh));
+      path.closeSubpath();
     }
+    it.next();
   }
+
+  Qt::FillRule fillRule = op == RenderOp::kFillEvenOdd ? Qt::OddEvenFill : Qt::WindingFill;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
     BLPoint base(_rndCoord.nextPoint(bounds));
@@ -579,9 +593,10 @@ void QtModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
     _qtContext->save();
     _qtContext->translate(qreal(base.x), qreal(base.y));
 
-    if (style == kBenchStyleSolid) {
+    if (style == StyleKind::kSolid) {
       QColor color(toQColor(_rndColor.nextRgba32()));
-      if (stroke) {
+
+      if (op == RenderOp::kStroke) {
         QPen pen(color, qreal(_params.strokeWidth));
         pen.setJoinStyle(Qt::MiterJoin);
         _qtContext->strokePath(path, pen);
@@ -592,9 +607,9 @@ void QtModule::onDoShape(bool stroke, const BLPoint* pts, size_t count) {
     }
     else {
       BLRect rect(0, 0, wh, wh);
-      QBrush brush(setupStyle<BLRect>(style, rect));
+      QBrush brush(createBrush<BLRect>(style, rect));
 
-      if (stroke) {
+      if (op == RenderOp::kStroke) {
         QPen pen(brush, qreal(_params.strokeWidth));
         pen.setJoinStyle(Qt::MiterJoin);
         _qtContext->strokePath(path, pen);

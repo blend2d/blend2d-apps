@@ -225,6 +225,15 @@ if(Qt6Gui_FOUND)
   list(APPEND DEPENDENCY_QT_DEFINITIONS BLEND2D_APPS_ENABLE_QT)
 endif()
 
+# Dependencies - CoreGraphics (Apple Only)
+# ========================================
+
+if (APPLE)
+  message("-- [blend2d-apps] adding support for CoreGraphics")
+  list(APPEND DEPENDENCY_CG_LIBRARIES "-framework CoreGraphics")
+  list(APPEND DEPENDENCY_CG_DEFINITIONS BLEND2D_APPS_ENABLE_COREGRAPHICS)
+endif()
+
 # Blend2D-Apps - Blend2D Bench
 # ============================
 
@@ -242,20 +251,34 @@ set(BLEND2D_BENCH_SRC
   bl_bench/module_blend2d.h
   bl_bench/module_cairo.cpp
   bl_bench/module_cairo.h
+  bl_bench/module_coregraphics.cpp
+  bl_bench/module_coregraphics.h
   bl_bench/module_qt.cpp
   bl_bench/module_qt.h
   bl_bench/module_skia.cpp
   bl_bench/module_skia.h
-  bl_bench/shapes_data.cpp
-  bl_bench/shapes_data.h
+  bl_bench/shape_data.cpp
+  bl_bench/shape_data.h
 )
 
 add_executable(bl_bench ${BLEND2D_BENCH_SRC} ${ANTIGRAIN_SRC})
 target_compile_features(bl_bench PUBLIC cxx_std_11)
 set_property(TARGET bl_bench PROPERTY CXX_VISIBILITY_PRESET hidden)
-target_include_directories(bl_bench PRIVATE ${DEPENDENCY_AGG_INCLUDE_DIRS} ${DEPENDENCY_CAIRO_INCLUDE_DIRS})
-target_compile_definitions(bl_bench PRIVATE ${DEPENDENCY_AGG_DEFINITIONS} ${DEPENDENCY_CAIRO_DEFINITIONS} ${DEPENDENCY_QT_DEFINITIONS} ${DEPENDENCY_SKIA_DEFINITIONS})
-target_link_libraries(bl_bench blend2d::blend2d ${DEPENDENCY_AGG_LIBRARUES} ${DEPENDENCY_CAIRO_LIBRARIES} ${DEPENDENCY_QT_LIBRARIES} ${DEPENDENCY_SKIA_LIBRARIES})
+target_include_directories(bl_bench PRIVATE
+  ${DEPENDENCY_AGG_INCLUDE_DIRS}
+  ${DEPENDENCY_CAIRO_INCLUDE_DIRS})
+target_compile_definitions(bl_bench PRIVATE
+  ${DEPENDENCY_AGG_DEFINITIONS}
+  ${DEPENDENCY_CAIRO_DEFINITIONS}
+  ${DEPENDENCY_QT_DEFINITIONS}
+  ${DEPENDENCY_SKIA_DEFINITIONS}
+  ${DEPENDENCY_CG_DEFINITIONS})
+target_link_libraries(bl_bench blend2d::blend2d
+  ${DEPENDENCY_AGG_LIBRARUES}
+  ${DEPENDENCY_CAIRO_LIBRARIES}
+  ${DEPENDENCY_QT_LIBRARIES}
+  ${DEPENDENCY_SKIA_LIBRARIES}
+  ${DEPENDENCY_CG_LIBRARIES})
 target_link_directories(bl_bench PRIVATE ${DEPENDENCY_CAIRO_LIBRARY_DIRS})
 
 # Blend2D-Apps - Blend2D Qt Demos
