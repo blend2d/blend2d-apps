@@ -334,7 +334,7 @@ void CairoModule::renderRectA(RenderOp op) {
     setupStyle<BLRectI>(style, rect);
 
     if (op == RenderOp::kStroke) {
-      cairo_rectangle(_cairoContext, rect.x + 0.5, rect.y + 0.5, rect.w, rect.h);
+      cairo_rectangle(_cairoContext, rect.x, rect.y, rect.w, rect.h);
       cairo_stroke(_cairoContext);
     }
     else {

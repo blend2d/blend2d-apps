@@ -56,8 +56,8 @@ public:
     _styleSelect.addItem("Conic Gradient", QVariant(int(3)));
 
     _slider.setOrientation(Qt::Horizontal);
-    _slider.setMinimum(3);
-    _slider.setMaximum(1000);
+    _slider.setMinimum(4);
+    _slider.setMaximum(2000);
     _slider.setSliderPosition(10);
 
     _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
@@ -80,7 +80,7 @@ public:
     grid->addWidget(&_limitFpsCheck, 0, 7);
 
     grid->addWidget(new QLabel("Count:"), 1, 0, Qt::AlignRight);
-    grid->addWidget(&_slider, 1, 1, 1, 5);
+    grid->addWidget(&_slider, 1, 1, 1, 7);
 
     vBox->addLayout(grid);
     vBox->addWidget(&_canvas);

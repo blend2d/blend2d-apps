@@ -166,6 +166,14 @@ static uint32_t searchStringList(const char** listData, size_t listSize, const c
   return 0xFFFFFFFFu;
 }
 
+static void spacesToUnderscores(char* s) {
+  while (*s) {
+    if (*s == ' ')
+      *s = '_';
+    s++;
+  }
+}
+
 struct DurationFormat {
   char data[64];
 
@@ -240,10 +248,14 @@ bool BenchApp::init() {
   _isolated = hasArg("--isolated");
   _deepBench = hasArg("--deep");
   _saveImages = hasArg("--save");
+
+  _width = uint32_t(intValueOf("--width", 600));
+  _height = uint32_t(intValueOf("--height", 512));
   _compOp = 0xFFFFFFFFu;
   _compOpString = nullptr;
-  _repeat = intValueOf("--repeat", 1);
-  _quantity = intValueOf("--quantity", 0);
+  _repeat = uint32_t(intValueOf("--repeat", 1));
+  _quantity = uint32_t(intValueOf("--quantity", 0));
+  _sizeCount = kBenchShapeSizeCount;
 
   _disableAgg = hasArg("--disable-agg");
   _disableBlend2D = hasArg("--disable-blend2d");
@@ -304,6 +316,8 @@ void BenchApp::info() {
     "  --save       [%s] Save all generated images as .png files\n"
     "  --deep       [%s] More tests that use gradients and textures\n"
     "  --isolated   [%s] Use Blend2D isolated context (useful for development)\n"
+    "  --width=N    [%u] Screen width to use\n"
+    "  --height=N   [%u] Screen height to use\n"
     "  --repeat=N   [%d] Number of repeats of each test to select the best time\n"
     "  --quantity=N [%d] Override the default quantity of each operation\n"
     "  --comp-op=X  [%s] Benchmark a specific composition operator\n"
@@ -311,6 +325,8 @@ void BenchApp::info() {
     no_yes[_saveImages],
     no_yes[_deepBench],
     no_yes[_isolated],
+    _width,
+    _height,
     _repeat,
     _quantity,
     _compOpString ? _compOpString : "");
@@ -380,7 +396,7 @@ void BenchApp::serializeOptions(JSONBuilder& json, const BenchParams& params) co
   json.beforeRecord().addKey("options").openObject();
   json.beforeRecord().addKey("quantity").addUInt(params.quantity);
   json.beforeRecord().addKey("sizes").openArray();
-  for (uint32_t sizeId = 0; sizeId < kBenchShapeSizeCount; sizeId++) {
+  for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++) {
     json.addStringf("%dx%d", benchShapeSizeList[sizeId], benchShapeSizeList[sizeId]);
   }
   json.closeArray();
@@ -390,8 +406,8 @@ void BenchApp::serializeOptions(JSONBuilder& json, const BenchParams& params) co
 
 int BenchApp::run() {
   BenchParams params{};
-  params.screenW = 600;
-  params.screenH = 512;
+  params.screenW = _width;
+  params.screenH = _height;
   params.format = BL_FORMAT_PRGB32;
   params.strokeWidth = 2.0;
 
@@ -509,6 +525,15 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
   char fileName[256];
   char styleString[128];
 
+  bool renderOverview = false;
+  BLImage overviewImage;
+  BLContext overviewCtx;
+
+  if (renderOverview) {
+    overviewImage.create(1 + ((_width + 1) * _sizeCount), _height + 2, BL_FORMAT_XRGB32);
+    overviewCtx.begin(overviewImage);
+  }
+
   double cpms[kBenchShapeSizeCount] {};
   uint64_t cpmsTotal[kBenchShapeSizeCount] {};
   DurationFormat fmt[kBenchShapeSizeCount] {};
@@ -553,28 +578,48 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
       for (uint32_t testIdx = 0; testIdx < kTestKindCount; testIdx++) {
         params.testKind = TestKind(testIdx);
 
-        for (uint32_t sizeId = 0; sizeId < kBenchShapeSizeCount; sizeId++) {
+        if (renderOverview) {
+          overviewCtx.fillAll(BLRgba32(0xFF000000u));
+          overviewCtx.strokeRect(BLRect(0.5, 0.5, overviewImage.width() - 1, overviewImage.height() - 1), BLRgba32(0xFFFFFFFF));
+        }
+
+        for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++) {
           params.shapeSize = benchShapeSizeList[sizeId];
           uint64_t duration = runSingleTest(mod, params);
 
           cpms[sizeId] = double(params.quantity) * double(1000) / double(duration);
           cpmsTotal[sizeId] += cpms[sizeId];
 
+          if (renderOverview && style == StyleKind::kSolid) {
+            overviewCtx.blitImage(BLPointI(1 + (sizeId * (_width + 1)), 1), mod._surface);
+            overviewCtx.fillRect(BLRectI(1 + (sizeId * (_width + 1)) + _width, 1, 1, _height), BLRgba32(0xFFFFFFFF));
+            if (sizeId == _sizeCount - 1) {
+              snprintf(fileName, 256, "%s-%s-%s-%s.png",
+                mod._name,
+                testKindNameList[uint32_t(params.testKind)],
+                compOpNameList[uint32_t(params.compOp)],
+                styleString);
+              spacesToUnderscores(fileName);
+              overviewImage.writeToFile(fileName);
+            }
+          }
+
           if (_saveImages) {
             // Save only the last two as these are easier to compare visually.
-            if (sizeId >= kBenchShapeSizeCount - 2) {
+            if (sizeId >= _sizeCount - 2) {
               snprintf(fileName, 256, "%s-%s-%s-%s-%c.png",
                 mod._name,
                 testKindNameList[uint32_t(params.testKind)],
                 compOpNameList[uint32_t(params.compOp)],
                 styleString,
                 'A' + sizeId);
+              spacesToUnderscores(fileName);
               mod._surface.writeToFile(fileName);
             }
           }
         }
 
-        for (uint32_t sizeId = 0; sizeId < kBenchShapeSizeCount; sizeId++)
+        for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++)
           fmt[sizeId].format(cpms[sizeId]);
 
         printf(benchDataFmt,
@@ -595,7 +640,7 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
             .comma().alignTo(58).addKey("style").addString(styleString);
 
         json.addKey("rcpms").openArray();
-        for (uint32_t sizeId = 0; sizeId < kBenchShapeSizeCount; sizeId++) {
+        for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++) {
           json.addStringWithoutQuotes(fmt[sizeId].data);
         }
         json.closeArray();
@@ -603,7 +648,7 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
         json.closeObject();
       }
 
-      for (uint32_t sizeId = 0; sizeId < kBenchShapeSizeCount; sizeId++)
+      for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++)
         fmt[sizeId].format(cpmsTotal[sizeId]);
 
       printf(benchBorderStr);

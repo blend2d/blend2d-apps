@@ -222,10 +222,7 @@ void Blend2DModule::afterRun() {
 
 void Blend2DModule::renderRectA(RenderOp op) {
   BLSizeI bounds(_params.screenW, _params.screenH);
-
   StyleKind style = _params.style;
-  BLContextStyleSlot slot = op == RenderOp::kStroke ? BL_CONTEXT_STYLE_SLOT_STROKE : BL_CONTEXT_STYLE_SLOT_FILL;
-
   int wh = _params.shapeSize;
 
   switch (style) {
@@ -234,8 +231,8 @@ void Blend2DModule::renderRectA(RenderOp op) {
         BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
         BLRgba32 color(_rndColor.nextRgba32());
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h), color);
+        if (op == RenderOp::kStroke)
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), color);
         else
           _context.fillRect(rect, color);
       }
@@ -256,15 +253,10 @@ void Blend2DModule::renderRectA(RenderOp op) {
         BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
         BlendUtil_setupGradient<BLRectI>(this, gradient, style, rect);
 
-        _context.save();
-        _context.setStyle(slot, gradient);
-
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
+        if (op == RenderOp::kStroke)
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), gradient);
         else
-          _context.fillRect(rect);
-
-        _context.restore();
+          _context.fillRect(rect, gradient);
       }
       break;
     }
@@ -276,12 +268,9 @@ void Blend2DModule::renderRectA(RenderOp op) {
       for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
         BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE) {
-          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x + 0.5, rect.y + 0.5));
-          _context.save();
-          _context.setStrokeStyle(pattern);
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
-          _context.restore();
+        if (op == RenderOp::kStroke) {
+          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), pattern);
         }
         else {
           _context.blitImage(BLPointI(rect.x, rect.y), _sprites[nextSpriteId()]);
@@ -294,10 +283,7 @@ void Blend2DModule::renderRectA(RenderOp op) {
 
 void Blend2DModule::renderRectF(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-
   StyleKind style = _params.style;
-  BLContextStyleSlot slot = op == RenderOp::kStroke ? BL_CONTEXT_STYLE_SLOT_STROKE : BL_CONTEXT_STYLE_SLOT_FILL;
-
   double wh = _params.shapeSize;
 
   switch (style) {
@@ -306,7 +292,7 @@ void Blend2DModule::renderRectF(RenderOp op) {
         BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
         BLRgba32 color(_rndColor.nextRgba32());
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
+        if (op == RenderOp::kStroke)
           _context.strokeRect(rect, color);
         else
           _context.fillRect(rect, color);
@@ -328,15 +314,10 @@ void Blend2DModule::renderRectF(RenderOp op) {
         BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
         BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
 
-        _context.save();
-        _context.setStyle(slot, gradient);
-
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRect(rect);
+        if (op == RenderOp::kStroke)
+          _context.strokeRect(rect, gradient);
         else
-          _context.fillRect(rect);
-
-        _context.restore();
+          _context.fillRect(rect, gradient);
       }
       break;
     }
@@ -348,12 +329,9 @@ void Blend2DModule::renderRectF(RenderOp op) {
       for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
         BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE) {
-          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x + 0.5, rect.y + 0.5));
-          _context.save();
-          _context.setStrokeStyle(pattern);
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
-          _context.restore();
+        if (op == RenderOp::kStroke) {
+          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), pattern);
         }
         else {
           _context.blitImage(BLPoint(rect.x, rect.y), _sprites[nextSpriteId()]);
@@ -366,9 +344,7 @@ void Blend2DModule::renderRectF(RenderOp op) {
 
 void Blend2DModule::renderRectRotated(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-
   StyleKind style = _params.style;
-  BLContextStyleSlot slot = op == RenderOp::kStroke ? BL_CONTEXT_STYLE_SLOT_STROKE : BL_CONTEXT_STYLE_SLOT_FILL;
 
   double cx = double(_params.screenW) * 0.5;
   double cy = double(_params.screenH) * 0.5;
@@ -383,7 +359,7 @@ void Blend2DModule::renderRectRotated(RenderOp op) {
 
         _context.rotate(angle, BLPoint(cx, cy));
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
+        if (op == RenderOp::kStroke)
           _context.strokeRect(rect, color);
         else
           _context.fillRect(rect, color);
@@ -409,12 +385,11 @@ void Blend2DModule::renderRectRotated(RenderOp op) {
 
         _context.save();
         _context.rotate(angle, BLPoint(cx, cy));
-        _context.setStyle(slot, gradient);
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRect(rect);
+        if (op == RenderOp::kStroke)
+          _context.strokeRect(rect, gradient);
         else
-          _context.fillRect(rect);
+          _context.fillRect(rect, gradient);
 
         _context.restore();
       }
@@ -429,11 +404,11 @@ void Blend2DModule::renderRectRotated(RenderOp op) {
         BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
 
         _context.save();
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE) {
-          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x + 0.5, rect.y + 0.5));
+        if (op == RenderOp::kStroke) {
+          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
           _context.setStrokeStyle(pattern);
           _context.rotate(angle, BLPoint(cx, cy));
-          _context.strokeRect(BLRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
+          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h));
         }
         else {
           _context.rotate(angle, BLPoint(cx, cy));
@@ -448,22 +423,18 @@ void Blend2DModule::renderRectRotated(RenderOp op) {
 
 void Blend2DModule::renderRoundF(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-
   StyleKind style = _params.style;
-  BLContextStyleSlot slot = op == RenderOp::kStroke ? BL_CONTEXT_STYLE_SLOT_STROKE : BL_CONTEXT_STYLE_SLOT_FILL;
-
   double wh = _params.shapeSize;
 
   switch (style) {
     case StyleKind::kSolid: {
       for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
         double radius = _rndExtra.nextDouble(4.0, 40.0);
-
         BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
         BLRoundRect round(rect, radius);
-        BLRgba32 color(_rndColor.nextRgba32());
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
+        BLRgba32 color(_rndColor.nextRgba32());
+        if (op == RenderOp::kStroke)
           _context.strokeRoundRect(round, color);
         else
           _context.fillRoundRect(round, color);
@@ -488,15 +459,10 @@ void Blend2DModule::renderRoundF(RenderOp op) {
         BLRoundRect round(rect, radius);
 
         BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-        _context.save();
-        _context.setStyle(slot, gradient);
-
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRoundRect(round);
+        if (op == RenderOp::kStroke)
+          _context.strokeRoundRect(round, gradient);
         else
-          _context.fillRoundRect(round);
-
-        _context.restore();
+          _context.fillRoundRect(round, gradient);
       }
       break;
     }
@@ -512,15 +478,10 @@ void Blend2DModule::renderRoundF(RenderOp op) {
         BLRoundRect round(rect, radius);
 
         pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
-        _context.save();
-        _context.setStyle(slot, pattern);
-
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRoundRect(round);
+        if (op == RenderOp::kStroke)
+          _context.strokeRoundRect(round, pattern);
         else
-          _context.fillRoundRect(round);
-
-        _context.restore();
+          _context.fillRoundRect(round, pattern);
       }
       break;
     }
@@ -529,9 +490,7 @@ void Blend2DModule::renderRoundF(RenderOp op) {
 
 void Blend2DModule::renderRoundRotated(RenderOp op) {
   BLSize bounds(_params.screenW, _params.screenH);
-
   StyleKind style = _params.style;
-  BLContextStyleSlot slot = op == RenderOp::kStroke ? BL_CONTEXT_STYLE_SLOT_STROKE : BL_CONTEXT_STYLE_SLOT_FILL;
 
   double cx = double(_params.screenW) * 0.5;
   double cy = double(_params.screenH) * 0.5;
@@ -549,7 +508,7 @@ void Blend2DModule::renderRoundRotated(RenderOp op) {
 
         _context.rotate(angle, BLPoint(cx, cy));
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
+        if (op == RenderOp::kStroke)
           _context.strokeRoundRect(round, color);
         else
           _context.fillRoundRect(round, color);
@@ -579,12 +538,11 @@ void Blend2DModule::renderRoundRotated(RenderOp op) {
 
         _context.save();
         _context.rotate(angle, BLPoint(cx, cy));
-        _context.setStyle(slot, gradient);
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRoundRect(round);
+        if (op == RenderOp::kStroke)
+          _context.strokeRoundRect(round, gradient);
         else
-          _context.fillRoundRect(round);
+          _context.fillRoundRect(round, gradient);
 
         _context.restore();
       }
@@ -604,12 +562,11 @@ void Blend2DModule::renderRoundRotated(RenderOp op) {
         pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
         _context.save();
         _context.rotate(angle, BLPoint(cx, cy));
-        _context.setStyle(slot, pattern);
 
-        if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-          _context.strokeRoundRect(round);
+        if (op == RenderOp::kStroke)
+          _context.strokeRoundRect(round, pattern);
         else
-          _context.fillRoundRect(round);
+          _context.fillRoundRect(round, pattern);
 
         _context.restore();
       }
@@ -619,24 +576,21 @@ void Blend2DModule::renderRoundRotated(RenderOp op) {
 }
 
 void Blend2DModule::renderPolygon(RenderOp op, uint32_t complexity) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
-  StyleKind style = _params.style;
+  static constexpr uint32_t kPointCapacity = 128;
 
-  BLContextStyleSlot slot = op == RenderOp::kStroke ? BL_CONTEXT_STYLE_SLOT_STROKE : BL_CONTEXT_STYLE_SLOT_FILL;
-  _context.setFillRule(op == RenderOp::kFillEvenOdd ? BL_FILL_RULE_EVEN_ODD : BL_FILL_RULE_NON_ZERO);
-
-  enum { kPointCapacity = 128 };
   if (complexity > kPointCapacity)
     return;
+
+  BLSizeI bounds(_params.screenW - _params.shapeSize, _params.screenH - _params.shapeSize);
+  StyleKind style = _params.style;
+  double wh = double(_params.shapeSize);
 
   BLPoint points[kPointCapacity];
   BLGradient gradient(_gradientType);
   BLPattern pattern;
 
+  _context.setFillRule(op == RenderOp::kFillEvenOdd ? BL_FILL_RULE_EVEN_ODD : BL_FILL_RULE_NON_ZERO);
   gradient.setExtendMode(_gradientExtend);
-
-  double wh = double(_params.shapeSize);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
     BLPoint base(_rndCoord.nextPoint(bounds));
@@ -647,11 +601,13 @@ void Blend2DModule::renderPolygon(RenderOp op, uint32_t complexity) {
       points[p].reset(x, y);
     }
 
-    _context.save();
-
     switch (style) {
       case StyleKind::kSolid: {
-        _context.setStyle(slot, _rndColor.nextRgba32());
+        BLRgba32 color = _rndColor.nextRgba32();
+        if (op == RenderOp::kStroke)
+          _context.strokePolygon(points, complexity, color);
+        else
+          _context.fillPolygon(points, complexity, color);
         break;
       }
 
@@ -664,39 +620,36 @@ void Blend2DModule::renderPolygon(RenderOp op, uint32_t complexity) {
       case StyleKind::kConic: {
         BLRect rect(base.x, base.y, wh, wh);
         BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-        _context.setStyle(slot, gradient);
+
+        if (op == RenderOp::kStroke)
+          _context.strokePolygon(points, complexity, gradient);
+        else
+          _context.fillPolygon(points, complexity, gradient);
         break;
       }
 
       case StyleKind::kPatternNN:
       case StyleKind::kPatternBI: {
         pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(base.x, base.y));
-        _context.setStyle(slot, pattern);
+
+        if (op == RenderOp::kStroke)
+          _context.strokePolygon(points, complexity, pattern);
+        else
+          _context.fillPolygon(points, complexity, pattern);
         break;
       }
     }
-
-    if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-      _context.strokePolygon(points, complexity);
-    else
-      _context.fillPolygon(points, complexity);
-
-    _context.restore();
   }
 }
 
 void Blend2DModule::renderShape(RenderOp op, ShapeData shape) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
+  BLSizeI bounds(_params.screenW - _params.shapeSize, _params.screenH - _params.shapeSize);
   StyleKind style = _params.style;
-
-  BLContextStyleSlot slot = op == RenderOp::kStroke ? BL_CONTEXT_STYLE_SLOT_STROKE : BL_CONTEXT_STYLE_SLOT_FILL;
-  _context.setFillRule(op == RenderOp::kFillEvenOdd ? BL_FILL_RULE_EVEN_ODD : BL_FILL_RULE_NON_ZERO);
-
-  BLPath path;
   double wh = double(_params.shapeSize);
 
+  BLPath path;
   ShapeIterator it(shape);
+
   while (it.hasCommand()) {
     if (it.isMoveTo()) {
       path.moveTo(it.vertex(0));
@@ -715,21 +668,25 @@ void Blend2DModule::renderShape(RenderOp op, ShapeData shape) {
     }
     it.next();
   }
+
   path.transform(BLMatrix2D::makeScaling(wh, wh));
 
   BLGradient gradient(_gradientType);
-  gradient.setExtendMode(_gradientExtend);
-
   BLPattern pattern;
+
+  _context.setFillRule(op == RenderOp::kFillEvenOdd ? BL_FILL_RULE_EVEN_ODD : BL_FILL_RULE_NON_ZERO);
+  gradient.setExtendMode(_gradientExtend);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
     BLPoint base(_rndCoord.nextPoint(bounds));
 
-    _context.save();
-
     switch (style) {
       case StyleKind::kSolid: {
-        _context.setStyle(slot, _rndColor.nextRgba32());
+        BLRgba32 color = _rndColor.nextRgba32();
+        if (op == RenderOp::kStroke)
+          _context.strokePath(base, path, color);
+        else
+          _context.fillPath(base, path, color);
         break;
       }
 
@@ -742,25 +699,25 @@ void Blend2DModule::renderShape(RenderOp op, ShapeData shape) {
       case StyleKind::kConic: {
         BLRect rect(base.x, base.y, wh, wh);
         BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-        _context.setStyle(slot, gradient);
+
+        if (op == RenderOp::kStroke)
+          _context.strokePath(base, path, gradient);
+        else
+          _context.fillPath(base, path, gradient);
         break;
       }
 
       case StyleKind::kPatternNN:
       case StyleKind::kPatternBI: {
         pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(base.x, base.y));
-        _context.setStyle(slot, pattern);
+
+        if (op == RenderOp::kStroke)
+          _context.strokePath(base, path, pattern);
+        else
+          _context.fillPath(base, path, pattern);
         break;
       }
     }
-
-    _context.translate(base);
-    if (slot == BL_CONTEXT_STYLE_SLOT_STROKE)
-      _context.strokePath(path);
-    else
-      _context.fillPath(path);
-
-    _context.restore();
   }
 }
 

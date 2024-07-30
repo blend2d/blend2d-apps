@@ -24,9 +24,12 @@ struct BenchApp {
   bool _isolated {};
   bool _deepBench {};
   bool _saveImages {};
+  uint32_t _width {};
+  uint32_t _height {};
   uint32_t _compOp {};
   uint32_t _repeat {};
   uint32_t _quantity {};
+  uint32_t _sizeCount {};
   const char* _compOpString {};
 
   bool _disableAgg {};

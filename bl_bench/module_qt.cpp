@@ -285,7 +285,7 @@ void QtModule::renderRectA(RenderOp op) {
 
       if (op == RenderOp::kStroke) {
         _qtContext->setPen(color);
-        _qtContext->drawRect(QRectF(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
+        _qtContext->drawRect(QRectF(rect.x, rect.y, rect.w, rect.h));
       }
       else {
         _qtContext->fillRect(QRect(rect.x, rect.y, rect.w, rect.h), color);
@@ -310,7 +310,7 @@ void QtModule::renderRectA(RenderOp op) {
           QPen pen(brush, qreal(_params.strokeWidth));
           pen.setJoinStyle(Qt::MiterJoin);
           _qtContext->setPen(pen);
-          _qtContext->drawRect(QRectF(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h));
+          _qtContext->drawRect(QRectF(rect.x, rect.y, rect.w, rect.h));
         }
         else {
           _qtContext->fillRect(QRect(rect.x, rect.y, rect.w, rect.h), brush);
