@@ -40,6 +40,9 @@ public:
   void flush() override;
   void afterRun() override;
 
+  template<typename RectT>
+  inline const BLVar& setupStyle(const RectT& rect, StyleKind style, BLGradient& gradient, BLPattern& pattern);
+
   void renderRectA(RenderOp op) override;
   void renderRectF(RenderOp op) override;
   void renderRectRotated(RenderOp op) override;
@@ -87,60 +90,70 @@ void Blend2DModule::serializeInfo(JSONBuilder& json) const {
 }
 
 template<typename RectT>
-static void BlendUtil_setupGradient(Blend2DModule* self, BLGradient& gradient, StyleKind style, const RectT& rect) {
-  switch (style) {
-    case StyleKind::kLinearPad:
-    case StyleKind::kLinearRepeat:
-    case StyleKind::kLinearReflect: {
-      BLLinearGradientValues values {};
-      values.x0 = rect.x + rect.w * 0.2;
-      values.y0 = rect.y + rect.h * 0.2;
-      values.x1 = rect.x + rect.w * 0.8;
-      values.y1 = rect.y + rect.h * 0.8;
+inline const BLVar& Blend2DModule::setupStyle(const RectT& rect, StyleKind style, BLGradient& gradient, BLPattern& pattern) {
+  if (style <= StyleKind::kConic) {
+    BLRgba32 c0(_rndColor.nextRgba32());
+    BLRgba32 c1(_rndColor.nextRgba32());
+    BLRgba32 c2(_rndColor.nextRgba32());
 
-      gradient.setValues(values);
-      gradient.resetStops();
-      gradient.addStop(0.0, self->_rndColor.nextRgba32());
-      gradient.addStop(0.5, self->_rndColor.nextRgba32());
-      gradient.addStop(1.0, self->_rndColor.nextRgba32());
-      break;
+    switch (style) {
+      case StyleKind::kLinearPad:
+      case StyleKind::kLinearRepeat:
+      case StyleKind::kLinearReflect: {
+        BLLinearGradientValues values {};
+        values.x0 = rect.x + rect.w * 0.2;
+        values.y0 = rect.y + rect.h * 0.2;
+        values.x1 = rect.x + rect.w * 0.8;
+        values.y1 = rect.y + rect.h * 0.8;
+
+        gradient.setValues(values);
+        gradient.resetStops();
+        gradient.addStop(0.0, c0);
+        gradient.addStop(0.5, c1);
+        gradient.addStop(1.0, c2);
+        break;
+      }
+
+      case StyleKind::kRadialPad:
+      case StyleKind::kRadialRepeat:
+      case StyleKind::kRadialReflect: {
+        BLRadialGradientValues values {};
+        values.x0 = rect.x + (rect.w / 2);
+        values.y0 = rect.y + (rect.h / 2);
+        values.r0 = (rect.w + rect.h) / 4;
+        values.x1 = values.x0 - values.r0 / 2.0;
+        values.y1 = values.y0 - values.r0 / 2.0;
+
+        gradient.setValues(values);
+        gradient.resetStops();
+        gradient.addStop(0.0, c0);
+        gradient.addStop(0.5, c1);
+        gradient.addStop(1.0, c2);
+        break;
+      }
+
+      default: {
+        BLConicGradientValues values {};
+        values.x0 = rect.x + (rect.w / 2);
+        values.y0 = rect.y + (rect.h / 2);
+        values.angle = 0;
+        values.repeat = 1;
+
+        gradient.setValues(values);
+        gradient.resetStops();
+
+        gradient.addStop(0.00, c0);
+        gradient.addStop(0.33, c1);
+        gradient.addStop(0.66, c2);
+        gradient.addStop(1.00, c0);
+        break;
+      }
     }
-
-    case StyleKind::kRadialPad:
-    case StyleKind::kRadialRepeat:
-    case StyleKind::kRadialReflect: {
-      BLRadialGradientValues values {};
-      values.x0 = rect.x + (rect.w / 2);
-      values.y0 = rect.y + (rect.h / 2);
-      values.r0 = (rect.w + rect.h) / 4;
-      values.x1 = values.x0 - values.r0 / 2.0;
-      values.y1 = values.y0 - values.r0 / 2.0;
-
-      gradient.setValues(values);
-      gradient.resetStops();
-      gradient.addStop(0.0, self->_rndColor.nextRgba32());
-      gradient.addStop(0.5, self->_rndColor.nextRgba32());
-      gradient.addStop(1.0, self->_rndColor.nextRgba32());
-      break;
-    }
-
-    default: {
-      BLConicGradientValues values {};
-      values.x0 = rect.x + (rect.w / 2);
-      values.y0 = rect.y + (rect.h / 2);
-      values.angle = 0;
-
-      gradient.setValues(values);
-      gradient.resetStops();
-
-      BLRgba32 c(self->_rndColor.nextRgba32());
-
-      gradient.addStop(0.00, c);
-      gradient.addStop(0.33, self->_rndColor.nextRgba32());
-      gradient.addStop(0.66, self->_rndColor.nextRgba32());
-      gradient.addStop(1.00, c);
-      break;
-    }
+    return reinterpret_cast<const BLVar&>(gradient);
+  }
+  else {
+    pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
+    return reinterpret_cast<const BLVar&>(pattern);
   }
 }
 
@@ -149,16 +162,7 @@ bool Blend2DModule::supportsCompOp(BLCompOp compOp) const {
 }
 
 bool Blend2DModule::supportsStyle(StyleKind style) const {
-  return style == StyleKind::kSolid         ||
-         style == StyleKind::kLinearPad     ||
-         style == StyleKind::kLinearRepeat  ||
-         style == StyleKind::kLinearReflect ||
-         style == StyleKind::kRadialPad     ||
-         style == StyleKind::kRadialRepeat  ||
-         style == StyleKind::kRadialReflect ||
-         style == StyleKind::kConic         ||
-         style == StyleKind::kPatternNN     ||
-         style == StyleKind::kPatternBI     ;
+  return true;
 }
 
 void Blend2DModule::beforeRun() {
@@ -225,58 +229,36 @@ void Blend2DModule::renderRectA(RenderOp op) {
   StyleKind style = _params.style;
   int wh = _params.shapeSize;
 
-  switch (style) {
-    case StyleKind::kSolid: {
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
-        BLRgba32 color(_rndColor.nextRgba32());
+  if (style == StyleKind::kSolid) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
+      BLRgba32 color(_rndColor.nextRgba32());
 
-        if (op == RenderOp::kStroke)
-          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), color);
-        else
-          _context.fillRect(rect, color);
-      }
-      break;
+      if (op == RenderOp::kStroke)
+        _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), color);
+      else
+        _context.fillRect(rect, color);
     }
-
-    case StyleKind::kLinearPad:
-    case StyleKind::kLinearRepeat:
-    case StyleKind::kLinearReflect:
-    case StyleKind::kRadialPad:
-    case StyleKind::kRadialRepeat:
-    case StyleKind::kRadialReflect:
-    case StyleKind::kConic: {
-      BLGradient gradient(_gradientType);
-      gradient.setExtendMode(_gradientExtend);
-
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
-        BlendUtil_setupGradient<BLRectI>(this, gradient, style, rect);
-
-        if (op == RenderOp::kStroke)
-          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), gradient);
-        else
-          _context.fillRect(rect, gradient);
-      }
-      break;
+  }
+  else if ((style == StyleKind::kPatternNN || style == StyleKind::kPatternBI) && op != RenderOp::kStroke) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
+      _context.blitImage(BLPointI(rect.x, rect.y), _sprites[nextSpriteId()]);
     }
+  }
+  else {
+    BLPattern pattern;
+    BLGradient gradient(_gradientType);
+    gradient.setExtendMode(_gradientExtend);
 
-    case StyleKind::kPatternNN:
-    case StyleKind::kPatternBI: {
-      BLPattern pattern;
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
+      const auto& obj = setupStyle(rect, style, gradient, pattern);
 
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
-
-        if (op == RenderOp::kStroke) {
-          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
-          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), pattern);
-        }
-        else {
-          _context.blitImage(BLPointI(rect.x, rect.y), _sprites[nextSpriteId()]);
-        }
-      }
-      break;
+      if (op == RenderOp::kStroke)
+        _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), obj);
+      else
+        _context.fillRect(rect, obj);
     }
   }
 }
@@ -286,58 +268,36 @@ void Blend2DModule::renderRectF(RenderOp op) {
   StyleKind style = _params.style;
   double wh = _params.shapeSize;
 
-  switch (style) {
-    case StyleKind::kSolid: {
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRgba32 color(_rndColor.nextRgba32());
+  if (style == StyleKind::kSolid) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      BLRgba32 color(_rndColor.nextRgba32());
 
-        if (op == RenderOp::kStroke)
-          _context.strokeRect(rect, color);
-        else
-          _context.fillRect(rect, color);
-      }
-      break;
+      if (op == RenderOp::kStroke)
+        _context.strokeRect(rect, color);
+      else
+        _context.fillRect(rect, color);
     }
-
-    case StyleKind::kLinearPad:
-    case StyleKind::kLinearRepeat:
-    case StyleKind::kLinearReflect:
-    case StyleKind::kRadialPad:
-    case StyleKind::kRadialRepeat:
-    case StyleKind::kRadialReflect:
-    case StyleKind::kConic: {
-      BLGradient gradient(_gradientType);
-      gradient.setExtendMode(_gradientExtend);
-
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-
-        if (op == RenderOp::kStroke)
-          _context.strokeRect(rect, gradient);
-        else
-          _context.fillRect(rect, gradient);
-      }
-      break;
+  }
+  else if ((style == StyleKind::kPatternNN || style == StyleKind::kPatternBI) && op != RenderOp::kStroke) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      _context.blitImage(BLPoint(rect.x, rect.y), _sprites[nextSpriteId()]);
     }
+  }
+  else {
+    BLPattern pattern;
+    BLGradient gradient(_gradientType);
+    gradient.setExtendMode(_gradientExtend);
 
-    case StyleKind::kPatternNN:
-    case StyleKind::kPatternBI: {
-      BLPattern pattern;
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      const auto& obj = setupStyle(rect, style, gradient, pattern);
 
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-
-        if (op == RenderOp::kStroke) {
-          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
-          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h), pattern);
-        }
-        else {
-          _context.blitImage(BLPoint(rect.x, rect.y), _sprites[nextSpriteId()]);
-        }
-      }
-      break;
+      if (op == RenderOp::kStroke)
+        _context.strokeRect(rect, obj);
+      else
+        _context.fillRect(rect, obj);
     }
   }
 }
@@ -351,72 +311,49 @@ void Blend2DModule::renderRectRotated(RenderOp op) {
   double wh = _params.shapeSize;
   double angle = 0.0;
 
-  switch (style) {
-    case StyleKind::kSolid: {
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRgba32 color(_rndColor.nextRgba32());
+  if (style == StyleKind::kSolid) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      BLRgba32 color(_rndColor.nextRgba32());
 
-        _context.rotate(angle, BLPoint(cx, cy));
+      _context.rotate(angle, BLPoint(cx, cy));
 
-        if (op == RenderOp::kStroke)
-          _context.strokeRect(rect, color);
-        else
-          _context.fillRect(rect, color);
+      if (op == RenderOp::kStroke)
+        _context.strokeRect(rect, color);
+      else
+        _context.fillRect(rect, color);
 
-        _context.resetTransform();
-      }
-      break;
+      _context.resetTransform();
     }
+  }
+  else if ((style == StyleKind::kPatternNN || style == StyleKind::kPatternBI) && op != RenderOp::kStroke) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
 
-    case StyleKind::kLinearPad:
-    case StyleKind::kLinearRepeat:
-    case StyleKind::kLinearReflect:
-    case StyleKind::kRadialPad:
-    case StyleKind::kRadialRepeat:
-    case StyleKind::kRadialReflect:
-    case StyleKind::kConic: {
-      BLGradient gradient(_gradientType);
-      gradient.setExtendMode(_gradientExtend);
-
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-
-        _context.save();
-        _context.rotate(angle, BLPoint(cx, cy));
-
-        if (op == RenderOp::kStroke)
-          _context.strokeRect(rect, gradient);
-        else
-          _context.fillRect(rect, gradient);
-
-        _context.restore();
-      }
-      break;
+      _context.save();
+      _context.rotate(angle, BLPoint(cx, cy));
+      _context.blitImage(BLPoint(rect.x, rect.y), _sprites[nextSpriteId()]);
+      _context.restore();
     }
+  }
+  else {
+    BLPattern pattern;
+    BLGradient gradient(_gradientType);
+    gradient.setExtendMode(_gradientExtend);
 
-    case StyleKind::kPatternNN:
-    case StyleKind::kPatternBI: {
-      BLPattern pattern;
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      const auto& obj = setupStyle(rect, style, gradient, pattern);
 
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      _context.save();
+      _context.rotate(angle, BLPoint(cx, cy));
 
-        _context.save();
-        if (op == RenderOp::kStroke) {
-          pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
-          _context.setStrokeStyle(pattern);
-          _context.rotate(angle, BLPoint(cx, cy));
-          _context.strokeRect(BLRect(rect.x, rect.y, rect.w, rect.h));
-        }
-        else {
-          _context.rotate(angle, BLPoint(cx, cy));
-          _context.blitImage(BLPoint(rect.x, rect.y), _sprites[nextSpriteId()]);
-        }
-        _context.restore();
-      }
-      break;
+      if (op == RenderOp::kStroke)
+        _context.strokeRect(rect, obj);
+      else
+        _context.fillRect(rect, obj);
+
+      _context.restore();
     }
   }
 }
@@ -426,64 +363,34 @@ void Blend2DModule::renderRoundF(RenderOp op) {
   StyleKind style = _params.style;
   double wh = _params.shapeSize;
 
-  switch (style) {
-    case StyleKind::kSolid: {
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        double radius = _rndExtra.nextDouble(4.0, 40.0);
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRoundRect round(rect, radius);
+  if (style == StyleKind::kSolid) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      double radius = _rndExtra.nextDouble(4.0, 40.0);
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      BLRoundRect round(rect, radius);
 
-        BLRgba32 color(_rndColor.nextRgba32());
-        if (op == RenderOp::kStroke)
-          _context.strokeRoundRect(round, color);
-        else
-          _context.fillRoundRect(round, color);
-      }
-      break;
+      BLRgba32 color(_rndColor.nextRgba32());
+      if (op == RenderOp::kStroke)
+        _context.strokeRoundRect(round, color);
+      else
+        _context.fillRoundRect(round, color);
     }
+  }
+  else {
+    BLPattern pattern;
+    BLGradient gradient(_gradientType);
+    gradient.setExtendMode(_gradientExtend);
 
-    case StyleKind::kLinearPad:
-    case StyleKind::kLinearRepeat:
-    case StyleKind::kLinearReflect:
-    case StyleKind::kRadialPad:
-    case StyleKind::kRadialRepeat:
-    case StyleKind::kRadialReflect:
-    case StyleKind::kConic: {
-      BLGradient gradient(_gradientType);
-      gradient.setExtendMode(_gradientExtend);
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+      double radius = _rndExtra.nextDouble(4.0, 40.0);
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      BLRoundRect round(rect, radius);
 
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        double radius = _rndExtra.nextDouble(4.0, 40.0);
-
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRoundRect round(rect, radius);
-
-        BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-        if (op == RenderOp::kStroke)
-          _context.strokeRoundRect(round, gradient);
-        else
-          _context.fillRoundRect(round, gradient);
-      }
-      break;
-    }
-
-    case StyleKind::kPatternNN:
-    case StyleKind::kPatternBI: {
-      BLPattern pattern;
-
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-        double radius = _rndExtra.nextDouble(4.0, 40.0);
-
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRoundRect round(rect, radius);
-
-        pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
-        if (op == RenderOp::kStroke)
-          _context.strokeRoundRect(round, pattern);
-        else
-          _context.fillRoundRect(round, pattern);
-      }
-      break;
+      const auto& obj = setupStyle(rect, style, gradient, pattern);
+      if (op == RenderOp::kStroke)
+        _context.strokeRoundRect(round, obj);
+      else
+        _context.fillRoundRect(round, obj);
     }
   }
 }
@@ -497,80 +404,44 @@ void Blend2DModule::renderRoundRotated(RenderOp op) {
   double wh = _params.shapeSize;
   double angle = 0.0;
 
-  switch (style) {
-    case StyleKind::kSolid: {
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-        double radius = _rndExtra.nextDouble(4.0, 40.0);
+  if (style == StyleKind::kSolid) {
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
+      double radius = _rndExtra.nextDouble(4.0, 40.0);
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      BLRoundRect round(rect, radius);
 
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRoundRect round(rect, radius);
-        BLRgba32 color(_rndColor.nextRgba32());
+      _context.rotate(angle, BLPoint(cx, cy));
+      BLRgba32 color(_rndColor.nextRgba32());
 
-        _context.rotate(angle, BLPoint(cx, cy));
+      if (op == RenderOp::kStroke)
+        _context.strokeRoundRect(round, color);
+      else
+        _context.fillRoundRect(round, color);
 
-        if (op == RenderOp::kStroke)
-          _context.strokeRoundRect(round, color);
-        else
-          _context.fillRoundRect(round, color);
-
-        _context.resetTransform();
-      }
-      break;
+      _context.resetTransform();
     }
+  }
+  else {
+    BLPattern pattern;
+    BLGradient gradient(_gradientType);
+    gradient.setExtendMode(_gradientExtend);
 
-    case StyleKind::kLinearPad:
-    case StyleKind::kLinearRepeat:
-    case StyleKind::kLinearReflect:
-    case StyleKind::kRadialPad:
-    case StyleKind::kRadialRepeat:
-    case StyleKind::kRadialReflect:
-    case StyleKind::kConic: {
-      BLGradient gradient(_gradientType);
-      gradient.setExtendMode(_gradientExtend);
+    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
+      double radius = _rndExtra.nextDouble(4.0, 40.0);
+      BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+      BLRoundRect round(rect, radius);
 
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-        double radius = _rndExtra.nextDouble(4.0, 40.0);
+      const auto& obj = setupStyle(rect, style, gradient, pattern);
 
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRoundRect round(rect, radius);
+      _context.save();
+      _context.rotate(angle, BLPoint(cx, cy));
 
-        BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
+      if (op == RenderOp::kStroke)
+        _context.strokeRoundRect(round, obj);
+      else
+        _context.fillRoundRect(round, obj);
 
-        _context.save();
-        _context.rotate(angle, BLPoint(cx, cy));
-
-        if (op == RenderOp::kStroke)
-          _context.strokeRoundRect(round, gradient);
-        else
-          _context.fillRoundRect(round, gradient);
-
-        _context.restore();
-      }
-      break;
-    }
-
-    case StyleKind::kPatternNN:
-    case StyleKind::kPatternBI: {
-      BLPattern pattern;
-
-      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-        double radius = _rndExtra.nextDouble(4.0, 40.0);
-
-        BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-        BLRoundRect round(rect, radius);
-
-        pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(rect.x, rect.y));
-        _context.save();
-        _context.rotate(angle, BLPoint(cx, cy));
-
-        if (op == RenderOp::kStroke)
-          _context.strokeRoundRect(round, pattern);
-        else
-          _context.fillRoundRect(round, pattern);
-
-        _context.restore();
-      }
-      break;
+      _context.restore();
     }
   }
 }
@@ -586,8 +457,8 @@ void Blend2DModule::renderPolygon(RenderOp op, uint32_t complexity) {
   double wh = double(_params.shapeSize);
 
   BLPoint points[kPointCapacity];
-  BLGradient gradient(_gradientType);
   BLPattern pattern;
+  BLGradient gradient(_gradientType);
 
   _context.setFillRule(op == RenderOp::kFillEvenOdd ? BL_FILL_RULE_EVEN_ODD : BL_FILL_RULE_NON_ZERO);
   gradient.setExtendMode(_gradientExtend);
@@ -601,43 +472,21 @@ void Blend2DModule::renderPolygon(RenderOp op, uint32_t complexity) {
       points[p].reset(x, y);
     }
 
-    switch (style) {
-      case StyleKind::kSolid: {
-        BLRgba32 color = _rndColor.nextRgba32();
-        if (op == RenderOp::kStroke)
-          _context.strokePolygon(points, complexity, color);
-        else
-          _context.fillPolygon(points, complexity, color);
-        break;
-      }
+    if (style == StyleKind::kSolid) {
+      BLRgba32 color = _rndColor.nextRgba32();
+      if (op == RenderOp::kStroke)
+        _context.strokePolygon(points, complexity, color);
+      else
+        _context.fillPolygon(points, complexity, color);
+    }
+    else {
+      BLRect rect(base.x, base.y, wh, wh);
+      const auto& obj = setupStyle(rect, style, gradient, pattern);
 
-      case StyleKind::kLinearPad:
-      case StyleKind::kLinearRepeat:
-      case StyleKind::kLinearReflect:
-      case StyleKind::kRadialPad:
-      case StyleKind::kRadialRepeat:
-      case StyleKind::kRadialReflect:
-      case StyleKind::kConic: {
-        BLRect rect(base.x, base.y, wh, wh);
-        BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-
-        if (op == RenderOp::kStroke)
-          _context.strokePolygon(points, complexity, gradient);
-        else
-          _context.fillPolygon(points, complexity, gradient);
-        break;
-      }
-
-      case StyleKind::kPatternNN:
-      case StyleKind::kPatternBI: {
-        pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(base.x, base.y));
-
-        if (op == RenderOp::kStroke)
-          _context.strokePolygon(points, complexity, pattern);
-        else
-          _context.fillPolygon(points, complexity, pattern);
-        break;
-      }
+      if (op == RenderOp::kStroke)
+        _context.strokePolygon(points, complexity, obj);
+      else
+        _context.fillPolygon(points, complexity, obj);
     }
   }
 }
@@ -671,8 +520,8 @@ void Blend2DModule::renderShape(RenderOp op, ShapeData shape) {
 
   path.transform(BLMatrix2D::makeScaling(wh, wh));
 
-  BLGradient gradient(_gradientType);
   BLPattern pattern;
+  BLGradient gradient(_gradientType);
 
   _context.setFillRule(op == RenderOp::kFillEvenOdd ? BL_FILL_RULE_EVEN_ODD : BL_FILL_RULE_NON_ZERO);
   gradient.setExtendMode(_gradientExtend);
@@ -680,43 +529,21 @@ void Blend2DModule::renderShape(RenderOp op, ShapeData shape) {
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
     BLPoint base(_rndCoord.nextPoint(bounds));
 
-    switch (style) {
-      case StyleKind::kSolid: {
-        BLRgba32 color = _rndColor.nextRgba32();
-        if (op == RenderOp::kStroke)
-          _context.strokePath(base, path, color);
-        else
-          _context.fillPath(base, path, color);
-        break;
-      }
+    if (style == StyleKind::kSolid) {
+      BLRgba32 color = _rndColor.nextRgba32();
+      if (op == RenderOp::kStroke)
+        _context.strokePath(base, path, color);
+      else
+        _context.fillPath(base, path, color);
+    }
+    else {
+      BLRect rect(base.x, base.y, wh, wh);
+      const auto& obj = setupStyle(rect, style, gradient, pattern);
 
-      case StyleKind::kLinearPad:
-      case StyleKind::kLinearRepeat:
-      case StyleKind::kLinearReflect:
-      case StyleKind::kRadialPad:
-      case StyleKind::kRadialRepeat:
-      case StyleKind::kRadialReflect:
-      case StyleKind::kConic: {
-        BLRect rect(base.x, base.y, wh, wh);
-        BlendUtil_setupGradient<BLRect>(this, gradient, style, rect);
-
-        if (op == RenderOp::kStroke)
-          _context.strokePath(base, path, gradient);
-        else
-          _context.fillPath(base, path, gradient);
-        break;
-      }
-
-      case StyleKind::kPatternNN:
-      case StyleKind::kPatternBI: {
-        pattern.create(_sprites[nextSpriteId()], BL_EXTEND_MODE_REPEAT, BLMatrix2D::makeTranslation(base.x, base.y));
-
-        if (op == RenderOp::kStroke)
-          _context.strokePath(base, path, pattern);
-        else
-          _context.fillPath(base, path, pattern);
-        break;
-      }
+      if (op == RenderOp::kStroke)
+        _context.strokePath(base, path, obj);
+      else
+        _context.fillPath(base, path, obj);
     }
   }
 }

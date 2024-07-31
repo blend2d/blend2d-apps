@@ -37,6 +37,7 @@ struct BenchApp {
   bool _disableCairo {};
   bool _disableQt {};
   bool _disableSkia {};
+  bool _disableJuce {};
   bool _disableCoreGraphics {};
 
   // Assets.

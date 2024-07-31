@@ -34,6 +34,10 @@
   #include "./module_coregraphics.h"
 #endif // BLEND2D_APPS_ENABLE_COREGRAPHICS
 
+#if defined(BLEND2D_APPS_ENABLE_JUCE)
+  #include "./module_juce.h"
+#endif // BLEND2D_APPS_ENABLE_JUCE
+
 #define ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
 
 namespace blbench {
@@ -124,6 +128,32 @@ static constexpr uint32_t kBenchShapeSizeCount = uint32_t(ARRAY_SIZE(benchShapeS
 const char benchBorderStr[] = "+--------------------+-------------+---------------+----------+----------+----------+----------+----------+----------+\n";
 const char benchHeaderStr[] = "|%-20s"             "| CompOp      | Style         | 8x8      | 16x16    | 32x32    | 64x64    | 128x128  | 256x256  |\n";
 const char benchDataFmt[]   = "|%-20s"             "| %-12s"     "| %-14s"       "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "|\n";
+
+static const char* getOSString() {
+#if defined(__ANDROID__)
+  return "android";
+#elif defined(__linux__)
+  return "linux";
+#elif defined(__APPLE__) && defined(__MACH__)
+  return "osx";
+#elif defined(__APPLE__)
+  return "apple";
+#elif defined(__DragonFly__)
+  return "dragonflybsd";
+#elif defined(__FreeBSD__)
+  return "freebsd";
+#elif defined(__NetBSD__)
+  return "netbsd";
+#elif defined(__OpenBSD__)
+  return "openbsd";
+#elif defined(__HAIKU__)
+  return "haiku";
+#elif defined(_WIN32)
+  return "windows";
+#else
+  return "unknown";
+#endif
+}
 
 static const char* getCpuArchString() {
 #if defined(_M_X64) || defined(__amd64) || defined(__amd64__) || defined(__x86_64) || defined(__x86_64__)
@@ -262,6 +292,7 @@ bool BenchApp::init() {
   _disableCairo = hasArg("--disable-cairo");
   _disableQt = hasArg("--disable-qt");
   _disableSkia = hasArg("--disable-skia");
+  _disableJuce = hasArg("--disable-juce");
   _disableCoreGraphics = hasArg("--disable-coregraphics");
 
   if (_repeat <= 0 || _repeat > 100) {
@@ -376,6 +407,10 @@ bool BenchApp::isStyleEnabled(StyleKind style) {
 void BenchApp::serializeSystemInfo(JSONBuilder& json) const {
   BLRuntimeSystemInfo systemInfo;
   BLRuntime::querySystemInfo(&systemInfo);
+
+  json.beforeRecord().addKey("environment").openObject();
+  json.beforeRecord().addKey("os").addString(getOSString());
+  json.closeObject();
 
   json.beforeRecord().addKey("cpu").openObject();
   json.beforeRecord().addKey("arch").addString(getCpuArchString());
@@ -497,6 +532,14 @@ int BenchApp::run() {
 #if defined(BLEND2D_APPS_ENABLE_SKIA)
     if (!_disableSkia) {
       mod = createSkiaModule();
+      runModule(*mod, params, json);
+      delete mod;
+    }
+#endif
+
+#if defined(BLEND2D_APPS_ENABLE_JUCE)
+    if (!_disableJuce) {
+      mod = createJuceModule();
       runModule(*mod, params, json);
       delete mod;
     }
