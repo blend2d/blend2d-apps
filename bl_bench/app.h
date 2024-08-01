@@ -6,39 +6,34 @@
 #ifndef BLBENCH_APP_H
 #define BLBENCH_APP_H
 
-#include <blend2d.h>
 #include "backend.h"
+#include "cmdline.h"
 #include "jsonbuilder.h"
 
-#include "array"
-#include "unordered_map"
+#include <blend2d.h>
+
+#include <array>
+#include <unordered_map>
 
 namespace blbench {
 
 struct BenchApp {
-  // Command line
-  int _argc {};
-  char** _argv {};
+  CmdLine _cmdLine;
 
   // Configuration.
-  bool _isolated {};
-  bool _deepBench {};
-  bool _saveImages {};
-  uint32_t _width {};
-  uint32_t _height {};
-  uint32_t _compOp {};
-  uint32_t _repeat {};
-  uint32_t _quantity {};
-  uint32_t _sizeCount {};
-  const char* _compOpString {};
+  uint32_t _width = 512;
+  uint32_t _height = 600;
+  uint32_t _compOp = 0xFFFFFFFF;
+  uint32_t _sizeCount = kBenchShapeSizeCount;
+  uint32_t _quantity = 0;
+  uint32_t _repeat = 1;
+  uint32_t _backends = 0xFFFFFFFF;
 
-  bool _disableAgg {};
-  bool _disableBlend2D {};
-  bool _disableCairo {};
-  bool _disableQt {};
-  bool _disableSkia {};
-  bool _disableJuce {};
-  bool _disableCoreGraphics {};
+  bool _saveImages = false;
+  bool _saveOverview = false;
+
+  bool _isolated = false;
+  bool _deepBench = false;
 
   // Assets.
   using SpriteData = std::array<BLImage, 4>;
@@ -49,10 +44,11 @@ struct BenchApp {
   BenchApp(int argc, char** argv);
   ~BenchApp();
 
-  bool hasArg(const char* key) const;
-  const char* valueOf(const char* key) const;
-  int intValueOf(const char* key, int defaultValue) const;
+  void printAppInfo() const;
+  void printOptions() const;
+  void printBackends() const;
 
+  bool parseCommandLine();
   bool init();
   void info();
 
@@ -60,15 +56,16 @@ struct BenchApp {
 
   BLImage getScaledSprite(uint32_t id, uint32_t size) const;
 
-  bool isStyleEnabled(StyleKind style);
+  bool isBackendEnabled(BackendKind backendKind) const;
+  bool isStyleEnabled(StyleKind style) const;
 
   void serializeSystemInfo(JSONBuilder& json) const;
   void serializeParams(JSONBuilder& json, const BenchParams& params) const;
   void serializeOptions(JSONBuilder& json, const BenchParams& params) const;
 
   int run();
-  int runModule(Backend& mod, BenchParams& params, JSONBuilder& json);
-  uint64_t runSingleTest(Backend& mod, BenchParams& params);
+  int runBackendTests(Backend& backend, BenchParams& params, JSONBuilder& json);
+  uint64_t runSingleTest(Backend& backend, BenchParams& params);
 };
 
 } // {blbench}

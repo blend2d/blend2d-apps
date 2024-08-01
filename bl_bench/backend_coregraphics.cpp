@@ -161,16 +161,12 @@ bool CoreGraphicsModule::supportsCompOp(BLCompOp compOp) const {
 }
 
 bool CoreGraphicsModule::supportsStyle(StyleKind style) const {
-  return style == StyleKind::kSolid         ||
-         style == StyleKind::kLinearPad     ||
-         style == StyleKind::kLinearRepeat  ||
-         style == StyleKind::kLinearReflect ||
-         style == StyleKind::kRadialPad     ||
-         style == StyleKind::kRadialRepeat  ||
-         style == StyleKind::kRadialReflect ||
-         style == StyleKind::kConic         ||
-         style == StyleKind::kPatternNN     ||
-         style == StyleKind::kPatternBI     ;
+  return style == StyleKind::kSolid     ||
+         style == StyleKind::kLinearPad ||
+         style == StyleKind::kRadialPad ||
+         style == StyleKind::kConic     ||
+         style == StyleKind::kPatternNN ||
+         style == StyleKind::kPatternBI ;
 }
 
 void CoreGraphicsModule::beforeRun() {

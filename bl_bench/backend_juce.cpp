@@ -151,15 +151,11 @@ bool JuceModule::supportsCompOp(BLCompOp compOp) const {
 }
 
 bool JuceModule::supportsStyle(StyleKind style) const {
-  return style == StyleKind::kSolid         ||
-         style == StyleKind::kLinearPad     ||
-         style == StyleKind::kLinearRepeat  ||
-         style == StyleKind::kLinearReflect ||
-         style == StyleKind::kRadialPad     ||
-         style == StyleKind::kRadialRepeat  ||
-         style == StyleKind::kRadialReflect ||
-         style == StyleKind::kPatternNN     ||
-         style == StyleKind::kPatternBI     ;
+  return style == StyleKind::kSolid     ||
+         style == StyleKind::kLinearPad ||
+         style == StyleKind::kRadialPad ||
+         style == StyleKind::kPatternNN ||
+         style == StyleKind::kPatternBI ;
 }
 
 void JuceModule::beforeRun() {

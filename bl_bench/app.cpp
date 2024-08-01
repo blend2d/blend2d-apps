@@ -42,6 +42,37 @@
 
 namespace blbench {
 
+static constexpr uint32_t kSupportedBackends =
+#if defined(BLEND2D_APPS_ENABLE_AGG)
+  (1u << uint32_t(BackendKind::kAGG)) |
+#endif
+#if defined(BLEND2D_APPS_ENABLE_CAIRO)
+  (1u << uint32_t(BackendKind::kCairo)) |
+#endif
+#if defined(BLEND2D_APPS_ENABLE_QT)
+  (1u << uint32_t(BackendKind::kQt)) |
+#endif
+#if defined(BLEND2D_APPS_ENABLE_SKIA)
+  (1u << uint32_t(BackendKind::kSkia)) |
+#endif
+#if defined(BLEND2D_APPS_ENABLE_JUCE)
+  (1u << uint32_t(BackendKind::kJUCE)) |
+#endif
+#if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
+  (1u << uint32_t(BackendKind::kCoreGraphics)) |
+#endif
+  (1u << uint32_t(BackendKind::kBlend2D));
+
+static const char* backendKindNameList[] = {
+  "Blend2D",
+  "AGG",
+  "Cairo",
+  "Qt",
+  "Skia",
+  "JUCE",
+  "CoreGraphics"
+};
+
 static const char* testKindNameList[] = {
   "FillRectA",
   "FillRectU",
@@ -119,11 +150,9 @@ static const char* styleKindNameList[] = {
   "Pattern_BI"
 };
 
-static const int benchShapeSizeList[] = {
+static const int benchShapeSizeList[kBenchShapeSizeCount] = {
   8, 16, 32, 64, 128, 256
 };
-
-static constexpr uint32_t kBenchShapeSizeCount = uint32_t(ARRAY_SIZE(benchShapeSizeList));
 
 const char benchBorderStr[] = "+--------------------+-------------+---------------+----------+----------+----------+----------+----------+----------+\n";
 const char benchHeaderStr[] = "|%-20s"             "| CompOp      | Style         | 8x8      | 16x16    | 32x32    | 64x64    | 128x128  | 256x256  |\n";
@@ -181,17 +210,44 @@ static const char* getCpuArchString() {
 
 static const char* getFormatString(BLFormat format) {
   switch (format) {
-    case BL_FORMAT_PRGB32: return "prgb32";
-    case BL_FORMAT_XRGB32: return "xrgb32";
-    case BL_FORMAT_A8    : return "a8";
+    case BL_FORMAT_PRGB32:
+      return "prgb32";
+
+    case BL_FORMAT_XRGB32:
+      return "xrgb32";
+
+    case BL_FORMAT_A8:
+      return "a8";
+
     default:
       return "unknown";
   }
 }
 
+static bool strieq(const char* a, const char* b) {
+  size_t aLen = strlen(a);
+  size_t bLen = strlen(b);
+
+  if (aLen != bLen)
+    return false;
+
+  for (size_t i = 0; i < aLen; i++) {
+    unsigned ac = (unsigned char)a[i];
+    unsigned bc = (unsigned char)b[i];
+
+    if (ac >= 'A' && ac <= 'Z') ac += uint32_t('a' - 'A');
+    if (bc >= 'A' && bc <= 'Z') bc += uint32_t('a' - 'A');
+
+    if (ac != bc)
+      return false;
+  }
+
+  return true;
+}
+
 static uint32_t searchStringList(const char** listData, size_t listSize, const char* key) {
   for (size_t i = 0; i < listSize; i++)
-    if (strcmp(listData[i], key) == 0)
+    if (strieq(listData[i], key))
       return uint32_t(i);
   return 0xFFFFFFFFu;
 }
@@ -202,6 +258,23 @@ static void spacesToUnderscores(char* s) {
       *s = '_';
     s++;
   }
+}
+
+static BLArray<BLString> splitString(const char* s) {
+  BLArray<BLString> arr;
+  while (*s) {
+    const char* end = strchr(s, ',');
+    if (!end) {
+      arr.append(BLString(s));
+      break;
+    }
+    else {
+      BLString part(BLStringView{s, (size_t)(end - s)});
+      arr.append(part);
+      s = end + 1;
+    }
+  }
+  return arr;
 }
 
 struct DurationFormat {
@@ -222,99 +295,208 @@ struct DurationFormat {
 };
 
 BenchApp::BenchApp(int argc, char** argv)
-  : _argc(argc),
-    _argv(argv),
+  : _cmdLine(argc, argv),
     _isolated(false),
     _deepBench(false),
     _saveImages(false),
+    _backends(kSupportedBackends),
     _repeat(1),
     _quantity(0) {}
 
 BenchApp::~BenchApp() {}
 
-bool BenchApp::hasArg(const char* key) const {
-  int argc = _argc;
-  char** argv = _argv;
+void BenchApp::printAppInfo() const {
+  BLRuntimeBuildInfo buildInfo;
+  BLRuntime::queryBuildInfo(&buildInfo);
 
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(key, argv[i]) == 0)
-      return true;
-  }
+  printf(
+    "Blend2D Benchmarking Tool\n"
+    "\n"
+    "Blend2D Information:\n"
+    "  Version    : %u.%u.%u\n"
+    "  Build Type : %s\n"
+    "  Compiled By: %s\n"
+    "\n",
+    buildInfo.majorVersion,
+    buildInfo.minorVersion,
+    buildInfo.patchVersion,
+    buildInfo.buildType == BL_RUNTIME_BUILD_TYPE_DEBUG ? "Debug" : "Release",
+    buildInfo.compilerInfo);
 
-  return false;
+  fflush(stdout);
 }
 
-const char* BenchApp::valueOf(const char* key) const {
-  int argc = _argc;
-  char** argv = _argv;
+void BenchApp::printOptions() const {
+  const char no_yes[][4] = { "no", "yes" };
 
-  size_t keySize = strlen(key);
-  for (int i = 1; i < argc; i++) {
-    const char* val = argv[i];
-    if (strlen(val) >= keySize + 1 && val[keySize] == '=' && memcmp(val, key, keySize) == 0)
-      return val + keySize + 1;
-  }
+  printf(
+    "The following options are supported / used:\n"
+    "  --width=N        [%u] Canvas width to use for rendering\n"
+    "  --height=N       [%u] Canvas height to use for rendering\n"
+    "  --quantity=N     [%d] Render calls per test (0 = adjust depending on test duration)\n"
+    "  --size-count=N   [%u] Number of size iterations (1=8x8 -> 6=8x8..256x256)\n"
+    "  --comp-op=<str>  [%s] Benchmark a specific composition operator\n"
+    "  --repeat=N       [%d] Number of repeats of each test to select the best time\n"
+    "  --backends=<str> [%s] Backends to use (use 'a,b' to select few, '-xxx' to disable)\n"
+    "  --save-images    [%s] Save each generated image independently (use with --quantity)\n"
+    "  --save-overview  [%s] Save generated images grouped by sizes  (use with --quantity)\n"
+    "  --deep           [%s] More tests that use gradients and textures\n"
+    "  --isolated       [%s] Use Blend2D isolated context (useful for development only)\n"
+    "\n",
+    _width,
+    _height,
+    _quantity,
+    _sizeCount,
+    _compOp == 0xFFFFFFFF ? "all" : compOpNameList[_compOp],
+    _repeat,
+    _backends == kSupportedBackends ? "all" : "...",
+    no_yes[_saveImages],
+    no_yes[_saveOverview],
+    no_yes[_deepBench],
+    no_yes[_isolated]
+  );
 
-  return nullptr;
+  fflush(stdout);
 }
 
-int BenchApp::intValueOf(const char* key, int defaultValue) const {
-  int argc = _argc;
-  char** argv = _argv;
+void BenchApp::printBackends() const {
+  printf("Backends supported (by default all built-in backends are enabled):\n");
+  const char disabled_enabled[][16] = { "disabled", "enabled" };
 
-  size_t keySize = strlen(key);
-  for (int i = 1; i < argc; i++) {
-    const char* val = argv[i];
-    if (strlen(val) >= keySize + 1 && val[keySize] == '=' && memcmp(val, key, keySize) == 0) {
-      const char* s = val + keySize + 1;
-      return atoi(s);
+  for (uint32_t backendIdx = 0; backendIdx < kBackendKindCount; backendIdx++) {
+    uint32_t backendMask = 1u << backendIdx;
+
+    if (backendMask & kSupportedBackends) {
+
+      printf("  - %-14s [%s]\n",
+        backendKindNameList[backendIdx],
+        disabled_enabled[(_backends & backendMask) != 0]);
+    }
+    else {
+      printf("  - %-14s [not supported]\n",
+        backendKindNameList[backendIdx]);
     }
   }
 
-  return defaultValue;
+  printf("\n");
+  fflush(stdout);
 }
 
-bool BenchApp::init() {
-  _isolated = hasArg("--isolated");
-  _deepBench = hasArg("--deep");
-  _saveImages = hasArg("--save");
-
-  _width = uint32_t(intValueOf("--width", 600));
-  _height = uint32_t(intValueOf("--height", 512));
+bool BenchApp::parseCommandLine() {
+  _width = _cmdLine.valueAsUInt("--width", _width);
+  _height = _cmdLine.valueAsUInt("--height", _height);
   _compOp = 0xFFFFFFFFu;
-  _compOpString = nullptr;
-  _repeat = uint32_t(intValueOf("--repeat", 1));
-  _quantity = uint32_t(intValueOf("--quantity", 0));
-  _sizeCount = kBenchShapeSizeCount;
+  _sizeCount = _cmdLine.valueAsUInt("--size-count", _sizeCount);
+  _quantity = _cmdLine.valueAsUInt("--quantity", _quantity);
+  _repeat = _cmdLine.valueAsUInt("--repeat", _repeat);
 
-  _disableAgg = hasArg("--disable-agg");
-  _disableBlend2D = hasArg("--disable-blend2d");
-  _disableCairo = hasArg("--disable-cairo");
-  _disableQt = hasArg("--disable-qt");
-  _disableSkia = hasArg("--disable-skia");
-  _disableJuce = hasArg("--disable-juce");
-  _disableCoreGraphics = hasArg("--disable-coregraphics");
+  _saveImages = _cmdLine.hasArg("--save-images");
+  _saveOverview = _cmdLine.hasArg("--save-images");
+  _deepBench = _cmdLine.hasArg("--deep");
+  _isolated = _cmdLine.hasArg("--isolated");
 
-  if (_repeat <= 0 || _repeat > 100) {
-    printf("ERROR: Invalid repeat [%d] specified\n", _repeat);
+  const char* compOpString = _cmdLine.valueOf("--compOp", nullptr);
+  const char* backendString = _cmdLine.valueOf("--backend", nullptr);
+
+  if (_width < 10|| _width > 4096) {
+    printf("ERROR: Invalid --width=%u specified\n", _width);
+    return false;
+  }
+
+  if (_height < 10|| _height > 4096) {
+    printf("ERROR: Invalid --height=%u specified\n", _height);
+    return false;
+  }
+
+  if (_sizeCount == 0 || _sizeCount > kBenchShapeSizeCount) {
+    printf("ERROR: Invalid --size-count=%u specified\n", _sizeCount);
     return false;
   }
 
   if (_quantity > 100000u) {
-    printf("ERROR: Invalid quantity [%d] specified\n", _quantity);
+    printf("ERROR: Invalid --quantity=%u specified\n", _quantity);
+    return false;
+  }
+
+  if (_repeat <= 0 || _repeat > 100) {
+    printf("ERROR: Invalid --repeat=%u specified\n", _repeat);
     return false;
   }
 
   if (_saveImages && !_quantity) {
-    printf("ERROR: Missing --quantity argument; it must be provided when --save is enabled\n");
+    printf("ERROR: Missing --quantity argument; it must be provided when --save-images is used\n");
     return false;
   }
 
-  _compOpString = valueOf("--compOp");
-  if (_compOpString != nullptr)
-    _compOp = searchStringList(compOpNameList, ARRAY_SIZE(compOpNameList), _compOpString);
+  if (_saveOverview && !_quantity) {
+    printf("ERROR: Missing --quantity argument; it must be provided when --save-overview is used\n");
+    return false;
+  }
 
-  info();
+  if (compOpString && strcmp(compOpString, "all") != 0) {
+    _compOp = searchStringList(compOpNameList, ARRAY_SIZE(compOpNameList), compOpString);
+    if (_compOp == 0xFFFFFFFF) {
+      printf("ERROR: Invalid composition operator [%s] specified\n", compOpString);
+      return false;
+    }
+  }
+
+  if (backendString && strcmp(backendString, "all") != 0) {
+    int listOp = 0;
+    uint32_t parsedBackends = 0;
+    BLArray<BLString> parts = splitString(backendString);
+
+    for (const BLString& part : parts) {
+      if (part.empty())
+        continue;
+
+      const char* p = part.data();
+      int partOp = 0;
+
+      if (p[0] == '-') {
+        p++;
+        partOp = -1;
+      }
+      else {
+        partOp = 1;
+      }
+
+      if (listOp == 0) {
+        listOp = partOp;
+      }
+      else if (listOp != partOp) {
+        printf("ERROR: Invalid backend list [%s]: specify either additive or subtractive list, but not both\n", backendString);
+        return false;
+      }
+
+      uint32_t backendIdx = searchStringList(backendKindNameList, kBackendKindCount, p);
+      if (backendIdx == 0xFFFFFFFFu) {
+        printf("ERROR: Invalid backend list [%s]: couldn't parse [%s]\n", backendString, p);
+        return false;
+      }
+
+      parsedBackends |= 1u << backendIdx;
+    }
+
+    if (listOp == 1)
+      _backends = parsedBackends;
+    else if (listOp == -1)
+      _backends &= ~parsedBackends;
+  }
+
+  return true;
+}
+
+bool BenchApp::init() {
+  if (_cmdLine.hasArg("--help")) {
+    info();
+    exit(0);
+  }
+
+  if (!parseCommandLine()) {
+    info();
+    exit(1);
+  }
 
   return readImage(_spriteData[0], "#0", _resource_babelfish_png, sizeof(_resource_babelfish_png)) &&
          readImage(_spriteData[1], "#1", _resource_ksplash_png  , sizeof(_resource_ksplash_png  )) &&
@@ -326,41 +508,9 @@ void BenchApp::info() {
   BLRuntimeBuildInfo buildInfo;
   BLRuntime::queryBuildInfo(&buildInfo);
 
-  const char no_yes[][4] = { "no", "yes" };
-
-  printf(
-    "Blend2D Benchmarking Tool\n"
-    "\n"
-    "Blend2D Information:\n"
-    "  Version    : %u.%u.%u\n"
-    "  Build Type : %s\n"
-    "  Compiled By: %s\n",
-    buildInfo.majorVersion,
-    buildInfo.minorVersion,
-    buildInfo.patchVersion,
-    buildInfo.buildType == BL_RUNTIME_BUILD_TYPE_DEBUG ? "Debug" : "Release",
-    buildInfo.compilerInfo);
-
-  printf(
-    "\n"
-    "The following options are supported/used:\n"
-    "  --save       [%s] Save all generated images as .png files\n"
-    "  --deep       [%s] More tests that use gradients and textures\n"
-    "  --isolated   [%s] Use Blend2D isolated context (useful for development)\n"
-    "  --width=N    [%u] Screen width to use\n"
-    "  --height=N   [%u] Screen height to use\n"
-    "  --repeat=N   [%d] Number of repeats of each test to select the best time\n"
-    "  --quantity=N [%d] Override the default quantity of each operation\n"
-    "  --comp-op=X  [%s] Benchmark a specific composition operator\n"
-    "\n",
-    no_yes[_saveImages],
-    no_yes[_deepBench],
-    no_yes[_isolated],
-    _width,
-    _height,
-    _repeat,
-    _quantity,
-    _compOpString ? _compOpString : "");
+  printAppInfo();
+  printOptions();
+  printBackends();
 }
 
 bool BenchApp::readImage(BLImage& image, const char* name, const void* data, size_t size) noexcept {
@@ -391,7 +541,11 @@ BLImage BenchApp::getScaledSprite(uint32_t id, uint32_t size) const {
   return scaled[id];
 }
 
-bool BenchApp::isStyleEnabled(StyleKind style) {
+bool BenchApp::isBackendEnabled(BackendKind backendKind) const {
+  return (_backends & (1u << uint32_t(backendKind))) != 0;
+}
+
+bool BenchApp::isStyleEnabled(StyleKind style) const {
   if (_deepBench)
     return true;
 
@@ -478,77 +632,73 @@ int BenchApp::run() {
 
     for (uint32_t i = 0; i < featureCount; i++) {
       if ((si.cpuFeatures & features[i]) == features[i]) {
-        Backend* mod = createBlend2DBackend(0, features[i]);
-        runModule(*mod, params, json);
-        delete mod;
+        Backend* backend = createBlend2DBackend(0, features[i]);
+        runBackendTests(*backend, params, json);
+        delete backend;
       }
     }
   }
   else {
     Backend* backend = nullptr;
 
-    if (!_disableBlend2D) {
+    if (isBackendEnabled(BackendKind::kBlend2D)) {
       backend = createBlend2DBackend(0);
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
 
       backend = createBlend2DBackend(2);
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
 
       backend = createBlend2DBackend(4);
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
     }
 
-    // backend = createBlend2DBackend(0, 0xFFFFFFFFu);
-    // runModule(*backend, params);
-    // delete backend;
-
 #if defined(BLEND2D_APPS_ENABLE_AGG)
-    if (!_disableAgg) {
+    if (isBackendEnabled(BackendKind::kAGG)) {
       backend = createAggBackend();
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_CAIRO)
-    if (!_disableCairo) {
+    if (isBackendEnabled(BackendKind::kCairo)) {
       backend = createCairoBackend();
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_QT)
-    if (!_disableQt) {
+    if (isBackendEnabled(BackendKind::kQt)) {
       backend = createQtBackend();
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_SKIA)
-    if (!_disableSkia) {
+    if (isBackendEnabled(BackendKind::kSkia)) {
       backend = createSkiaBackend();
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_JUCE)
-    if (!_disableJuce) {
+    if (isBackendEnabled(BackendKind::kJUCE)) {
       backend = createJuceBackend();
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
-    if (!_disableCoreGraphics) {
+    if (isBackendEnabled(BackendKind::kCoreGraphics)) {
       backend = createCGBackend();
-      runModule(*backend, params, json);
+      runBackendTests(*backend, params, json);
       delete backend;
     }
 #endif
@@ -564,15 +714,14 @@ int BenchApp::run() {
   return 0;
 }
 
-int BenchApp::runModule(Backend& mod, BenchParams& params, JSONBuilder& json) {
+int BenchApp::runBackendTests(Backend& backend, BenchParams& params, JSONBuilder& json) {
   char fileName[256];
   char styleString[128];
 
-  bool renderOverview = false;
   BLImage overviewImage;
   BLContext overviewCtx;
 
-  if (renderOverview) {
+  if (_saveOverview) {
     overviewImage.create(1 + ((_width + 1) * _sizeCount), _height + 2, BL_FORMAT_XRGB32);
     overviewCtx.begin(overviewImage);
   }
@@ -589,18 +738,18 @@ int BenchApp::runModule(Backend& mod, BenchParams& params, JSONBuilder& json) {
   }
 
   json.beforeRecord().openObject();
-  json.beforeRecord().addKey("name").addString(mod.name());
-  mod.serializeInfo(json);
+  json.beforeRecord().addKey("name").addString(backend.name());
+  backend.serializeInfo(json);
   json.beforeRecord().addKey("records").openArray();
 
   for (uint32_t compOp = compOpFirst; compOp <= compOpLast; compOp++) {
     params.compOp = BLCompOp(compOp);
-    if (!mod.supportsCompOp(params.compOp))
+    if (!backend.supportsCompOp(params.compOp))
       continue;
 
     for (uint32_t styleIdx = 0; styleIdx < kStyleKindCount; styleIdx++) {
       StyleKind style = StyleKind(styleIdx);
-      if (!isStyleEnabled(style) || !mod.supportsStyle(style))
+      if (!isStyleEnabled(style) || !backend.supportsStyle(style))
         continue;
       params.style = style;
 
@@ -615,30 +764,30 @@ int BenchApp::runModule(Backend& mod, BenchParams& params, JSONBuilder& json) {
       memset(cpmsTotal, 0, sizeof(cpmsTotal));
 
       printf(benchBorderStr);
-      printf(benchHeaderStr, mod._name);
+      printf(benchHeaderStr, backend._name);
       printf(benchBorderStr);
 
       for (uint32_t testIdx = 0; testIdx < kTestKindCount; testIdx++) {
         params.testKind = TestKind(testIdx);
 
-        if (renderOverview) {
+        if (_saveOverview) {
           overviewCtx.fillAll(BLRgba32(0xFF000000u));
           overviewCtx.strokeRect(BLRect(0.5, 0.5, overviewImage.width() - 1, overviewImage.height() - 1), BLRgba32(0xFFFFFFFF));
         }
 
         for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++) {
           params.shapeSize = benchShapeSizeList[sizeId];
-          uint64_t duration = runSingleTest(mod, params);
+          uint64_t duration = runSingleTest(backend, params);
 
           cpms[sizeId] = double(params.quantity) * double(1000) / double(duration);
           cpmsTotal[sizeId] += cpms[sizeId];
 
-          if (renderOverview && style == StyleKind::kSolid) {
-            overviewCtx.blitImage(BLPointI(1 + (sizeId * (_width + 1)), 1), mod._surface);
+          if (_saveOverview) {
+            overviewCtx.blitImage(BLPointI(1 + (sizeId * (_width + 1)), 1), backend._surface);
             overviewCtx.fillRect(BLRectI(1 + (sizeId * (_width + 1)) + _width, 1, 1, _height), BLRgba32(0xFFFFFFFF));
             if (sizeId == _sizeCount - 1) {
               snprintf(fileName, 256, "%s-%s-%s-%s.png",
-                mod._name,
+                backend._name,
                 testKindNameList[uint32_t(params.testKind)],
                 compOpNameList[uint32_t(params.compOp)],
                 styleString);
@@ -651,13 +800,13 @@ int BenchApp::runModule(Backend& mod, BenchParams& params, JSONBuilder& json) {
             // Save only the last two as these are easier to compare visually.
             if (sizeId >= _sizeCount - 2) {
               snprintf(fileName, 256, "%s-%s-%s-%s-%c.png",
-                mod._name,
+                backend._name,
                 testKindNameList[uint32_t(params.testKind)],
                 compOpNameList[uint32_t(params.compOp)],
                 styleString,
                 'A' + sizeId);
               spacesToUnderscores(fileName);
-              mod._surface.writeToFile(fileName);
+              backend._surface.writeToFile(fileName);
             }
           }
         }
@@ -716,7 +865,7 @@ int BenchApp::runModule(Backend& mod, BenchParams& params, JSONBuilder& json) {
   return 0;
 }
 
-uint64_t BenchApp::runSingleTest(Backend& mod, BenchParams& params) {
+uint64_t BenchApp::runSingleTest(Backend& backend, BenchParams& params) {
   constexpr uint32_t kInitialQuantity = 25;
   constexpr uint32_t kMinimumDurationUS = 1000;
   constexpr uint32_t kMaxRepeatIfNoImprovement = 10;
@@ -731,17 +880,17 @@ uint64_t BenchApp::runSingleTest(Backend& mod, BenchParams& params) {
     // If quantity is zero it means to deduce it based on execution time of each test.
     params.quantity = kInitialQuantity;
     for (;;) {
-      mod.run(*this, params);
-      if (mod._duration >= kMinimumDurationUS) {
+      backend.run(*this, params);
+      if (backend._duration >= kMinimumDurationUS) {
         // Make this the first attempt to reduce the time of benchmarking.
         attempt = 1;
-        duration = mod._duration;
+        duration = backend._duration;
         break;
       }
 
-      if (mod._duration < 100)
+      if (backend._duration < 100)
         params.quantity *= 10;
-      else if (mod._duration < 500)
+      else if (backend._duration < 500)
         params.quantity *= 3;
       else
         params.quantity *= 2;
@@ -749,10 +898,10 @@ uint64_t BenchApp::runSingleTest(Backend& mod, BenchParams& params) {
   }
 
   while (attempt < _repeat) {
-    mod.run(*this, params);
+    backend.run(*this, params);
 
-    if (duration > mod._duration)
-      duration = mod._duration;
+    if (duration > backend._duration)
+      duration = backend._duration;
     else
       noImprovement++;
 

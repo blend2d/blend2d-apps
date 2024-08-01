@@ -19,6 +19,18 @@ struct BenchApp;
 // blbench - Constants
 // ===================
 
+enum class BackendKind : uint32_t {
+  kBlend2D,
+  kAGG,
+  kCairo,
+  kQt,
+  kSkia,
+  kJUCE,
+  kCoreGraphics,
+
+  kMaxValue = kCoreGraphics
+};
+
 enum class TestKind : uint32_t {
   kFillAlignedRect,
   kFillSmoothRect,
@@ -75,9 +87,11 @@ enum class RenderOp : uint32_t {
   kStroke
 };
 
+static constexpr uint32_t kBackendKindCount = uint32_t(BackendKind::kMaxValue) + 1;
 static constexpr uint32_t kTestKindCount = uint32_t(TestKind::kMaxValue) + 1;
 static constexpr uint32_t kStyleKindCount = uint32_t(StyleKind::kMaxValue) + 1;
 static constexpr uint32_t kBenchNumSprites = 4;
+static constexpr uint32_t kBenchShapeSizeCount = 6;
 
 // blbench::BenchParams
 // ====================
