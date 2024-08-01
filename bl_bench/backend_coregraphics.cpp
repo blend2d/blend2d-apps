@@ -6,7 +6,7 @@
 #ifdef BLEND2D_APPS_ENABLE_COREGRAPHICS
 
 #include "app.h"
-#include "module_coregraphics.h"
+#include "backend_coregraphics.h"
 
 #include <ApplicationServices/ApplicationServices.h>
 #include <utility>
@@ -85,7 +85,7 @@ static void flipImage(BLImage& img) noexcept {
   }
 }
 
-struct CoreGraphicsModule : public BenchModule {
+struct CoreGraphicsModule : public Backend {
   CGImageRef _cgSprites[kBenchNumSprites] {};
 
   CGColorSpaceRef _cgColorspace {};
@@ -694,7 +694,7 @@ void CoreGraphicsModule::renderShape(RenderOp op, ShapeData shape) {
   CGPathRelease(path);
 }
 
-BenchModule* createCGModule() {
+Backend* createCGBackend() {
   return new CoreGraphicsModule();
 }
 

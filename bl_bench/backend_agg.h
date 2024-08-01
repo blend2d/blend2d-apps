@@ -3,15 +3,15 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#ifndef BLBENCH_MODULE_QT_H
-#define BLBENCH_MODULE_QT_H
+#ifndef BLBENCH_BACKEND_AGG_H
+#define BLBENCH_BACKEND_AGG_H
 
-#include "module.h"
+#include "backend.h"
 
 namespace blbench {
 
-BenchModule* createQtModule();
+Backend* createAggBackend();
 
 } // {blbench}
 
-#endif // BLBENCH_MODULE_QT_H
+#endif // BLBENCH_BACKEND_AGG_H

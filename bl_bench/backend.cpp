@@ -4,17 +4,17 @@
 // SPDX-License-Identifier: Zlib
 
 #include "app.h"
-#include "module.h"
+#include "backend.h"
 #include "shape_data.h"
 
 #include <chrono>
 
 namespace blbench {
 
-// blbench::BenchModule - Construction & Destruction
+// blbench::Backend - Construction & Destruction
 // =================================================
 
-BenchModule::BenchModule()
+Backend::Backend()
   : _name(),
     _params(),
     _duration(0),
@@ -22,18 +22,18 @@ BenchModule::BenchModule()
     _rndColor(0x94BD7A499AD10011ull),
     _rndExtra(0x1ABD9CC9CAF0F123ull),
     _rndSpriteId(0) {}
-BenchModule::~BenchModule() {}
+Backend::~Backend() {}
 
-// blbench::BenchModule - Run
+// blbench::Backend - Run
 // ==========================
 
-static void BenchModule_onDoShapeHelper(BenchModule* mod, RenderOp op, ShapeKind shapeKind) {
+static void BenchModule_onDoShapeHelper(Backend* mod, RenderOp op, ShapeKind shapeKind) {
   ShapeData shapeData;
   getShapeData(shapeData, shapeKind);
   mod->renderShape(op, shapeData);
 }
 
-void BenchModule::run(const BenchApp& app, const BenchParams& params) {
+void Backend::run(const BenchApp& app, const BenchParams& params) {
   _params = params;
 
   _rndCoord.rewind();
@@ -91,6 +91,6 @@ void BenchModule::run(const BenchApp& app, const BenchParams& params) {
   afterRun();
 }
 
-void BenchModule::serializeInfo(JSONBuilder& json) const { (void)json; }
+void Backend::serializeInfo(JSONBuilder& json) const { (void)json; }
 
 } // {blbench}

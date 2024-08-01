@@ -3,13 +3,13 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#ifndef BLBENCH_MODULE_H
-#define BLBENCH_MODULE_H
+#ifndef BLBENCH_BACKEND_H
+#define BLBENCH_BACKEND_H
 
 #include <blend2d.h>
 
 #include "jsonbuilder.h"
-#include "module.h"
+#include "backend.h"
 #include "shape_data.h"
 
 namespace blbench {
@@ -171,10 +171,10 @@ struct BenchRandom {
   }
 };
 
-// blbench::BenchModule
+// blbench::Backend
 // ====================
 
-struct BenchModule {
+struct Backend {
   //! Module name.
   char _name[64] {};
   //! Current parameters.
@@ -196,8 +196,8 @@ struct BenchModule {
   //! Sprites.
   BLImage _sprites[kBenchNumSprites];
 
-  BenchModule();
-  virtual ~BenchModule();
+  Backend();
+  virtual ~Backend();
 
   void run(const BenchApp& app, const BenchParams& params);
 
@@ -230,4 +230,4 @@ struct BenchModule {
 
 } // {blbench}
 
-#endif // BLBENCH_MODULE_H
+#endif // BLBENCH_BACKEND_H

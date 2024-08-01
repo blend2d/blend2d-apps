@@ -6,7 +6,7 @@
 #ifdef BLEND2D_APPS_ENABLE_QT
 
 #include "app.h"
-#include "module_qt.h"
+#include "backend_qt.h"
 
 #include <QtCore>
 #include <QtGui>
@@ -59,7 +59,7 @@ static uint32_t toQtOperator(BLCompOp compOp) {
   }
 }
 
-struct QtModule : public BenchModule {
+struct QtModule : public Backend {
   QImage* _qtSurface {};
   QImage* _qtSprites[kBenchNumSprites] {};
   QPainter* _qtContext {};
@@ -623,7 +623,7 @@ void QtModule::renderShape(RenderOp op, ShapeData shape) {
   }
 }
 
-BenchModule* createQtModule() {
+Backend* createQtBackend() {
   return new QtModule();
 }
 

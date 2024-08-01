@@ -6,7 +6,7 @@
 #ifdef BLEND2D_APPS_ENABLE_SKIA
 
 #include "app.h"
-#include "module_skia.h"
+#include "backend_skia.h"
 
 #include <skia/core/SkBitmap.h>
 #include <skia/core/SkCanvas.h>
@@ -59,7 +59,7 @@ static uint32_t toSkBlendMode(BLCompOp compOp) {
   }
 }
 
-struct SkiaModule final : public BenchModule {
+struct SkiaModule final : public Backend {
   SkCanvas* _skCanvas {};
   SkBitmap _skSurface;
   SkBitmap _skSprites[4];
@@ -532,7 +532,7 @@ void SkiaModule::renderShape(RenderOp op, ShapeData shape) {
   }
 }
 
-BenchModule* createSkiaModule() {
+Backend* createSkiaBackend() {
   return new SkiaModule();
 }
 

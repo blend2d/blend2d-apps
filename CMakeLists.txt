@@ -239,7 +239,7 @@ endif()
 
 if (JUCE_DIR)
   message("-- [blend2d-apps] adding support for JUCE")
-  add_definitions(-DJUCE_USE_CURL=0)
+  add_definitions(-DJUCE_USE_CURL=0 -DUSE_COREGRAPHICS_RENDERING=0)
   add_subdirectory("${JUCE_DIR}" JUCE)
 
   set(DEPENDENCY_JUCE_LIBRARIES juce::juce_core juce::juce_events juce::juce_graphics)
@@ -255,22 +255,22 @@ set(BLEND2D_BENCH_SRC
   bl_bench/images_data.h
   bl_bench/jsonbuilder.cpp
   bl_bench/jsonbuilder.h
-  bl_bench/module.cpp
-  bl_bench/module.h
-  bl_bench/module_agg.cpp
-  bl_bench/module_agg.h
-  bl_bench/module_blend2d.cpp
-  bl_bench/module_blend2d.h
-  bl_bench/module_cairo.cpp
-  bl_bench/module_cairo.h
-  bl_bench/module_coregraphics.cpp
-  bl_bench/module_coregraphics.h
-  bl_bench/module_juce.cpp
-  bl_bench/module_juce.h
-  bl_bench/module_qt.cpp
-  bl_bench/module_qt.h
-  bl_bench/module_skia.cpp
-  bl_bench/module_skia.h
+  bl_bench/backend.cpp
+  bl_bench/backend.h
+  bl_bench/backend_agg.cpp
+  bl_bench/backend_agg.h
+  bl_bench/backend_blend2d.cpp
+  bl_bench/backend_blend2d.h
+  bl_bench/backend_cairo.cpp
+  bl_bench/backend_cairo.h
+  bl_bench/backend_coregraphics.cpp
+  bl_bench/backend_coregraphics.h
+  bl_bench/backend_juce.cpp
+  bl_bench/backend_juce.h
+  bl_bench/backend_qt.cpp
+  bl_bench/backend_qt.h
+  bl_bench/backend_skia.cpp
+  bl_bench/backend_skia.h
   bl_bench/shape_data.cpp
   bl_bench/shape_data.h
 )

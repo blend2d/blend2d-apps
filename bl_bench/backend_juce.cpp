@@ -6,7 +6,7 @@
 #ifdef BLEND2D_APPS_ENABLE_JUCE
 
 #include "app.h"
-#include "module_juce.h"
+#include "backend_juce.h"
 
 #include <juce_graphics/juce_graphics.h>
 
@@ -44,7 +44,7 @@ static inline BLFormat toBlend2DFormat(juce::Image::PixelFormat format) noexcept
   }
 }
 
-static void convertBlend2DImageToJuce(juce::Image& dst, BLImage& src) {
+static void convertBlend2DImageToJuce(juce::Image& dst, BLImage& src, const juce::ImageType& imageType) {
   BLImageData srcData;
   src.getData(&srcData);
 
@@ -54,7 +54,7 @@ static void convertBlend2DImageToJuce(juce::Image& dst, BLImage& src) {
   size_t rowSize = size_t(w) * (blFormatInfo[format].depth / 8);
 
   if (dst.getWidth() != int(w) && dst.getHeight() != h || dst.getFormat() != toJuceFormat(format)) {
-    dst = juce::Image(toJuceFormat(format), int(w), int(h), false);
+    dst = juce::Image(toJuceFormat(format), int(w), int(h), false, imageType);
   }
 
   juce::Image::BitmapData dstData(dst, juce::Image::BitmapData::readWrite);
@@ -94,7 +94,7 @@ static inline juce::Colour toJuceColor(BLRgba32 rgba) noexcept {
     uint8_t(rgba.a()));
 }
 
-struct JuceModule : public BenchModule {
+struct JuceModule : public Backend {
   juce::SoftwareImageType _juceImageType;
   juce::PathStrokeType _juceStrokeType;
   float _lineThickness {};
@@ -173,13 +173,13 @@ void JuceModule::beforeRun() {
   _juceStrokeType.setStrokeThickness(_lineThickness);
 
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
-    convertBlend2DImageToJuce(_juceSprites[i], _sprites[i]);
+    convertBlend2DImageToJuce(_juceSprites[i], _sprites[i], _juceImageType);
   }
 
   // NOTE: There seems to be no way we can use a user provided pixel buffer in JUCE, so let's create two
   // separate buffers so we can copy to our main `_surface` in `afterRun()`. The `afterRun()` function
   // is excluded from rendering time so there is no penalty for JUCE.
-  _juceSurface = juce::Image(toJuceFormat(_params.format), w, h, false);
+  _juceSurface = juce::Image(toJuceFormat(_params.format), w, h, false, _juceImageType);
   _juceSurface.clear(juce::Rectangle<int>(0, 0, w, h));
   _juceContext = new juce::Graphics(_juceSurface);
 
@@ -501,7 +501,7 @@ void JuceModule::renderShape(RenderOp op, ShapeData shape) {
   }
 }
 
-BenchModule* createJuceModule() {
+Backend* createJuceBackend() {
   return new JuceModule();
 }
 

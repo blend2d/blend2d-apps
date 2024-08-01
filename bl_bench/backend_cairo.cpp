@@ -6,7 +6,7 @@
 #ifdef BLEND2D_APPS_ENABLE_CAIRO
 
 #include "app.h"
-#include "module_cairo.h"
+#include "backend_cairo.h"
 
 #include <algorithm>
 #include <cairo.h>
@@ -92,7 +92,7 @@ static void roundRect(cairo_t* ctx, const BLRect& rect, double radius) {
   cairo_close_path(ctx);
 }
 
-struct CairoModule : public BenchModule {
+struct CairoModule : public Backend {
   cairo_surface_t* _cairoSurface {};
   cairo_surface_t* _cairoSprites[kBenchNumSprites] {};
   cairo_t* _cairoContext {};
@@ -534,7 +534,7 @@ void CairoModule::renderShape(RenderOp op, ShapeData shape) {
   cairo_path_destroy(path);
 }
 
-BenchModule* createCairoModule() {
+Backend* createCairoBackend() {
   return new CairoModule();
 }
 } // {blbench}

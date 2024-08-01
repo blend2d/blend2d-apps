@@ -4,14 +4,14 @@
 // SPDX-License-Identifier: Zlib
 
 #include "app.h"
-#include "module_blend2d.h"
+#include "backend_blend2d.h"
 
 #include <blend2d.h>
 #include <stdio.h>
 
 namespace blbench {
 
-class Blend2DModule : public BenchModule {
+class Blend2DModule : public Backend {
 public:
 
   BLContext _context;
@@ -548,7 +548,7 @@ void Blend2DModule::renderShape(RenderOp op, ShapeData shape) {
   }
 }
 
-BenchModule* createBlend2DModule(uint32_t threadCount, uint32_t cpuFeatures) {
+Backend* createBlend2DBackend(uint32_t threadCount, uint32_t cpuFeatures) {
   return new Blend2DModule(threadCount, cpuFeatures);
 }
 

@@ -7,7 +7,7 @@
 #define BLBENCH_APP_H
 
 #include <blend2d.h>
-#include "module.h"
+#include "backend.h"
 #include "jsonbuilder.h"
 
 #include "array"
@@ -67,8 +67,8 @@ struct BenchApp {
   void serializeOptions(JSONBuilder& json, const BenchParams& params) const;
 
   int run();
-  int runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json);
-  uint64_t runSingleTest(BenchModule& mod, BenchParams& params);
+  int runModule(Backend& mod, BenchParams& params, JSONBuilder& json);
+  uint64_t runSingleTest(Backend& mod, BenchParams& params);
 };
 
 } // {blbench}

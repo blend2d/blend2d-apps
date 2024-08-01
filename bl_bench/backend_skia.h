@@ -3,15 +3,15 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#ifndef BLBENCH_MODULE_JUCE_H
-#define BLBENCH_MODULE_JUCE_H
+#ifndef BLBENCH_BACKEND_SKIA_H
+#define BLBENCH_BACKEND_SKIA_H
 
-#include "module.h"
+#include "backend.h"
 
 namespace blbench {
 
-BenchModule* createJuceModule();
+Backend* createSkiaBackend();
 
 } // {blbench}
 
-#endif // BLBENCH_MODULE_JUCE_H
+#endif // BLBENCH_BACKEND_SKIA_H

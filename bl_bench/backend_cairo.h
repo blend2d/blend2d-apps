@@ -3,15 +3,15 @@
 // See LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
 
-#ifndef BLBENCH_MODULE_COREGRAPHICS_H
-#define BLBENCH_MODULE_COREGRAPHICS_H
+#ifndef BLBENCH_BACKEND_CAIRO_H
+#define BLBENCH_BACKEND_CAIRO_H
 
-#include "module.h"
+#include "backend.h"
 
 namespace blbench {
 
-BenchModule* createCGModule();
+Backend* createCairoBackend();
 
 } // {blbench}
 
-#endif // BLBENCH_MODULE_COREGRAPHICS_H
+#endif // BLBENCH_BACKEND_CAIRO_H

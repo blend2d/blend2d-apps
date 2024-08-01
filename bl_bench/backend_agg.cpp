@@ -6,7 +6,7 @@
 #ifdef BLEND2D_APPS_ENABLE_AGG
 
 #include "app.h"
-#include "module_agg.h"
+#include "backend_agg.h"
 
 #include <algorithm>
 #include "agg2d/agg2d.h"
@@ -49,7 +49,7 @@ static inline Agg2D::Color toAgg2DColor(BLRgba32 rgba32) {
   return Agg2D::Color(rgba32.r(), rgba32.g(), rgba32.b(), rgba32.a());
 }
 
-struct AggModule : public BenchModule {
+struct AggModule : public Backend {
   Agg2D _ctx;
 
   AggModule();
@@ -373,7 +373,7 @@ void AggModule::renderShape(RenderOp op, ShapeData shape) {
   }
 }
 
-BenchModule* createAggModule() {
+Backend* createAggBackend() {
   return new AggModule();
 }
 

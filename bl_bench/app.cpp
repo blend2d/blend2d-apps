@@ -10,32 +10,32 @@
 #include <limits>
 #include <type_traits>
 
-#include "./app.h"
-#include "./images_data.h"
-#include "./module_blend2d.h"
+#include "app.h"
+#include "images_data.h"
+#include "backend_blend2d.h"
 
 #if defined(BLEND2D_APPS_ENABLE_AGG)
-  #include "./module_agg.h"
+  #include "backend_agg.h"
 #endif // BLEND2D_APPS_ENABLE_AGG
 
 #if defined(BLEND2D_APPS_ENABLE_CAIRO)
-  #include "./module_cairo.h"
+  #include "backend_cairo.h"
 #endif // BLEND2D_APPS_ENABLE_CAIRO
 
 #if defined(BLEND2D_APPS_ENABLE_QT)
-  #include "./module_qt.h"
+  #include "backend_qt.h"
 #endif // BLEND2D_APPS_ENABLE_QT
 
 #if defined(BLEND2D_APPS_ENABLE_SKIA)
-  #include "./module_skia.h"
+  #include "backend_skia.h"
 #endif // BLEND2D_APPS_ENABLE_SKIA
 
 #if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
-  #include "./module_coregraphics.h"
+  #include "backend_coregraphics.h"
 #endif // BLEND2D_APPS_ENABLE_COREGRAPHICS
 
 #if defined(BLEND2D_APPS_ENABLE_JUCE)
-  #include "./module_juce.h"
+  #include "backend_juce.h"
 #endif // BLEND2D_APPS_ENABLE_JUCE
 
 #define ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
@@ -410,7 +410,7 @@ void BenchApp::serializeSystemInfo(JSONBuilder& json) const {
 
   json.beforeRecord().addKey("environment").openObject();
   json.beforeRecord().addKey("os").addString(getOSString());
-  json.closeObject();
+  json.closeObject(true);
 
   json.beforeRecord().addKey("cpu").openObject();
   json.beforeRecord().addKey("arch").addString(getCpuArchString());
@@ -478,78 +478,78 @@ int BenchApp::run() {
 
     for (uint32_t i = 0; i < featureCount; i++) {
       if ((si.cpuFeatures & features[i]) == features[i]) {
-        BenchModule* mod = createBlend2DModule(0, features[i]);
+        Backend* mod = createBlend2DBackend(0, features[i]);
         runModule(*mod, params, json);
         delete mod;
       }
     }
   }
   else {
-    BenchModule* mod = nullptr;
+    Backend* backend = nullptr;
 
     if (!_disableBlend2D) {
-      mod = createBlend2DModule(0);
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createBlend2DBackend(0);
+      runModule(*backend, params, json);
+      delete backend;
 
-      mod = createBlend2DModule(2);
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createBlend2DBackend(2);
+      runModule(*backend, params, json);
+      delete backend;
 
-      mod = createBlend2DModule(4);
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createBlend2DBackend(4);
+      runModule(*backend, params, json);
+      delete backend;
     }
 
-    // mod = createBlend2DModule(0, 0xFFFFFFFFu);
-    // runModule(*mod, params);
-    // delete mod;
+    // backend = createBlend2DBackend(0, 0xFFFFFFFFu);
+    // runModule(*backend, params);
+    // delete backend;
 
 #if defined(BLEND2D_APPS_ENABLE_AGG)
     if (!_disableAgg) {
-      mod = createAggModule();
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createAggBackend();
+      runModule(*backend, params, json);
+      delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_CAIRO)
     if (!_disableCairo) {
-      mod = createCairoModule();
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createCairoBackend();
+      runModule(*backend, params, json);
+      delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_QT)
     if (!_disableQt) {
-      mod = createQtModule();
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createQtBackend();
+      runModule(*backend, params, json);
+      delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_SKIA)
     if (!_disableSkia) {
-      mod = createSkiaModule();
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createSkiaBackend();
+      runModule(*backend, params, json);
+      delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_JUCE)
     if (!_disableJuce) {
-      mod = createJuceModule();
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createJuceBackend();
+      runModule(*backend, params, json);
+      delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
     if (!_disableCoreGraphics) {
-      mod = createCGModule();
-      runModule(*mod, params, json);
-      delete mod;
+      backend = createCGBackend();
+      runModule(*backend, params, json);
+      delete backend;
     }
 #endif
   }
@@ -564,7 +564,7 @@ int BenchApp::run() {
   return 0;
 }
 
-int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json) {
+int BenchApp::runModule(Backend& mod, BenchParams& params, JSONBuilder& json) {
   char fileName[256];
   char styleString[128];
 
@@ -716,7 +716,7 @@ int BenchApp::runModule(BenchModule& mod, BenchParams& params, JSONBuilder& json
   return 0;
 }
 
-uint64_t BenchApp::runSingleTest(BenchModule& mod, BenchParams& params) {
+uint64_t BenchApp::runSingleTest(Backend& mod, BenchParams& params) {
   constexpr uint32_t kInitialQuantity = 25;
   constexpr uint32_t kMinimumDurationUS = 1000;
   constexpr uint32_t kMaxRepeatIfNoImprovement = 10;
