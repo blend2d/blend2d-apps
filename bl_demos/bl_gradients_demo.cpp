@@ -173,8 +173,8 @@ public:
   }
 
   void onMouseEvent(QMouseEvent* event) {
-    double mx = event->position().x();
-    double my = event->position().y();
+    double mx = event->position().x() * devicePixelRatio();
+    double my = event->position().y() * devicePixelRatio();
 
     if (event->type() == QEvent::MouseButtonPress) {
       if (event->button() == Qt::LeftButton) {

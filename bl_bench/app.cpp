@@ -9,6 +9,7 @@
 #include <cmath>
 #include <limits>
 #include <type_traits>
+#include <tuple>
 
 #include "app.h"
 #include "images_data.h"
@@ -277,6 +278,46 @@ static BLArray<BLString> splitString(const char* s) {
   return arr;
 }
 
+static std::tuple<int, uint32_t> parseList(const char** listData, size_t listSize, const char* inputList, const char* parseErrorMsg) {
+  int listOp = 0;
+  uint32_t parsedMask = 0;
+  BLArray<BLString> parts = splitString(inputList);
+
+  for (const BLString& part : parts) {
+    if (part.empty())
+      continue;
+
+    const char* p = part.data();
+    int partOp = 0;
+
+    if (p[0] == '-') {
+      p++;
+      partOp = -1;
+    }
+    else {
+      partOp = 1;
+    }
+
+    if (listOp == 0) {
+      listOp = partOp;
+    }
+    else if (listOp != partOp) {
+      printf("ERROR: %s [%s]: specify either additive or subtractive list, but not both\n", parseErrorMsg, inputList);
+      return std::tuple<int, uint32_t>(-2, 0);
+    }
+
+    uint32_t backendIdx = searchStringList(listData, listSize, p);
+    if (backendIdx == 0xFFFFFFFFu) {
+      printf("ERROR: %s [%s]: couldn't recognize '%s' part\n", parseErrorMsg, inputList, p);
+      return std::tuple<int, uint32_t>(-2, 0);
+    }
+
+    parsedMask |= 1u << backendIdx;
+  }
+
+  return std::tuple<int, uint32_t>(listOp, parsedMask);
+}
+
 struct DurationFormat {
   char data[64];
 
@@ -331,17 +372,17 @@ void BenchApp::printOptions() const {
 
   printf(
     "The following options are supported / used:\n"
-    "  --width=N        [%u] Canvas width to use for rendering\n"
-    "  --height=N       [%u] Canvas height to use for rendering\n"
-    "  --quantity=N     [%d] Render calls per test (0 = adjust depending on test duration)\n"
-    "  --size-count=N   [%u] Number of size iterations (1=8x8 -> 6=8x8..256x256)\n"
-    "  --comp-op=<str>  [%s] Benchmark a specific composition operator\n"
-    "  --repeat=N       [%d] Number of repeats of each test to select the best time\n"
-    "  --backends=<str> [%s] Backends to use (use 'a,b' to select few, '-xxx' to disable)\n"
-    "  --save-images    [%s] Save each generated image independently (use with --quantity)\n"
-    "  --save-overview  [%s] Save generated images grouped by sizes  (use with --quantity)\n"
-    "  --deep           [%s] More tests that use gradients and textures\n"
-    "  --isolated       [%s] Use Blend2D isolated context (useful for development only)\n"
+    "  --width=N         [%u] Canvas width to use for rendering\n"
+    "  --height=N        [%u] Canvas height to use for rendering\n"
+    "  --quantity=N      [%d] Render calls per test (0 = adjust depending on test duration)\n"
+    "  --size-count=N    [%u] Number of size iterations (1=8x8 -> 6=8x8..256x256)\n"
+    "  --comp-op=<list>  [%s] Benchmark a specific composition operator\n"
+    "  --repeat=N        [%d] Number of repeats of each test to select the best time\n"
+    "  --backends=<list> [%s] Backends to use (use 'a,b' to select few, '-xxx' to disable)\n"
+    "  --save-images     [%s] Save each generated image independently (use with --quantity)\n"
+    "  --save-overview   [%s] Save generated images grouped by sizes  (use with --quantity)\n"
+    "  --deep            [%s] More tests that use gradients and textures\n"
+    "  --isolated        [%s] Use Blend2D isolated context (useful for development only)\n"
     "\n",
     _width,
     _height,
@@ -367,13 +408,12 @@ void BenchApp::printBackends() const {
     uint32_t backendMask = 1u << backendIdx;
 
     if (backendMask & kSupportedBackends) {
-
-      printf("  - %-14s [%s]\n",
+      printf("  - %-15s [%s]\n",
         backendKindNameList[backendIdx],
         disabled_enabled[(_backends & backendMask) != 0]);
     }
     else {
-      printf("  - %-14s [not supported]\n",
+      printf("  - %-15s [not supported]\n",
         backendKindNameList[backendIdx]);
     }
   }
@@ -391,7 +431,7 @@ bool BenchApp::parseCommandLine() {
   _repeat = _cmdLine.valueAsUInt("--repeat", _repeat);
 
   _saveImages = _cmdLine.hasArg("--save-images");
-  _saveOverview = _cmdLine.hasArg("--save-images");
+  _saveOverview = _cmdLine.hasArg("--save-overview");
   _deepBench = _cmdLine.hasArg("--deep");
   _isolated = _cmdLine.hasArg("--isolated");
 
@@ -442,46 +482,15 @@ bool BenchApp::parseCommandLine() {
   }
 
   if (backendString && strcmp(backendString, "all") != 0) {
-    int listOp = 0;
-    uint32_t parsedBackends = 0;
-    BLArray<BLString> parts = splitString(backendString);
+    std::tuple<int, uint32_t> v = parseList(backendKindNameList, kBackendKindCount, backendString, "Invalid --backend list");
 
-    for (const BLString& part : parts) {
-      if (part.empty())
-        continue;
+    if (std::get<0>(v) == -2)
+      return false;
 
-      const char* p = part.data();
-      int partOp = 0;
-
-      if (p[0] == '-') {
-        p++;
-        partOp = -1;
-      }
-      else {
-        partOp = 1;
-      }
-
-      if (listOp == 0) {
-        listOp = partOp;
-      }
-      else if (listOp != partOp) {
-        printf("ERROR: Invalid backend list [%s]: specify either additive or subtractive list, but not both\n", backendString);
-        return false;
-      }
-
-      uint32_t backendIdx = searchStringList(backendKindNameList, kBackendKindCount, p);
-      if (backendIdx == 0xFFFFFFFFu) {
-        printf("ERROR: Invalid backend list [%s]: couldn't parse [%s]\n", backendString, p);
-        return false;
-      }
-
-      parsedBackends |= 1u << backendIdx;
-    }
-
-    if (listOp == 1)
-      _backends = parsedBackends;
-    else if (listOp == -1)
-      _backends &= ~parsedBackends;
+    if (std::get<0>(v) == 1)
+      _backends = std::get<1>(v);
+    else if (std::get<0>(v) == -1)
+      _backends &= ~std::get<1>(v);
   }
 
   return true;
@@ -639,10 +648,8 @@ int BenchApp::run() {
     }
   }
   else {
-    Backend* backend = nullptr;
-
     if (isBackendEnabled(BackendKind::kBlend2D)) {
-      backend = createBlend2DBackend(0);
+      Backend* backend = backend = createBlend2DBackend(0);
       runBackendTests(*backend, params, json);
       delete backend;
 
@@ -657,7 +664,7 @@ int BenchApp::run() {
 
 #if defined(BLEND2D_APPS_ENABLE_AGG)
     if (isBackendEnabled(BackendKind::kAGG)) {
-      backend = createAggBackend();
+      Backend* backend = createAggBackend();
       runBackendTests(*backend, params, json);
       delete backend;
     }
@@ -665,7 +672,7 @@ int BenchApp::run() {
 
 #if defined(BLEND2D_APPS_ENABLE_CAIRO)
     if (isBackendEnabled(BackendKind::kCairo)) {
-      backend = createCairoBackend();
+      Backend* backend = createCairoBackend();
       runBackendTests(*backend, params, json);
       delete backend;
     }
@@ -673,7 +680,7 @@ int BenchApp::run() {
 
 #if defined(BLEND2D_APPS_ENABLE_QT)
     if (isBackendEnabled(BackendKind::kQt)) {
-      backend = createQtBackend();
+      Backend* backend = createQtBackend();
       runBackendTests(*backend, params, json);
       delete backend;
     }
@@ -681,7 +688,7 @@ int BenchApp::run() {
 
 #if defined(BLEND2D_APPS_ENABLE_SKIA)
     if (isBackendEnabled(BackendKind::kSkia)) {
-      backend = createSkiaBackend();
+      Backend* backend = createSkiaBackend();
       runBackendTests(*backend, params, json);
       delete backend;
     }
@@ -689,7 +696,7 @@ int BenchApp::run() {
 
 #if defined(BLEND2D_APPS_ENABLE_JUCE)
     if (isBackendEnabled(BackendKind::kJUCE)) {
-      backend = createJuceBackend();
+      Backend* backend = createJuceBackend();
       runBackendTests(*backend, params, json);
       delete backend;
     }
@@ -697,7 +704,7 @@ int BenchApp::run() {
 
 #if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
     if (isBackendEnabled(BackendKind::kCoreGraphics)) {
-      backend = createCGBackend();
+      Backend* backend = createCGBackend();
       runBackendTests(*backend, params, json);
       delete backend;
     }

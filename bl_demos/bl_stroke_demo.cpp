@@ -148,12 +148,15 @@ public:
   }
 
   void onMouseEvent(QMouseEvent* event) {
+    QPointF position(event->position().x() * devicePixelRatio(),
+                     event->position().y() * devicePixelRatio());
+
     if (event->type() == QEvent::MouseButtonPress) {
       if (event->button() == Qt::LeftButton) {
         if (_closestVertex != SIZE_MAX) {
           _grabbedVertex = _closestVertex;
-          _grabbedX = event->position().x();
-          _grabbedY = event->position().y();
+          _grabbedX = position.x();
+          _grabbedY = position.y();
           _canvas.updateCanvas();
         }
       }
@@ -170,12 +173,12 @@ public:
 
     if (event->type() == QEvent::MouseMove) {
       if (_grabbedVertex == SIZE_MAX) {
-        _path.getClosestVertex(BLPoint(double(event->position().x()), double(event->position().y())), 5, &_closestVertex);
+        _path.getClosestVertex(BLPoint(double(position.x()), double(position.y())), 5, &_closestVertex);
         _canvas.updateCanvas();
       }
       else {
-        double x = event->position().x();
-        double y = event->position().y();
+        double x = position.x();
+        double y = position.y();
         _path.setVertexAt(_grabbedVertex, BL_PATH_CMD_PRESERVE, BLPoint(x, y));
         _canvas.updateCanvas();
       }

@@ -31,7 +31,6 @@ struct BenchApp {
 
   bool _saveImages = false;
   bool _saveOverview = false;
-
   bool _isolated = false;
   bool _deepBench = false;
 
