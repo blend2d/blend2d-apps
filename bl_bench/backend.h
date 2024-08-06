@@ -183,6 +183,10 @@ struct BenchRandom {
   inline BLRgba32 nextRgba32() {
     return BLRgba32(_prng.nextUInt32());
   }
+
+  inline BLRgba32 nextRgba32(uint32_t mask) {
+    return BLRgba32(_prng.nextUInt32() | mask);
+  }
 };
 
 // blbench::Backend

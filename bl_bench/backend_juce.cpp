@@ -59,11 +59,25 @@ static void convertBlend2DImageToJuce(juce::Image& dst, BLImage& src, const juce
 
   juce::Image::BitmapData dstData(dst, juce::Image::BitmapData::readWrite);
 
-  for (uint32_t y = 0; y < h; y++) {
-    memcpy(
-      dstData.data + intptr_t(y) * dstData.lineStride,
-      static_cast<const uint8_t*>(srcData.pixelData) + intptr_t(y) * srcData.stride,
-      rowSize);
+  if (format == BL_FORMAT_XRGB32) {
+    for (uint32_t y = 0; y < h; y++) {
+      uint8_t* dstLine = dstData.data + intptr_t(y) * dstData.lineStride;
+      const uint8_t* srcLine = static_cast<const uint8_t*>(srcData.pixelData) + intptr_t(y) * srcData.stride;
+
+      for (uint32_t x = 0; x < w; x++) {
+        dstLine[x * 3 + 0] = srcLine[x * 4 + 2];
+        dstLine[x * 3 + 1] = srcLine[x * 4 + 1];
+        dstLine[x * 3 + 2] = srcLine[x * 4 + 0];
+      }
+    }
+  }
+  else {
+    for (uint32_t y = 0; y < h; y++) {
+      memcpy(
+        dstData.data + intptr_t(y) * dstData.lineStride,
+        static_cast<const uint8_t*>(srcData.pixelData) + intptr_t(y) * srcData.stride,
+        rowSize);
+    }
   }
 }
 
@@ -78,11 +92,26 @@ static void convertJuceImageToBlend2D(BLImage& dst, juce::Image& src) {
   dst.create(int(w), int(h), format);
   dst.makeMutable(&dstData);
 
-  for (uint32_t y = 0; y < h; y++) {
-    memcpy(
-      static_cast<uint8_t*>(dstData.pixelData) + intptr_t(y) * dstData.stride,
-      srcData.data + intptr_t(y) * srcData.lineStride,
-      rowSize);
+  if (format == BL_FORMAT_XRGB32) {
+    for (uint32_t y = 0; y < h; y++) {
+      uint8_t* dstLine = static_cast<uint8_t*>(dstData.pixelData) + intptr_t(y) * dstData.stride;
+      const uint8_t* srcLine = srcData.data + intptr_t(y) * srcData.lineStride;
+
+      for (uint32_t x = 0; x < w; x++) {
+        dstLine[x * 4 + 0] = srcLine[x * 3 + 2];
+        dstLine[x * 4 + 1] = srcLine[x * 3 + 1];
+        dstLine[x * 4 + 2] = srcLine[x * 3 + 0];
+        dstLine[x * 4 + 3] = uint8_t(0xFF);
+      }
+    }
+  }
+  else {
+    for (uint32_t y = 0; y < h; y++) {
+      memcpy(
+        static_cast<uint8_t*>(dstData.pixelData) + intptr_t(y) * dstData.stride,
+        srcData.data + intptr_t(y) * srcData.lineStride,
+        rowSize);
+    }
   }
 }
 
@@ -98,9 +127,11 @@ struct JuceModule : public Backend {
   juce::SoftwareImageType _juceImageType;
   juce::PathStrokeType _juceStrokeType;
   float _lineThickness {};
+  uint32_t _opaqueBits {};
 
   juce::Image _juceSurface;
   juce::Image _juceSprites[kBenchNumSprites];
+  juce::Image _juceSpritesOpaque[kBenchNumSprites];
   juce::Graphics* _juceContext {};
 
   JuceModule();
@@ -147,7 +178,8 @@ void JuceModule::serializeInfo(JSONBuilder& json) const {
 }
 
 bool JuceModule::supportsCompOp(BLCompOp compOp) const {
-  return compOp == BL_COMP_OP_SRC_OVER;
+  return compOp == BL_COMP_OP_SRC_OVER ||
+         compOp == BL_COMP_OP_SRC_COPY ;
 }
 
 bool JuceModule::supportsStyle(StyleKind style) const {
@@ -163,13 +195,18 @@ void JuceModule::beforeRun() {
   int h = int(_params.screenH);
   StyleKind style = _params.style;
 
+  _opaqueBits = _params.compOp == BL_COMP_OP_SRC_COPY ? 0xFF000000u : 0x00000000u;
   _lineThickness = float(_params.strokeWidth);
   _juceStrokeType.setEndStyle(juce::PathStrokeType::butt);
   _juceStrokeType.setJointStyle(juce::PathStrokeType::mitered);
   _juceStrokeType.setStrokeThickness(_lineThickness);
 
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
+    BLImage opaque(_sprites[i]);
+    opaque.convert(BL_FORMAT_XRGB32);
+
     convertBlend2DImageToJuce(_juceSprites[i], _sprites[i], _juceImageType);
+    convertBlend2DImageToJuce(_juceSpritesOpaque[i], opaque, _juceImageType);
   }
 
   // NOTE: There seems to be no way we can use a user provided pixel buffer in JUCE, so let's create two
@@ -205,9 +242,9 @@ inline void JuceModule::setupStyle(const RectT& rect, StyleKind style) {
     case StyleKind::kLinearPad:
     case StyleKind::kLinearRepeat:
     case StyleKind::kLinearReflect: {
-      BLRgba32 c0 = _rndColor.nextRgba32();
-      BLRgba32 c1 = _rndColor.nextRgba32();
-      BLRgba32 c2 = _rndColor.nextRgba32();
+      BLRgba32 c0 = _rndColor.nextRgba32(_opaqueBits);
+      BLRgba32 c1 = _rndColor.nextRgba32(_opaqueBits);
+      BLRgba32 c2 = _rndColor.nextRgba32(_opaqueBits);
 
       float x0 = float(rect.x) + rect.w * float(0.2);
       float y0 = float(rect.y) + rect.h * float(0.2);
@@ -223,9 +260,9 @@ inline void JuceModule::setupStyle(const RectT& rect, StyleKind style) {
     case StyleKind::kRadialPad:
     case StyleKind::kRadialRepeat:
     case StyleKind::kRadialReflect: {
-      BLRgba32 c0 = _rndColor.nextRgba32();
-      BLRgba32 c1 = _rndColor.nextRgba32();
-      BLRgba32 c2 = _rndColor.nextRgba32();
+      BLRgba32 c0 = _rndColor.nextRgba32(_opaqueBits);
+      BLRgba32 c1 = _rndColor.nextRgba32(_opaqueBits);
+      BLRgba32 c2 = _rndColor.nextRgba32(_opaqueBits);
 
       float cx = float(rect.x + rect.w / 2);
       float cy = float(rect.y + rect.h / 2);
@@ -242,7 +279,10 @@ inline void JuceModule::setupStyle(const RectT& rect, StyleKind style) {
     case StyleKind::kPatternNN:
     case StyleKind::kPatternBI: {
       juce::AffineTransform transform = juce::AffineTransform::translation(float(rect.x), float(rect.y));
-      _juceContext->setFillType(juce::FillType(_juceSprites[nextSpriteId()], transform));
+      if (_params.compOp == BL_COMP_OP_SRC_OVER)
+        _juceContext->setFillType(juce::FillType(_juceSprites[nextSpriteId()], transform));
+      else
+        _juceContext->setFillType(juce::FillType(_juceSpritesOpaque[nextSpriteId()], transform));
       break;
     }
 
@@ -259,7 +299,7 @@ void JuceModule::renderRectA(RenderOp op) {
   if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
       BLRectI r = _rndCoord.nextRectI(bounds, wh, wh);
-      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32()));
+      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32(_opaqueBits)));
 
       if (op == RenderOp::kStroke)
         _juceContext->drawRect(juce::Rectangle<int>(r.x, r.y, r.w, r.h), _lineThickness);
@@ -268,9 +308,17 @@ void JuceModule::renderRectA(RenderOp op) {
     }
   }
   else if ((style == StyleKind::kPatternNN || style == StyleKind::kPatternBI) && op != RenderOp::kStroke) {
-    for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
-      _juceContext->drawImageAt(_juceSprites[nextSpriteId()], rect.x, rect.y);
+    if (_params.compOp == BL_COMP_OP_SRC_OVER) {
+      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+        BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
+        _juceContext->drawImageAt(_juceSprites[nextSpriteId()], rect.x, rect.y);
+      }
+    }
+    else {
+      for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
+        BLRectI rect(_rndCoord.nextRectI(bounds, wh, wh));
+        _juceContext->drawImageAt(_juceSpritesOpaque[nextSpriteId()], rect.x, rect.y);
+      }
     }
   }
   else {
@@ -294,7 +342,7 @@ void JuceModule::renderRectF(RenderOp op) {
   if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
       BLRect r = _rndCoord.nextRect(bounds, wh, wh);
-      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32()));
+      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32(_opaqueBits)));
 
       if (op == RenderOp::kStroke)
         _juceContext->drawRect(juce::Rectangle<float>(float(r.x), float(r.y), float(r.w), float(r.h)), _lineThickness);
@@ -332,7 +380,7 @@ void JuceModule::renderRectRotated(RenderOp op) {
     _juceContext->addTransform(tr);
 
     if (style == StyleKind::kSolid) {
-      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32()));
+      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32(_opaqueBits)));
     }
     else {
       setupStyle(r, style);
@@ -357,7 +405,7 @@ void JuceModule::renderRoundF(RenderOp op) {
     float radius = float(_rndExtra.nextDouble(4.0, 40.0));
 
     if (style == StyleKind::kSolid) {
-      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32()));
+      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32(_opaqueBits)));
     }
     else {
       setupStyle(r, style);
@@ -388,7 +436,7 @@ void JuceModule::renderRoundRotated(RenderOp op) {
     _juceContext->addTransform(tr);
 
     if (style == StyleKind::kSolid) {
-      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32()));
+      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32(_opaqueBits)));
     }
     else {
       setupStyle(r, style);
@@ -430,7 +478,7 @@ void JuceModule::renderPolygon(RenderOp op, uint32_t complexity) {
     path.closeSubPath();
 
     if (style == StyleKind::kSolid) {
-      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32()));
+      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32(_opaqueBits)));
     }
     else {
       setupStyle(BLRect(x, y, wh, wh), style);
@@ -484,7 +532,7 @@ void JuceModule::renderShape(RenderOp op, ShapeData shape) {
     juce::AffineTransform transform = juce::AffineTransform::translation(float(base.x), float(base.y));
 
     if (style == StyleKind::kSolid) {
-      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32()));
+      _juceContext->setColour(toJuceColor(_rndColor.nextRgba32(_opaqueBits)));
     }
     else {
       setupStyle(BLRect(base.x, base.y, wh, wh), style);
