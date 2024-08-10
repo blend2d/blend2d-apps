@@ -16,6 +16,8 @@ class BLLiteHtmlContainer;
 
 class BLLiteHtmlDocument {
 public:
+  static constexpr uint32_t kAvgFrameCount = 16;
+
   enum class Button {
     kLeft = 0,
     kRight = 1,
@@ -40,6 +42,10 @@ public:
   BLSizeI _viewportSize {};
   BLPointI _viewportPosition {};
 
+  uint32_t _renderTimeCount {};
+  uint32_t _renderTimeIndex = 31;
+  double _renderTime[32] {};
+
   BLLiteHtmlDocument();
   ~BLLiteHtmlDocument() noexcept;
 
@@ -59,6 +65,14 @@ public:
 
   void setViewportSize(const BLSizeI& sz);
   void setViewportPosition(const BLPointI& pt);
+
+  //! \}
+
+  //! \name Performance
+  //! \{
+
+  inline double lastFrameDuration() const noexcept { return _renderTime[_renderTimeIndex]; }
+  double averageFrameDuration() const noexcept;
 
   //! \}
 

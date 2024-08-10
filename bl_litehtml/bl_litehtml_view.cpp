@@ -175,6 +175,18 @@ void BLLiteHtmlView::_renderCanvas() {
   // ctx.fillAll(BLRgba32(0xFF000000));
   _htmlDoc.draw(ctx);
   _dirty = false;
+
+  updateWindowTitle();
+}
+
+void BLLiteHtmlView::updateWindowTitle() {
+  if (!_windowToUpdate)
+    return;
+
+  BLString title;
+  title.appendFormat("%s [Time=%0.2f Avg=%0.2f]", _htmlDoc.url().data(), _htmlDoc.lastFrameDuration(), _htmlDoc.averageFrameDuration());
+
+  _windowToUpdate->setWindowTitle(QString::fromUtf8(title.data(), title.size()));
 }
 
 #include "moc_bl_litehtml_view.cpp"

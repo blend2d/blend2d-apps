@@ -20,6 +20,7 @@ public:
   BLImage blImage;
   BLLiteHtmlDocument _htmlDoc;
   bool _dirty = true;
+  QWidget* _windowToUpdate {};
 
   explicit BLLiteHtmlView(QWidget* parent = nullptr);
   ~BLLiteHtmlView();
@@ -44,6 +45,10 @@ public:
   void _resizeCanvas();
   void _renderCanvas();
 
+  inline void setWindowToUpdate(QWidget* widget) noexcept {
+    _windowToUpdate = widget;
+  }
+
   inline BLPointI scrollPosition() const {
     return BLPointI(horizontalScrollBar()->value(), verticalScrollBar()->value());
   }
@@ -52,6 +57,8 @@ public:
     QSize sz = viewport()->size();
     return BLSizeI(sz.width(), sz.height());
   }
+
+  void updateWindowTitle();
 
 public Q_SLOTS:
   void onScrollBarChanged(int value);

@@ -2,6 +2,7 @@
 
 #include <limits.h>
 
+#include <chrono>
 #include <string>
 #include <unordered_map>
 
@@ -591,6 +592,14 @@ void BLLiteHtmlDocument::setViewportPosition(const BLPointI& pt) {
   }
 }
 
+double BLLiteHtmlDocument::averageFrameDuration() const noexcept {
+  double sum = 0.0;
+  for (size_t i = 0; i < _renderTimeCount; i++) {
+    sum += _renderTime[i];
+  }
+  return sum / double(_renderTimeCount);
+}
+
 BLString BLLiteHtmlDocument::resolveLink(BLStringView link, bool stripParams) {
   BLString resolved;
 
@@ -766,5 +775,16 @@ void BLLiteHtmlDocument::draw(BLContext& ctx) {
   clip.width = vs.w;
   clip.height = vs.h;
 
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   _document->draw((uintptr_t)&ctx, -vp.x, -vp.y, &clip);
+
+  auto endTime = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = endTime - startTime;
+
+  _renderTimeIndex = (_renderTimeIndex + 1) & 31;
+  _renderTime[_renderTimeIndex] = duration.count() * 1000;
+
+  if (_renderTimeCount < 32u)
+    _renderTimeCount++;
 }

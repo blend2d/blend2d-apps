@@ -13,16 +13,14 @@ class MainWindow : public QWidget {
 
 public:
   MainWindow() {
-    QBoxLayout* vBox = new QHBoxLayout();
+    htmlView.setWindowToUpdate(this);
 
+    QBoxLayout* vBox = new QHBoxLayout();
     vBox->setContentsMargins(0, 0, 0, 0);
     vBox->setSpacing(0);
     vBox->setDirection(QBoxLayout::TopToBottom);
-
     vBox->addWidget(&htmlView);
     setLayout(vBox);
-
-    setWindowTitle(QLatin1String("LiteHtml & Blend2D"));
   }
 
   ~MainWindow() override {}
