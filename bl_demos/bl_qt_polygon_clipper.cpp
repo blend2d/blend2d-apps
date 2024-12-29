@@ -124,6 +124,7 @@ public:
           resultPath = subjectPath.symmetricDifference(clippingPath);
           break;
       }
+
       ctx.setFillRule(BL_FILL_RULE_EVEN_ODD);
       ctx.fillPath(subjectPath, BLRgba32(0x6400FF00));
       ctx.fillPath(clippingPath, BLRgba32(0x64FFFF00));
@@ -131,7 +132,7 @@ public:
   }
 
   void onRenderQt(QPainter& ctx) noexcept {
-      ctx.fillRect(_canvas.rect(), Qt::white);
+      ctx.fillRect(QRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight()), Qt::white);
 
       std::vector<QPolygonF> subjectPolygons = getSubjectPolygons();
       std::vector<QPolygonF> clippingPolygons = getClippingPolygons();
@@ -175,15 +176,15 @@ public:
 
   std::vector<QPolygonF> getClippingPolygons() const noexcept {
       QPainterPath path;
-      path.addEllipse(_mousePt, _canvas.width() * 0.2, _canvas.height() * 0.2);
+      path.addEllipse(_mousePt, _canvas.imageWidth() * 0.2, _canvas.imageHeight() * 0.2);
       return { path.toFillPolygon() };
   }
 
   std::vector<QPolygonF> getSubjectPolygons() const noexcept {
       std::vector<QPolygonF> polygons;
 
-      double width = _canvas.width();
-      double height = _canvas.height();
+      double width = _canvas.imageWidth();
+      double height = _canvas.imageHeight();
 
       double w4 = width / 4.0;
       double h4 = height / 4.0;
@@ -265,8 +266,9 @@ public:
 
   void onMouseEvent(QMouseEvent* event) {
       if (event->type() == QEvent::MouseMove) {
-          double mx = event->position().x();
-          double my = event->position().y();
+          double pixelRatio = _canvas.devicePixelRatioF();
+          double mx = event->position().x() * pixelRatio;
+          double my = event->position().y() * pixelRatio;
           _mousePt = QPointF(mx, my);
       }
   }
