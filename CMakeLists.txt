@@ -310,6 +310,7 @@ set(BLEND2D_QT_DEMOS
   bl_bounces_demo
   bl_bubbles_demo
   bl_circles_demo
+  bl_image_view_demo
   bl_particles_demo
   bl_pattern_demo
   bl_paths_demo
