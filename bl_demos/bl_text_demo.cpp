@@ -4,6 +4,8 @@
 #include "bl_qt_headers.h"
 #include "bl_qt_canvas.h"
 
+#include <QRegularExpression>
+
 class PerformanceTimer {
 public:
   typedef std::chrono::high_resolution_clock::time_point TimePoint;
@@ -31,6 +33,37 @@ static void debugGlyphBufferSink(const char* message, size_t size, void* userDat
   buffer->append('\n');
 }
 
+static bool isTagChar(char c) noexcept { return uint8_t(c) >= 32u && uint8_t(c) < 128u; }
+
+static BLFontFeatureSettings parseFontFeatures(const QString& s) {
+  BLFontFeatureSettings settings;
+  QStringList parts = s.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+
+  for (const QString& part : parts) {
+    if (part.length() < 6u)
+      continue;
+
+    char tag0 = part[0].toLatin1();
+    char tag1 = part[1].toLatin1();
+    char tag2 = part[2].toLatin1();
+    char tag3 = part[3].toLatin1();
+    char eq   = part[4].toLatin1();
+
+    if (isTagChar(tag0) && isTagChar(tag1) && isTagChar(tag2) && isTagChar(tag3) && eq == '=') {
+      BLTag featureTag = BL_MAKE_TAG(uint8_t(tag0), uint8_t(tag1), uint8_t(tag2), uint8_t(tag3));
+      QString featureValue = part.sliced(5);
+
+      bool ok;
+      unsigned uintVal = featureValue.toUInt(&ok);
+      if (ok) {
+        settings.setValue(featureTag, uintVal);
+      }
+    }
+  }
+
+  return settings;
+}
+
 class MainWindow : public QWidget {
   Q_OBJECT
 
@@ -42,6 +75,8 @@ public:
   QPushButton* _fileSelectButton {};
   QSlider* _slider {};
   QLineEdit* _text {};
+  QLineEdit* _featuresList {};
+  QLineEdit* _featuresSelect {};
   QBLCanvas* _canvas {};
   QCheckBox* _otDebug {};
 
@@ -83,6 +118,11 @@ public:
     _text = new QLineEdit();
     _text->setText(QString("Test"));
 
+    _featuresList = new QLineEdit();
+    _featuresList->setReadOnly(true);
+
+    _featuresSelect = new QLineEdit();
+
     _otDebug = new QCheckBox();
     _otDebug->setText(QLatin1String("OpenType Dbg"));
 
@@ -93,6 +133,7 @@ public:
     connect(_fileSelected, SIGNAL(textChanged(const QString&)), SLOT(fileChanged(const QString&)));
     connect(_slider, SIGNAL(valueChanged(int)), SLOT(valueChanged(int)));
     connect(_text, SIGNAL(textChanged(const QString&)), SLOT(textChanged(const QString&)));
+    connect(_featuresSelect, SIGNAL(textChanged(const QString&)), SLOT(textChanged(const QString&)));
 
     _canvas->onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
     _canvas->onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
@@ -111,8 +152,14 @@ public:
     grid->addWidget(new QLabel("Size:"), 3, 0);
     grid->addWidget(_slider, 3, 1, 1, 4);
 
-    grid->addWidget(new QLabel("Text:"), 4, 0);
-    grid->addWidget(_text, 4, 1, 1, 4);
+    grid->addWidget(new QLabel("Font Features:"), 4, 0);
+    grid->addWidget(_featuresList, 4, 1, 1, 4);
+
+    grid->addWidget(new QLabel("Active FEAT=V "), 5, 0);
+    grid->addWidget(_featuresSelect, 5, 1, 1, 4);
+
+    grid->addWidget(new QLabel("Text:"), 6, 0);
+    grid->addWidget(_text, 6, 1, 1, 4);
 
     vBox->addItem(grid);
     vBox->addWidget(_canvas);
@@ -135,6 +182,27 @@ public:
       BLFontData fontData;
       if (fontData.createFromData(dataBuffer) == BL_SUCCESS) {
         _blFace.createFromData(fontData, 0);
+
+        BLArray<BLTag> tags;
+        _blFace.getFeatureTags(&tags);
+
+        QString tagsStringified;
+        for (BLTag tag : tags) {
+          char tagString[4] = {
+            char((tag >> 24) & 0xFF),
+            char((tag >> 16) & 0xFF),
+            char((tag >>  8) & 0xFF),
+            char((tag >>  0) & 0xFF)
+          };
+
+          if (!tagsStringified.isEmpty()) {
+            tagsStringified.append(QLatin1String(" ", 1));
+          }
+
+          tagsStringified.append(QLatin1String(tagString, 4));
+        }
+
+        _featuresList->setText(tagsStringified);
       }
 
       QByteArray qtBuffer(reinterpret_cast<const char*>(dataBuffer.data()), dataBuffer.size());
@@ -176,7 +244,7 @@ private Q_SLOTS:
     _canvas->updateCanvas();
   }
 
-  void textChanged(const QString& text) {
+  void textChanged(const QString&) {
     _canvas->updateCanvas();
   }
 
@@ -237,7 +305,8 @@ public:
     }
 
     BLFont font;
-    font.createFromFace(_blFace, _slider->value());
+    BLFontFeatureSettings featureSettings = parseFontFeatures(_featuresSelect->text());
+    font.createFromFace(_blFace, _slider->value(), featureSettings);
 
     // Qt uses UTF-16 strings, Blend2D can process them natively.
     QString text = _text->text();
