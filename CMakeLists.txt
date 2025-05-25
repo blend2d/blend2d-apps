@@ -277,7 +277,7 @@ set(BLEND2D_BENCH_SRC
 )
 
 add_executable(bl_bench ${BLEND2D_BENCH_SRC} ${ANTIGRAIN_SRC})
-target_compile_features(bl_bench PUBLIC cxx_std_11)
+target_compile_features(bl_bench PUBLIC cxx_std_17)
 set_property(TARGET bl_bench PROPERTY CXX_VISIBILITY_PRESET hidden)
 target_include_directories(bl_bench PRIVATE
   ${DEPENDENCY_AGG_INCLUDE_DIRS}
@@ -327,7 +327,7 @@ if(Qt6Gui_FOUND)
       "bl_demos/bl_qt_canvas.cpp"
       "bl_demos/bl_qt_canvas.h"
       "bl_demos/bl_qt_headers.h")
-    target_compile_features(${target} PUBLIC cxx_std_11)
+    target_compile_features(${target} PUBLIC cxx_std_17)
     set_property(TARGET ${target} PROPERTY AUTOMOC TRUE)
     set_property(TARGET ${target} PROPERTY CXX_VISIBILITY_PRESET hidden)
     target_link_libraries(${target} blend2d::blend2d Qt6::Gui Qt6::Widgets)
@@ -354,7 +354,7 @@ if(Qt6Gui_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/litehtml/CMakeL
 
   message("-- [blend2d-apps] adding Blend2D + Qt + LiteHtml demo")
   add_executable(bl_litehtml_demo WIN32 ${BLEND2D_LITEHTML_DEMO_SRCS})
-  target_compile_features(bl_litehtml_demo PUBLIC cxx_std_11)
+  target_compile_features(bl_litehtml_demo PUBLIC cxx_std_17)
   set_property(TARGET bl_litehtml_demo PROPERTY AUTOMOC TRUE)
   set_property(TARGET bl_litehtml_demo PROPERTY CXX_VISIBILITY_PRESET hidden)
   target_link_libraries(bl_litehtml_demo blend2d::blend2d Qt6::Gui Qt6::Widgets litehtml)
