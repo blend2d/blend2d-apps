@@ -523,7 +523,7 @@ void SkiaModule::renderShape(RenderOp op, ShapeData shape) {
       p.setColor(_rndColor.nextRgba32().value);
     }
     else {
-      BLRect rect(base.x, base.y, wh, wh);
+      BLRect rect(0, 0, wh, wh);
       p.setShader(createShader(style, rect));
     }
 
