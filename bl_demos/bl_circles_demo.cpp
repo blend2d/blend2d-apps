@@ -10,9 +10,9 @@ class MainWindow : public QWidget {
 
 public:
   QTimer _timer;
-  QComboBox _rendererSelect;
-  QCheckBox _limitFpsCheck;
-  QSlider _countSlider;
+  QComboBox _renderer_select;
+  QCheckBox _limit_fps_check;
+  QSlider _count_slider;
   QBLCanvas _canvas;
 
   bool _animate = true;
@@ -28,28 +28,28 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
+    QBLCanvas::init_renderer_select_box(&_renderer_select);
+    _limit_fps_check.setText(QLatin1String("Limit FPS"));
 
-    _countSlider.setMinimum(100);
-    _countSlider.setMaximum(2000);
-    _countSlider.setValue(500);
-    _countSlider.setOrientation(Qt::Horizontal);
+    _count_slider.setMinimum(100);
+    _count_slider.setMaximum(2000);
+    _count_slider.setValue(500);
+    _count_slider.setOrientation(Qt::Horizontal);
 
-    connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
-    connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
+    connect(&_renderer_select, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
+    connect(&_limit_fps_check, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
-    grid->addWidget(&_rendererSelect, 0, 1);
+    grid->addWidget(&_renderer_select, 0, 1);
 
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 2);
-    grid->addWidget(&_limitFpsCheck, 0, 3, Qt::AlignRight);
+    grid->addWidget(&_limit_fps_check, 0, 3, Qt::AlignRight);
 
     grid->addWidget(new QLabel("Count:"), 1, 0, Qt::AlignRight);
-    grid->addWidget(&_countSlider, 1, 1, 1, 4);
+    grid->addWidget(&_count_slider, 1, 1, 1, 4);
 
-    _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
-    _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
+    _canvas.on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
+    _canvas.on_render_qt = std::bind(&MainWindow::on_render_qt, this, std::placeholders::_1);
 
     vBox->addItem(grid);
     vBox->addWidget(&_canvas);
@@ -68,12 +68,12 @@ public:
   void onInit() {
     _angle = 0;
     _count = 0;
-    _limitFpsCheck.setChecked(true);
+    _limit_fps_check.setChecked(true);
     _updateTitle();
   }
 
   Q_SLOT void onToggleAnimate() { _animate = !_animate; }
-  Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
+  Q_SLOT void onRendererChanged(int index) { _canvas.set_renderer_type(_renderer_select.itemData(index).toInt()); }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
@@ -83,23 +83,23 @@ public:
         _angle -= 360;
     }
 
-    _canvas.updateCanvas(true);
+    _canvas.update_canvas(true);
     _updateTitle();
   }
 
   // The idea is based on:
   //   https://github.com/fogleman/gg/blob/master/examples/spiral.go
 
-  void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.fillAll(BLRgba32(0xFF000000u));
+  void on_render_blend2d(BLContext& ctx) noexcept {
+    ctx.fill_all(BLRgba32(0xFF000000u));
 
     BLPath p;
 
-    int count = _countSlider.value();
+    int count = _count_slider.value();
     double PI = 3.14159265359;
 
-    double cx = _canvas.imageWidth() / 2;
-    double cy = _canvas.imageHeight() / 2;
+    double cx = _canvas.image_width() / 2;
+    double cy = _canvas.image_height() / 2;
     double maxDist = 1000.0;
     double baseAngle = _angle / 180.0 * PI;
 
@@ -110,24 +110,24 @@ public:
       double x = cx + std::cos(a) * d;
       double y = cy + std::sin(a) * d;
       double r = std::min(t * 8 + 0.5, 10.0);
-      p.addCircle(BLCircle(x, y, r));
+      p.add_circle(BLCircle(x, y, r));
     }
 
-    ctx.fillPath(p, BLRgba32(0xFFFFFFFFu));
+    ctx.fill_path(p, BLRgba32(0xFFFFFFFFu));
   }
 
-  void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
+  void on_render_qt(QPainter& ctx) noexcept {
+    ctx.fillRect(0, 0, _canvas.image_width(), _canvas.image_height(), QColor(0, 0, 0));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
     QPainterPath p;
     QBrush brush(QColor(qRgb(255, 255, 255)));
 
-    int count = _countSlider.value();
+    int count = _count_slider.value();
     double PI = 3.14159265359;
 
-    double cx = _canvas.imageWidth() / 2;
-    double cy = _canvas.imageHeight() / 2;
+    double cx = _canvas.image_width() / 2;
+    double cy = _canvas.image_height() / 2;
     double baseAngle = _angle / 180.0 * PI;
 
     for (int i = 0; i < count; i++) {
@@ -146,10 +146,10 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Circles [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.imageWidth(),
-      _canvas.imageHeight(),
-      _countSlider.value(),
-      _canvas.averageRenderTime(),
+      _canvas.image_width(),
+      _canvas.image_height(),
+      _count_slider.value(),
+      _canvas.average_render_time(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

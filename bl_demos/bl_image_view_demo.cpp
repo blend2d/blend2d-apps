@@ -8,18 +8,18 @@ class MainWindow : public QWidget {
 
 public:
   // Widgets.
-  QLineEdit* _fileSelected {};
-  QPushButton* _fileSelectButton {};
-  QCheckBox* _animateCheck {};
-  QCheckBox* _backgroundCheck {};
-  QPushButton* _nextFrameButton {};
+  QLineEdit* _file_selected {};
+  QPushButton* _file_selected_button {};
+  QCheckBox* _animate_check_box {};
+  QCheckBox* _background_check_box {};
+  QPushButton* _next_frame_button {};
   QBLCanvas* _canvas {};
 
-  BLArray<uint8_t> _imageFileData;
-  BLImageDecoder _imageDecoder;
-  BLImageInfo _loadedImageInfo {};
-  BLImage _loadedImage;
-  BLString _errorMessage;
+  BLArray<uint8_t> _image_file_data;
+  BLImageDecoder _image_decoder;
+  BLImageInfo _loaded_image_info {};
+  BLImage _loaded_image;
+  BLString _error_message;
 
   QTimer _timer;
 
@@ -32,28 +32,28 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    _fileSelected = new QLineEdit("");
-    _fileSelectButton = new QPushButton("Select...");
-    _animateCheck = new QCheckBox("Animate");
-    _animateCheck->setChecked(true);
-    _backgroundCheck = new QCheckBox("White");
-    _nextFrameButton = new QPushButton("Next");
+    _file_selected = new QLineEdit("");
+    _file_selected_button = new QPushButton("Select...");
+    _animate_check_box = new QCheckBox("Animate");
+    _animate_check_box->setChecked(true);
+    _background_check_box = new QCheckBox("White");
+    _next_frame_button = new QPushButton("Next");
     _canvas = new QBLCanvas();
 
-    connect(_fileSelectButton, SIGNAL(clicked()), SLOT(selectFile()));
-    connect(_fileSelected, SIGNAL(textChanged(const QString&)), SLOT(fileChanged(const QString&)));
+    connect(_file_selected_button, SIGNAL(clicked()), SLOT(selectFile()));
+    connect(_file_selected, SIGNAL(textChanged(const QString&)), SLOT(fileChanged(const QString&)));
     connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
-    connect(_nextFrameButton, SIGNAL(clicked()), SLOT(onNextFrame()));
-    connect(_backgroundCheck, SIGNAL(clicked()), SLOT(onRedraw()));
+    connect(_next_frame_button, SIGNAL(clicked()), SLOT(onNextFrame()));
+    connect(_background_check_box, SIGNAL(clicked()), SLOT(onRedraw()));
 
-    _canvas->onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
+    _canvas->on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
 
     grid->addWidget(new QLabel("Image:"), 0, 0);
-    grid->addWidget(_fileSelected, 0, 1, 1, 3);
-    grid->addWidget(_fileSelectButton, 0, 4);
-    grid->addWidget(_animateCheck, 0, 5);
-    grid->addWidget(_backgroundCheck, 0, 6);
-    grid->addWidget(_nextFrameButton, 0, 7);
+    grid->addWidget(_file_selected, 0, 1, 1, 3);
+    grid->addWidget(_file_selected_button, 0, 4);
+    grid->addWidget(_animate_check_box, 0, 5);
+    grid->addWidget(_background_check_box, 0, 6);
+    grid->addWidget(_next_frame_button, 0, 7);
 
     vBox->addItem(grid);
     vBox->addWidget(_canvas);
@@ -67,50 +67,50 @@ public:
   void mouseReleaseEvent(QMouseEvent* event) override {}
   void mouseMoveEvent(QMouseEvent* event) override {}
 
-  bool createDecoder(const char* fileName) {
-    _imageFileData.reset();
-    _imageDecoder.reset();
-    _loadedImageInfo.reset();
-    _loadedImage.reset();
-    _errorMessage.clear();
+  bool create_decoder(const char* file_name) {
+    _image_file_data.reset();
+    _image_decoder.reset();
+    _loaded_image_info.reset();
+    _loaded_image.reset();
+    _error_message.clear();
 
-    if (BLFileSystem::readFile(fileName, _imageFileData) != BL_SUCCESS) {
-      _errorMessage.assign("Failed to read the file specified");
+    if (BLFileSystem::read_file(file_name, _image_file_data) != BL_SUCCESS) {
+      _error_message.assign("Failed to read the file specified");
       return false;
     }
 
     BLImageCodec codec;
-    if (codec.findByData(_imageFileData) != BL_SUCCESS) {
-      _errorMessage.assign("Failed to find a codec for the given file");
+    if (codec.find_by_data(_image_file_data) != BL_SUCCESS) {
+      _error_message.assign("Failed to find a codec for the given file");
       return false;
     }
 
-    if (codec.createDecoder(&_imageDecoder) != BL_SUCCESS) {
-      _errorMessage.assign("Failed to create a decoder for the given file");
+    if (codec.create_decoder(&_image_decoder) != BL_SUCCESS) {
+      _error_message.assign("Failed to create a decoder for the given file");
       return false;
     }
 
-    if (_imageDecoder.readInfo(_loadedImageInfo, _imageFileData) != BL_SUCCESS) {
-      _errorMessage.assign("Failed to read image information");
-      return false;
-    }
-
-    return true;
-  }
-
-  bool readFrame() {
-    if (_imageDecoder.readFrame(_loadedImage, _imageFileData) != BL_SUCCESS) {
-      _errorMessage.assign("Failed to decode the image");
+    if (_image_decoder.read_info(_loaded_image_info, _image_file_data) != BL_SUCCESS) {
+      _error_message.assign("Failed to read image information");
       return false;
     }
 
     return true;
   }
 
-  void loadImage(const char* fileName) {
-    if (createDecoder(fileName)) {
-      if (readFrame()) {
-        if (_loadedImageInfo.frameCount > 1u) {
+  bool read_frame() {
+    if (_image_decoder.read_frame(_loaded_image, _image_file_data) != BL_SUCCESS) {
+      _error_message.assign("Failed to decode the image");
+      return false;
+    }
+
+    return true;
+  }
+
+  void load_image(const char* file_name) {
+    if (create_decoder(file_name)) {
+      if (read_frame()) {
+        if (_loaded_image_info.frame_count > 1u) {
           _timer.start();
         }
       }
@@ -120,11 +120,11 @@ public:
   }
 
   Q_SLOT void selectFile() {
-    QString fileName = _fileSelected->text();
+    QString file_name = _file_selected->text();
     QFileDialog dialog(this);
 
-    if (!fileName.isEmpty())
-      dialog.setDirectory(QFileInfo(fileName).absoluteDir().path());
+    if (!file_name.isEmpty())
+      dialog.setDirectory(QFileInfo(file_name).absoluteDir().path());
 
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
@@ -132,26 +132,26 @@ public:
     dialog.setViewMode(QFileDialog::Detail);
 
     if (dialog.exec() == QDialog::Accepted) {
-      fileName = dialog.selectedFiles()[0];
-      _fileSelected->setText(fileName);
+      file_name = dialog.selectedFiles()[0];
+      _file_selected->setText(file_name);
     }
   }
 
   Q_SLOT void fileChanged(const QString&) {
-    QByteArray fileNameUtf8 = _fileSelected->text().toUtf8();
-    fileNameUtf8.append('\0');
+    QByteArray file_name_utf8 = _file_selected->text().toUtf8();
+    file_name_utf8.append('\0');
 
-    loadImage(fileNameUtf8.constData());
-    _canvas->updateCanvas();
+    load_image(file_name_utf8.constData());
+    _canvas->update_canvas();
   }
 
   Q_SLOT void onTimer() {
-    if (!_animateCheck->isChecked()) {
+    if (!_animate_check_box->isChecked()) {
       return;
     }
 
-    if (readFrame()) {
-      _canvas->updateCanvas();
+    if (read_frame()) {
+      _canvas->update_canvas();
     }
     else {
       _timer.stop();
@@ -159,38 +159,38 @@ public:
   }
 
   Q_SLOT void onNextFrame() {
-    if (_loadedImageInfo.frameCount > 1u) {
-      if (readFrame()) {
-        _canvas->updateCanvas();
+    if (_loaded_image_info.frame_count > 1u) {
+      if (read_frame()) {
+        _canvas->update_canvas();
       }
     }
   }
 
   Q_SLOT void onRedraw() {
-    _canvas->updateCanvas();
+    _canvas->update_canvas();
   }
 
-  void onRenderB2D(BLContext& ctx) noexcept {
-    BLRgba32 background = _backgroundCheck->isChecked() ? BLRgba32(0xFFFFFFFFu) : BLRgba32(0xFF000000u);
+  void on_render_blend2d(BLContext& ctx) noexcept {
+    BLRgba32 background = _background_check_box->isChecked() ? BLRgba32(0xFFFFFFFFu) : BLRgba32(0xFF000000u);
 
-    ctx.fillAll(background);
-    ctx.blitImage(BLPointI(0, 0), _loadedImage);
+    ctx.fill_all(background);
+    ctx.blit_image(BLPointI(0, 0), _loaded_image);
   }
 
   void _updateTitle() {
     BLString s;
 
-    if (!_errorMessage.empty()) {
-      s.assignFormat("Load ERROR=%s", _errorMessage.data());
+    if (!_error_message.is_empty()) {
+      s.assign_format("Load ERROR=%s", _error_message.data());
     }
     else {
-      s.assignFormat("Image Size=[%dx%d] Format=%s Depth=%u Compression=%s Frames=%llu",
-        _loadedImage.width(),
-        _loadedImage.height(),
-        _loadedImageInfo.format,
-        _loadedImageInfo.depth,
-        _loadedImageInfo.compression,
-        (unsigned long long)_loadedImageInfo.frameCount);
+      s.assign_format("Image Size=[%dx%d] Format=%s Depth=%u Compression=%s Frames=%llu",
+        _loaded_image.width(),
+        _loaded_image.height(),
+        _loaded_image_info.format,
+        _loaded_image_info.depth,
+        _loaded_image_info.compression,
+        (unsigned long long)_loaded_image_info.frame_count);
     }
 
     setWindowTitle(QString::fromUtf8(s.data()));

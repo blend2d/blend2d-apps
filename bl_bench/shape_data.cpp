@@ -8,58 +8,63 @@
 /*
 // The following code can be used to dump any BLPath to a data compatible with shape data.
 static void dumpShapeData(const BLPath& p) noexcept {
-  BLString commandString;
-  BLString vectorString;
+  BLString command_string;
+  BLString vector_string;
 
   BLPathView view = p.view();
   size_t size = view.size;
-  const uint8_t* commandData = view.commandData;
-  const BLPoint* vertexData = view.vertexData;
+  const uint8_t* command_data = view.command_data;
+  const BLPoint* vertex_data = view.vertex_data;
 
   size_t i = 0;
   while (i < size) {
-    uint8_t cmd = commandData[i];
+    uint8_t cmd = command_data[i];
 
     switch (cmd) {
       case BL_PATH_CMD_MOVE:
       case BL_PATH_CMD_ON:
-        commandString.append(cmd == BL_PATH_CMD_MOVE ? 'M' : 'L');
+        command_string.append(cmd == BL_PATH_CMD_MOVE ? 'M' : 'L');
 
-        if (!vectorString.empty())
-          vectorString.append(",\n");
-        vectorString.appendFormat("  %f, %f",
-          vertexData[i].x, vertexData[i].y);
+        if (!vector_string.empty()) {
+          vector_string.append(",\n");
+        }
+
+        vector_string.append_format("  %f, %f",
+          vertex_data[i].x, vertex_data[i].y);
 
         i += 1;
         break;
 
       case BL_PATH_CMD_QUAD:
-        commandString.append('Q');
+        command_string.append('Q');
 
-        if (!vectorString.empty())
-          vectorString.append(",\n");
-        vectorString.appendFormat("  %f, %f, %f, %f",
-          vertexData[i + 0].x, vertexData[i + 0].y,
-          vertexData[i + 1].x, vertexData[i + 1].y);
+        if (!vector_string.empty()) {
+          vector_string.append(",\n");
+        }
+
+        vector_string.append_format("  %f, %f, %f, %f",
+          vertex_data[i + 0].x, vertex_data[i + 0].y,
+          vertex_data[i + 1].x, vertex_data[i + 1].y);
 
         i += 2;
         break;
 
       case BL_PATH_CMD_CUBIC:
-        if (!vectorString.empty())
-          vectorString.append(",\n");
+        if (!vector_string.empty()) {
+          vector_string.append(",\n");
+        }
 
-        commandString.append('C');
-        vectorString.appendFormat("  %f, %f, %f, %f, %f, %f",
-          vertexData[i + 0].x, vertexData[i + 0].y,
-          vertexData[i + 1].x, vertexData[i + 1].y,
-          vertexData[i + 2].x, vertexData[i + 2].y);
+        command_string.append('C');
+        vector_string.append_format("  %f, %f, %f, %f, %f, %f",
+          vertex_data[i + 0].x, vertex_data[i + 0].y,
+          vertex_data[i + 1].x, vertex_data[i + 1].y,
+          vertex_data[i + 2].x, vertex_data[i + 2].y);
 
         i += 3;
         break;
 
       case BL_PATH_CMD_CLOSE:
-        commandString.append("Z");
+        command_string.append("Z");
 
         i += 1;
         break;
@@ -67,8 +72,8 @@ static void dumpShapeData(const BLPath& p) noexcept {
   }
 
   BLString data;
-  data.appendFormat("constexpr char commands[] =\n  \"%s\";\n", commandString.data());
-  data.appendFormat("constexpr double vertices[] = {\n%s\n};\n", vectorString.data());
+  data.append_format("constexpr char commands[] =\n  \"%s\";\n", command_string.data());
+  data.append_format("constexpr double vertices[] = {\n%s\n};\n", vector_string.data());
 
   printf("%s\n", data.data());
 }
@@ -79,10 +84,10 @@ static void dumpShapeData(const BLPath& p) noexcept {
 namespace blbench {
 
 // Public domain.
-constexpr char butterflyCommands[] =
+constexpr char butterfly_commands[] =
   "MCCCCCCLCCCCCCCCCCCCCCCCCCLLCCCCCCCCCCCCCCLLLCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCLCCLCCCCCCCCCCCCCCCCCCCCCCCCCCCCLCCCCCCCCCCCCCCLLCCCCCCCCCCCCCCCCCCCCZ";
 
-constexpr double butterflyVertices[] = {
+constexpr double butterfly_vertices[] = {
   0.996537, 0.064954,
   0.993752, 0.050263, 0.989116, 0.037814, 0.982760, 0.027953,
   0.976193, 0.017700, 0.966729, 0.009674, 0.956111, 0.005354,
@@ -240,10 +245,10 @@ constexpr double butterflyVertices[] = {
 };
 
 // Public domain.
-constexpr char fishCommands[] =
+constexpr char fish_commands[] =
   "MCCCCCCCCCCCCCCZMCCCCCCCCCCCCCCCCCCCCCCCLLZMCCCCCCCCCCCCCCCCCCCCCCCLLCZMCCCZMCCCCCCCZMCCCCCCZMCCCZMCCCCCZMCCCCCCZMCCCCCCCZMCCCCLLCCLLCCCZMCCLLCZMCCCCLLCCZMCCCCCZMLLCCLLCCZMCCCCCZMCCCCZMCCCLLCCCCZMCLLLLCCZMCCCCCCZMCCCCCCZMCCCLLCZMCCCCCZMCCCCCCCZMCCCCCCCZMCCCCLLCZMCCCCCCCCCZMCCCCCCCZMCCCCCCZMCCCCCCCZMCCCCCZMCCCCZMCLLCCCZMCCCCCZMCCLLZMCCCCCZMCCCCZMCCCCZ";
 
-constexpr double fishVertices[] = {
+constexpr double fish_vertices[] = {
   0.437004, 0.847854,
   0.428891, 0.844338, 0.405683, 0.812911, 0.399583, 0.797114,
   0.396960, 0.790304, 0.358929, 0.754357, 0.347127, 0.747547,
@@ -561,10 +566,10 @@ constexpr double fishVertices[] = {
 };
 
 // Extracted from: https://llvm.org/Logo.html (old logo).
-constexpr char dragonCommands[] =
+constexpr char dragon_commands[] =
   "MLCCCCLCCCLCCCCCCCCCLCLCCCCCCCCLCCCLCCCCCCCCLLCCCLCCCCCCCCCCCCLCCCCCCCCCCCCCCCCCCCCCCCLLCLLCCCLLCCCCCLCLCCCLCCCCCCCCCLCCCCCCCLCCCCCLCCCCCCCCCCCCCCLLLCCCCCCLCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCLLCCLCLCCCCCCLLLCCCLCLLCLLCCCCCCLCLLLCCCCCCLLCCCCLLCCCLCCCCCCLLLCCCCCCLCLCCCCCCCCLLCLLCCLCCCCCCCCCLCCCCLCCCCCLCCZMCLZMCLCCLZMCLLCLCCLCCCZ";
 
-constexpr double dragonVertices[] = {
+constexpr double dragon_vertices[] = {
   0.867886, 0.000277,
   0.864345, 0.005538,
   0.846621, 0.031677, 0.830066, 0.059176, 0.814765, 0.087893,
@@ -893,10 +898,10 @@ constexpr double dragonVertices[] = {
 };
 
 // Public domain.
-constexpr char worldCommands[] =
+constexpr char world_commands[] =
   "MLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLLLLLLLLZMLLLLLLLLLLLLLLZ";
 
-constexpr double worldVertices[] = {
+constexpr double world_vertices[] = {
   0.442757, 0.379556,
   0.438444, 0.387420,
   0.435571, 0.391353,
@@ -2017,30 +2022,30 @@ constexpr double worldVertices[] = {
   0.157360, 0.197656
 };
 
-bool getShapeData(ShapeData& dst, ShapeKind kind) {
+bool get_shape_data(ShapeData& dst, ShapeKind kind) {
   switch (kind) {
     case ShapeKind::kButterfly:
-      dst.size = sizeof(butterflyCommands) - 1;
-      dst.commands = butterflyCommands;
-      dst.vertices = reinterpret_cast<const BLPoint*>(butterflyVertices);
+      dst.size = sizeof(butterfly_commands) - 1;
+      dst.commands = butterfly_commands;
+      dst.vertices = reinterpret_cast<const BLPoint*>(butterfly_vertices);
       return true;
 
     case ShapeKind::kFish:
-      dst.size = sizeof(fishCommands) - 1;
-      dst.commands = fishCommands;
-      dst.vertices = reinterpret_cast<const BLPoint*>(fishVertices);
+      dst.size = sizeof(fish_commands) - 1;
+      dst.commands = fish_commands;
+      dst.vertices = reinterpret_cast<const BLPoint*>(fish_vertices);
       return true;
 
     case ShapeKind::kDragon:
-      dst.size = sizeof(dragonCommands) - 1;
-      dst.commands = dragonCommands;
-      dst.vertices = reinterpret_cast<const BLPoint*>(dragonVertices);
+      dst.size = sizeof(dragon_commands) - 1;
+      dst.commands = dragon_commands;
+      dst.vertices = reinterpret_cast<const BLPoint*>(dragon_vertices);
       return true;
 
     case ShapeKind::kWorld:
-      dst.size = sizeof(worldCommands) - 1;
-      dst.commands = worldCommands;
-      dst.vertices = reinterpret_cast<const BLPoint*>(worldVertices);
+      dst.size = sizeof(world_commands) - 1;
+      dst.commands = world_commands;
+      dst.vertices = reinterpret_cast<const BLPoint*>(world_vertices);
       return true;
 
     default:

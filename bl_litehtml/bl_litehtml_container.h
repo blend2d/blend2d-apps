@@ -42,9 +42,9 @@ public:
   BLSizeI _viewportSize {};
   BLPointI _viewportPosition {};
 
-  uint32_t _renderTimeCount {};
-  uint32_t _renderTimeIndex = 31;
-  double _renderTime[32] {};
+  uint32_t _render_timeCount {};
+  uint32_t _render_timeIndex = 31;
+  double _render_time[32] {};
 
   BLLiteHtmlDocument();
   ~BLLiteHtmlDocument() noexcept;
@@ -71,7 +71,7 @@ public:
   //! \name Performance
   //! \{
 
-  inline double lastFrameDuration() const noexcept { return _renderTime[_renderTimeIndex]; }
+  inline double lastFrameDuration() const noexcept { return _render_time[_render_timeIndex]; }
   double averageFrameDuration() const noexcept;
 
   //! \}

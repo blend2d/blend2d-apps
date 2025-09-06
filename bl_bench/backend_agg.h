@@ -10,7 +10,7 @@
 
 namespace blbench {
 
-Backend* createAggBackend();
+Backend* create_agg_backend();
 
 } // {blbench}
 

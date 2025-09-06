@@ -17,11 +17,11 @@ class MainWindow : public QWidget {
 
 public:
   QTimer _timer;
-  QComboBox _rendererSelect;
-  QCheckBox _limitFpsCheck;
-  QCheckBox _colorsCheck;
-  QSlider _countSlider;
-  QSlider _rotationSlider;
+  QComboBox _renderer_select;
+  QCheckBox _limit_fps_check;
+  QCheckBox _colors_check_box;
+  QSlider _count_slider;
+  QSlider _rotation_slider;
   QBLCanvas _canvas;
 
   BLRandom _rnd;
@@ -29,7 +29,7 @@ public:
 
   bool _animate = true;
   int maxAge = 650;
-  double radiusScale = 6;
+  double radius_scale = 6;
 
   enum { kCategoryCount = 8 };
   BLRgba32 colors[kCategoryCount] = {
@@ -52,37 +52,37 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
-    _colorsCheck.setText(QLatin1String("Colors"));
+    QBLCanvas::init_renderer_select_box(&_renderer_select);
+    _limit_fps_check.setText(QLatin1String("Limit FPS"));
+    _colors_check_box.setText(QLatin1String("Colors"));
 
-    _countSlider.setMinimum(0);
-    _countSlider.setMaximum(5000);
-    _countSlider.setValue(500);
-    _countSlider.setOrientation(Qt::Horizontal);
+    _count_slider.setMinimum(0);
+    _count_slider.setMaximum(5000);
+    _count_slider.setValue(500);
+    _count_slider.setOrientation(Qt::Horizontal);
 
-    _rotationSlider.setMinimum(0);
-    _rotationSlider.setMaximum(1000);
-    _rotationSlider.setValue(100);
-    _rotationSlider.setOrientation(Qt::Horizontal);
+    _rotation_slider.setMinimum(0);
+    _rotation_slider.setMaximum(1000);
+    _rotation_slider.setValue(100);
+    _rotation_slider.setOrientation(Qt::Horizontal);
 
-    connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
-    connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
+    connect(&_renderer_select, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
+    connect(&_limit_fps_check, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
-    grid->addWidget(&_rendererSelect, 0, 1);
-    grid->addWidget(&_colorsCheck, 0, 2);
+    grid->addWidget(&_renderer_select, 0, 1);
+    grid->addWidget(&_colors_check_box, 0, 2);
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 3);
-    grid->addWidget(&_limitFpsCheck, 0, 4, Qt::AlignRight);
+    grid->addWidget(&_limit_fps_check, 0, 4, Qt::AlignRight);
 
     grid->addWidget(new QLabel("Count:"), 1, 0, Qt::AlignRight);
-    grid->addWidget(&_countSlider, 1, 1, 1, 5);
+    grid->addWidget(&_count_slider, 1, 1, 1, 5);
 
     grid->addWidget(new QLabel("Rotation:"), 2, 0, Qt::AlignRight);
-    grid->addWidget(&_rotationSlider, 2, 1, 1, 5);
+    grid->addWidget(&_rotation_slider, 2, 1, 1, 5);
 
-    _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
-    _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
+    _canvas.on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
+    _canvas.on_render_qt = std::bind(&MainWindow::on_render_qt, this, std::placeholders::_1);
 
     vBox->addItem(grid);
     vBox->addWidget(&_canvas);
@@ -100,12 +100,12 @@ public:
 
   void onInit() {
     _rnd.reset(1234);
-    _limitFpsCheck.setChecked(true);
+    _limit_fps_check.setChecked(true);
     _updateTitle();
   }
 
   Q_SLOT void onToggleAnimate() { _animate = !_animate; }
-  Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
+  Q_SLOT void onRendererChanged(int index) { _canvas.set_renderer_type(_renderer_select.itemData(index).toInt()); }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
@@ -114,84 +114,84 @@ public:
       size_t j = 0;
       size_t count = _particles.size();
 
-      double rot = double(_rotationSlider.value()) * 0.02 / 1000;
+      double rot = double(_rotation_slider.value()) * 0.02 / 1000;
       double PI = 3.14159265359;
-      BLMatrix2D m = BLMatrix2D::makeRotation(rot);
+      BLMatrix2D m = BLMatrix2D::make_rotation(rot);
 
       while (i < count) {
         Particle& p = _particles[i++];
         p.p += p.v;
-        p.v = m.mapPoint(p.v);
+        p.v = m.map_point(p.v);
         if (++p.age >= maxAge)
           continue;
         _particles[j++] = p;
       }
       _particles.resize(j);
 
-      size_t maxParticles = size_t(_countSlider.value());
-      size_t n = size_t(_rnd.nextDouble() * maxParticles / 60 + 0.95);
+      size_t maxParticles = size_t(_count_slider.value());
+      size_t n = size_t(_rnd.next_double() * maxParticles / 60 + 0.95);
 
       for (i = 0; i < n; i++) {
         if (_particles.size() >= maxParticles)
           break;
 
-        double angle = _rnd.nextDouble() * PI * 2.0;
-        double speed = blMax(_rnd.nextDouble() * 2.0, 0.05);
+        double angle = _rnd.next_double() * PI * 2.0;
+        double speed = bl_max(_rnd.next_double() * 2.0, 0.05);
         double aSin = std::sin(angle);
         double aCos = std::cos(angle);
 
         Particle part;
         part.p.reset();
         part.v.reset(aCos * speed, aSin * speed);
-        part.age = int(blMin(_rnd.nextDouble(), 0.5) * maxAge);
-        part.category = int(_rnd.nextDouble() * kCategoryCount);
+        part.age = int(bl_min(_rnd.next_double(), 0.5) * maxAge);
+        part.category = int(_rnd.next_double() * kCategoryCount);
         _particles.push_back(part);
       }
     }
 
-    _canvas.updateCanvas(true);
+    _canvas.update_canvas(true);
     _updateTitle();
   }
 
-  void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.fillAll(BLRgba32(0xFF000000u));
+  void on_render_blend2d(BLContext& ctx) noexcept {
+    ctx.fill_all(BLRgba32(0xFF000000u));
 
-    double cx = _canvas.imageWidth() / 2;
-    double cy = _canvas.imageHeight() / 2;
+    double cx = _canvas.image_width() / 2;
+    double cy = _canvas.image_height() / 2;
 
-    if (_colorsCheck.isChecked()) {
+    if (_colors_check_box.isChecked()) {
       BLPath paths[kCategoryCount];
 
       for (Particle& part : _particles) {
-        paths[part.category].addCircle(BLCircle(cx + part.p.x, cy + part.p.y, double(maxAge - part.age) / double(maxAge) * radiusScale));
+        paths[part.category].add_circle(BLCircle(cx + part.p.x, cy + part.p.y, double(maxAge - part.age) / double(maxAge) * radius_scale));
       }
 
-      ctx.setCompOp(BL_COMP_OP_PLUS);
+      ctx.set_comp_op(BL_COMP_OP_PLUS);
       for (size_t i = 0; i < kCategoryCount; i++) {
-        ctx.fillPath(paths[i], colors[i]);
+        ctx.fill_path(paths[i], colors[i]);
       }
     }
     else {
       BLPath path;
       for (Particle& part : _particles) {
-        path.addCircle(BLCircle(cx + part.p.x, cy + part.p.y, double(maxAge - part.age) / double(maxAge) * radiusScale));
+        path.add_circle(BLCircle(cx + part.p.x, cy + part.p.y, double(maxAge - part.age) / double(maxAge) * radius_scale));
       }
-      ctx.fillPath(path, BLRgba32(0xFFFFFFFFu));
+      ctx.fill_path(path, BLRgba32(0xFFFFFFFFu));
     }
   }
 
-  void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
+  void on_render_qt(QPainter& ctx) noexcept {
+    ctx.fillRect(0, 0, _canvas.image_width(), _canvas.image_height(), QColor(0, 0, 0));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
-    double cx = _canvas.imageWidth() / 2;
-    double cy = _canvas.imageHeight() / 2;
+    double cx = _canvas.image_width() / 2;
+    double cy = _canvas.image_height() / 2;
 
-    if (_colorsCheck.isChecked()) {
+    if (_colors_check_box.isChecked()) {
       QPainterPath paths[kCategoryCount];
 
       for (Particle& part : _particles) {
-        double r = double(maxAge - part.age) / double(maxAge) * radiusScale;
+        double r = double(maxAge - part.age) / double(maxAge) * radius_scale;
         double d = r * 2.0;
         paths[part.category].addEllipse(cx + part.p.x - r, cy + part.p.y - r, d, d);
       }
@@ -199,7 +199,7 @@ public:
       ctx.setCompositionMode(QPainter::CompositionMode_Plus);
       for (size_t i = 0; i < kCategoryCount; i++) {
         paths[i].setFillRule(Qt::WindingFill);
-        ctx.fillPath(paths[i], QBrush(blRgbaToQColor(colors[i])));
+        ctx.fillPath(paths[i], QBrush(bl_rgba_to_qcolor(colors[i])));
       }
     }
     else {
@@ -207,7 +207,7 @@ public:
       p.setFillRule(Qt::WindingFill);
 
       for (Particle& part : _particles) {
-        double r = double(maxAge - part.age) / double(maxAge) * radiusScale;
+        double r = double(maxAge - part.age) / double(maxAge) * radius_scale;
         double d = r * 2.0;
         p.addEllipse(cx + part.p.x - r, cy + part.p.y - r, d, d);
       }
@@ -219,10 +219,10 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Particles [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.imageWidth(),
-      _canvas.imageHeight(),
+      _canvas.image_width(),
+      _canvas.image_height(),
       int(_particles.size()),
-      _canvas.averageRenderTime(),
+      _canvas.average_render_time(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

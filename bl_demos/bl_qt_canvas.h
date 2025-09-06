@@ -14,9 +14,9 @@ class QBLCanvas : public QWidget {
   Q_OBJECT
 
 public:
-  QImage qtImage;
-  QImage qtImageNonScaling;
-  BLImage blImage;
+  QImage qt_image;
+  QImage qt_image_non_scaling;
+  BLImage bl_image;
 
   enum RendererType : uint32_t {
     RendererBlend2D = 0,
@@ -30,19 +30,19 @@ public:
     RendererQt = 0xFF
   };
 
-  uint32_t _rendererType {};
+  uint32_t _renderer_type {};
   bool _dirty {};
   double _fps {};
-  uint32_t _frameCount {};
-  QElapsedTimer _elapsedTimer;
+  uint32_t _frame_count {};
+  QElapsedTimer _elapsed_timer;
 
-  size_t _renderedFrames {};
-  size_t _renderTimePos = 31;
-  double _renderTime[32] {};
+  size_t _rendered_frames {};
+  size_t _render_time_pos = 31;
+  double _render_time[32] {};
 
-  std::function<void(BLContext& ctx)> onRenderB2D;
-  std::function<void(QPainter& ctx)> onRenderQt;
-  std::function<void(QMouseEvent*)> onMouseEvent;
+  std::function<void(BLContext& ctx)> on_render_blend2d;
+  std::function<void(QPainter& ctx)> on_render_qt;
+  std::function<void(QMouseEvent*)> on_mouse_event;
 
   QBLCanvas();
   ~QBLCanvas();
@@ -54,36 +54,36 @@ public:
   void mouseReleaseEvent(QMouseEvent* event) override;
   void mouseMoveEvent(QMouseEvent* event) override;
 
-  void setRendererType(uint32_t rendererType);
-  void updateCanvas(bool force = false);
-  void _resizeCanvas();
-  void _renderCanvas();
-  void _afterRender();
+  void set_renderer_type(uint32_t renderer_type);
+  void update_canvas(bool force = false);
+  void _resize_canvas();
+  void _render_canvas();
+  void _after_render();
 
-  inline BLSizeI imageSize() const { return blImage.size(); }
-  inline int imageWidth() const { return blImage.width(); }
-  inline int imageHeight() const { return blImage.height(); }
+  inline BLSizeI image_size() const { return bl_image.size(); }
+  inline int image_width() const { return bl_image.width(); }
+  inline int image_height() const { return bl_image.height(); }
 
-  inline uint32_t rendererType() const { return _rendererType; }
+  inline uint32_t renderer_type() const { return _renderer_type; }
   inline double fps() const { return _fps; }
 
-  double lastRenderTime() const;
-  double averageRenderTime() const;
+  double last_render_time() const;
+  double average_render_time() const;
 
-  static void initRendererSelectBox(QComboBox* dst, bool blend2DOnly = false);
-  static QString rendererTypeToString(uint32_t rendererType);
+  static void init_renderer_select_box(QComboBox* dst, bool blend2d_only = false);
+  static QString renderer_type_to_string(uint32_t renderer_type);
 };
 
-static BL_INLINE QColor blRgbaToQColor(const BLRgba32& rgba) noexcept {
+static BL_INLINE QColor bl_rgba_to_qcolor(const BLRgba32& rgba) noexcept {
   return QColor(rgba.r(), rgba.g(), rgba.b(), rgba.a());
 }
 
-static BL_INLINE QColor blRgbaToQColor(const BLRgba64& rgba) noexcept {
+static BL_INLINE QColor bl_rgba_to_qcolor(const BLRgba64& rgba) noexcept {
   return QColor(QRgba64::fromRgba64(uint16_t(rgba.r()), uint16_t(rgba.g()), uint16_t(rgba.b()), uint16_t(rgba.a())));
 }
 
-static BL_INLINE QPainter::CompositionMode blCompOpToQPainterCompositionMode(BLCompOp compOp) {
-  switch (compOp) {
+static BL_INLINE QPainter::CompositionMode bl_comp_op_to_qt_composition_mode(BLCompOp comp_op) {
+  switch (comp_op) {
     default:
     case BL_COMP_OP_SRC_OVER   : return QPainter::CompositionMode_SourceOver;
     case BL_COMP_OP_SRC_COPY   : return QPainter::CompositionMode_Source;
@@ -112,8 +112,8 @@ static BL_INLINE QPainter::CompositionMode blCompOpToQPainterCompositionMode(BLC
   }
 }
 
-static inline BLRgba32 blBackgroundForCompOp(BLCompOp compOp) noexcept {
-  switch (compOp) {
+static inline BLRgba32 bl_background_for_comp_op(BLCompOp comp_op) noexcept {
+  switch (comp_op) {
     case BL_COMP_OP_SRC_OVER   : return BLRgba32(0xFF000000);
     case BL_COMP_OP_SRC_COPY   : return BLRgba32(0xFF000000);
     case BL_COMP_OP_SRC_IN     : return BLRgba32(0xFFFFFFFF);

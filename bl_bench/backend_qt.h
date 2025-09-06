@@ -10,7 +10,7 @@
 
 namespace blbench {
 
-Backend* createQtBackend();
+Backend* create_qt_backend();
 
 } // {blbench}
 

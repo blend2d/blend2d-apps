@@ -10,7 +10,7 @@
 
 namespace blbench {
 
-Backend* createCairoBackend();
+Backend* create_cairo_backend();
 
 } // {blbench}
 

@@ -9,9 +9,9 @@ class MainWindow : public QWidget {
 public:
   QTimer _timer;
   QBLCanvas _canvas;
-  QComboBox _rendererSelect;
-  QComboBox _styleSelect;
-  QCheckBox _limitFpsCheck;
+  QComboBox _renderer_select;
+  QComboBox _style_select;
+  QCheckBox _limit_fps_check;
 
   bool _animate = true;
   double _time {};
@@ -33,29 +33,29 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
+    QBLCanvas::init_renderer_select_box(&_renderer_select);
+    _limit_fps_check.setText(QLatin1String("Limit FPS"));
 
-    _styleSelect.addItem("Solid Color", QVariant(int(StyleId::kSolid)));
-    _styleSelect.addItem("Linear Gradient", QVariant(int(StyleId::kLinear)));
-    _styleSelect.addItem("Radial Gradient", QVariant(int(StyleId::kRadial)));
-    _styleSelect.addItem("Conic Gradient", QVariant(int(StyleId::kConic)));
-    _styleSelect.setCurrentIndex(1);
+    _style_select.addItem("Solid Color", QVariant(int(StyleId::kSolid)));
+    _style_select.addItem("Linear Gradient", QVariant(int(StyleId::kLinear)));
+    _style_select.addItem("Radial Gradient", QVariant(int(StyleId::kRadial)));
+    _style_select.addItem("Conic Gradient", QVariant(int(StyleId::kConic)));
+    _style_select.setCurrentIndex(1);
 
-    connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
-    connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
+    connect(&_renderer_select, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
+    connect(&_limit_fps_check, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
-    grid->addWidget(&_rendererSelect, 0, 1);
+    grid->addWidget(&_renderer_select, 0, 1);
 
     grid->addWidget(new QLabel("Style:"), 0, 2);
-    grid->addWidget(&_styleSelect, 0, 3);
+    grid->addWidget(&_style_select, 0, 3);
 
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 4);
-    grid->addWidget(&_limitFpsCheck, 0, 5, Qt::AlignRight);
+    grid->addWidget(&_limit_fps_check, 0, 5, Qt::AlignRight);
 
-    _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
-    _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
+    _canvas.on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
+    _canvas.on_render_qt = std::bind(&MainWindow::on_render_qt, this, std::placeholders::_1);
 
     vBox->addItem(grid);
     vBox->addWidget(&_canvas);
@@ -74,12 +74,12 @@ public:
   void onInit() {
     _time = 0;
     _count = 0;
-    _limitFpsCheck.setChecked(true);
+    _limit_fps_check.setChecked(true);
     _updateTitle();
   }
 
   Q_SLOT void onToggleAnimate() { _animate = !_animate; }
-  Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
+  Q_SLOT void onRendererChanged(int index) { _canvas.set_renderer_type(_renderer_select.itemData(index).toInt()); }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
   Q_SLOT void onTimer() {
@@ -88,13 +88,13 @@ public:
     }
 
     _updateTitle();
-    _canvas.updateCanvas(true);
+    _canvas.update_canvas(true);
   }
 
-  inline StyleId getStyleId() const noexcept { return StyleId(_styleSelect.currentData().toInt()); }
+  inline StyleId getStyleId() const noexcept { return StyleId(_style_select.currentData().toInt()); }
 
-  void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.fillAll(BLRgba32(0xFF000000));
+  void on_render_blend2d(BLContext& ctx) noexcept {
+    ctx.fill_all(BLRgba32(0xFF000000));
 
     StyleId styleId = getStyleId();
     double kMarginSize = 7;
@@ -102,8 +102,8 @@ public:
     double kFullSize = kSquareSize + kMarginSize * 2.0;
     double kHalfSize = kFullSize / 2.0;
 
-    int w = (_canvas.imageWidth() + kFullSize - 1) / kFullSize;
-    int h = (_canvas.imageHeight() + kFullSize - 1) / kFullSize;
+    int w = (_canvas.image_width() + kFullSize - 1) / kFullSize;
+    int h = (_canvas.image_height() + kFullSize - 1) / kFullSize;
 
     int count = w * h;
     _count = count;
@@ -121,16 +121,16 @@ public:
       case StyleId::kSolid:
         break;
       case StyleId::kLinear:
-        gr.setType(BL_GRADIENT_TYPE_LINEAR);
-        gr.setValues(BLLinearGradientValues(0, kMarginSize, 0, kMarginSize + kSquareSize));
+        gr.set_type(BL_GRADIENT_TYPE_LINEAR);
+        gr.set_values(BLLinearGradientValues(0, kMarginSize, 0, kMarginSize + kSquareSize));
         break;
       case StyleId::kRadial:
-        gr.setType(BL_GRADIENT_TYPE_RADIAL);
-        gr.setValues(BLRadialGradientValues(kHalfSize, kHalfSize, kHalfSize, kHalfSize - 15, kHalfSize));
+        gr.set_type(BL_GRADIENT_TYPE_RADIAL);
+        gr.set_values(BLRadialGradientValues(kHalfSize, kHalfSize, kHalfSize, kHalfSize - 15, kHalfSize));
         break;
       case StyleId::kConic:
-        gr.setType(BL_GRADIENT_TYPE_CONIC);
-        gr.setValues(BLConicGradientValues(kHalfSize, kHalfSize, M_PI / -2.0, 1.0));
+        gr.set_type(BL_GRADIENT_TYPE_CONIC);
+        gr.set_values(BLConicGradientValues(kHalfSize, kHalfSize, M_PI / -2.0, 1.0));
         break;
     }
 
@@ -140,7 +140,7 @@ public:
 
       double dur = (now - start) + (i * 50);
       double pos = fmod(dur, 3000.0) / 3000.0;
-      double bouncePos = blAbs(pos * 2 - 1);
+      double bouncePos = bl_abs(pos * 2 - 1);
       double r = (bouncePos * 50 + 50) / 100;
       double b = ((1 - bouncePos) * 50) / 100;
 
@@ -150,41 +150,41 @@ public:
       ctx.rotate(rotation, x + kHalfSize, y + kHalfSize);
       ctx.translate(x, y);
 
-      BLRoundRect roundRect(kMarginSize, kMarginSize, kSquareSize, kSquareSize, radius, radius);
+      BLRoundRect round_rect(kMarginSize, kMarginSize, kSquareSize, kSquareSize, radius, radius);
 
       switch (styleId) {
         case StyleId::kSolid: {
-          ctx.fillRoundRect(roundRect, BLRgba32(int(r * 255), 0, int(b * 255)));
+          ctx.fill_round_rect(round_rect, BLRgba32(int(r * 255), 0, int(b * 255)));
           break;
         }
 
         case StyleId::kLinear:
         case StyleId::kRadial: {
-          gr.resetStops();
-          gr.addStop(0, BLRgba32(0xFFFF7F00u));
-          gr.addStop(1, BLRgba32(int(r * 255), 0, int(b * 255)));
-          ctx.fillRoundRect(roundRect, gr);
+          gr.reset_stops();
+          gr.add_stop(0, BLRgba32(0xFFFF7F00u));
+          gr.add_stop(1, BLRgba32(int(r * 255), 0, int(b * 255)));
+          ctx.fill_round_rect(round_rect, gr);
           break;
         }
 
         case StyleId::kConic: {
-          gr.resetStops();
-          gr.addStop(0.0, BLRgba32(0xFFFF7F00u));
-          gr.addStop(0.5, BLRgba32(int(r * 255), 0, int(b * 255)));
-          gr.addStop(1.0, BLRgba32(0xFFFF7F00u));
-          ctx.fillRoundRect(roundRect, gr);
+          gr.reset_stops();
+          gr.add_stop(0.0, BLRgba32(0xFFFF7F00u));
+          gr.add_stop(0.5, BLRgba32(int(r * 255), 0, int(b * 255)));
+          gr.add_stop(1.0, BLRgba32(0xFFFF7F00u));
+          ctx.fill_round_rect(round_rect, gr);
           break;
         }
       }
 
-      ctx.resetTransform();
+      ctx.reset_transform();
 
       if (++ix >= w) { ix = 0; iy++; }
     }
   }
 
-  void onRenderQt(QPainter& ctx) noexcept {
-    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0));
+  void on_render_qt(QPainter& ctx) noexcept {
+    ctx.fillRect(0, 0, _canvas.image_width(), _canvas.image_height(), QColor(0, 0, 0));
 
     ctx.setRenderHint(QPainter::Antialiasing, true);
     ctx.setPen(Qt::NoPen);
@@ -195,8 +195,8 @@ public:
     double kFullSize = kSquareSize + kMarginSize * 2.0;
     double kHalfSize = kFullSize / 2.0;
 
-    int w = (_canvas.imageWidth() + kFullSize - 1) / kFullSize;
-    int h = (_canvas.imageHeight() + kFullSize - 1) / kFullSize;
+    int w = (_canvas.image_width() + kFullSize - 1) / kFullSize;
+    int h = (_canvas.image_height() + kFullSize - 1) / kFullSize;
 
     int count = w * h;
     _count = count;
@@ -213,7 +213,7 @@ public:
 
       double dur = (now - start) + (i * 50);
       double pos = fmod(dur, 3000.0) / 3000.0;
-      double bouncePos = blAbs(pos * 2 - 1);
+      double bouncePos = bl_abs(pos * 2 - 1);
       double r = (bouncePos * 50 + 50) / 100;
       double b = ((1 - bouncePos) * 50) / 100;
 
@@ -271,10 +271,10 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Bounces [%dx%d] [Count=%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.imageWidth(),
-      _canvas.imageHeight(),
+      _canvas.image_width(),
+      _canvas.image_height(),
       _count,
-      _canvas.averageRenderTime(),
+      _canvas.average_render_time(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

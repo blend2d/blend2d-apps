@@ -16,8 +16,8 @@ class BLLiteHtmlView : public QAbstractScrollArea {
   Q_OBJECT
 
 public:
-  QImage qtImage;
-  BLImage blImage;
+  QImage qt_image;
+  BLImage bl_image;
   BLLiteHtmlDocument _htmlDoc;
   bool _dirty = true;
   QWidget* _windowToUpdate {};
@@ -42,8 +42,8 @@ public:
 
   void repaintCanvas();
   void repaintCanvas(const BLRectI& dirty);
-  void _resizeCanvas();
-  void _renderCanvas();
+  void _resize_canvas();
+  void _render_canvas();
 
   inline void setWindowToUpdate(QWidget* widget) noexcept {
     _windowToUpdate = widget;

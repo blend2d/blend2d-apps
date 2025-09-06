@@ -10,7 +10,7 @@
 
 namespace blbench {
 
-Backend* createBlend2DBackend(uint32_t threadCount = 0, uint32_t cpuFeatures = 0);
+Backend* create_blend2d_backend(uint32_t thread_count = 0, uint32_t cpu_features = 0);
 
 } // {blbench}
 

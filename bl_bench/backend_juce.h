@@ -10,7 +10,7 @@
 
 namespace blbench {
 
-Backend* createJuceBackend();
+Backend* create_juce_backend();
 
 } // {blbench}
 

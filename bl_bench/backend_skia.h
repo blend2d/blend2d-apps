@@ -10,7 +10,7 @@
 
 namespace blbench {
 
-Backend* createSkiaBackend();
+Backend* create_skia_backend();
 
 } // {blbench}
 

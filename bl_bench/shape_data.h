@@ -24,7 +24,7 @@ struct ShapeData {
   const BLPoint* vertices;
 };
 
-bool getShapeData(ShapeData& dst, ShapeKind kind);
+bool get_shape_data(ShapeData& dst, ShapeKind kind);
 
 class ShapeIterator {
 public:
@@ -38,7 +38,7 @@ public:
     vertices = data.vertices;
   }
 
-  inline bool hasCommand() const noexcept {
+  inline bool has_command() const noexcept {
     return remaining != 0;
   }
 
@@ -58,11 +58,11 @@ public:
     }
   }
 
-  inline bool isClose() const noexcept { return commands[0] == 'Z'; }
-  inline bool isMoveTo() const noexcept { return commands[0] == 'M'; }
-  inline bool isLineTo() const noexcept { return commands[0] == 'L'; }
-  inline bool isQuadTo() const noexcept { return commands[0] == 'Q'; }
-  inline bool isCubicTo() const noexcept { return commands[0] == 'C'; }
+  inline bool is_close() const noexcept { return commands[0] == 'Z'; }
+  inline bool is_move_to() const noexcept { return commands[0] == 'M'; }
+  inline bool is_line_to() const noexcept { return commands[0] == 'L'; }
+  inline bool is_quad_to() const noexcept { return commands[0] == 'Q'; }
+  inline bool is_cubic_to() const noexcept { return commands[0] == 'C'; }
 
   template<typename Index>
   inline BLPoint vertex(const Index& i) const noexcept { return vertices[i]; }

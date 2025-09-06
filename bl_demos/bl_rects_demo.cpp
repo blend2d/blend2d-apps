@@ -9,12 +9,12 @@ class MainWindow : public QWidget {
 
 public:
   QTimer _timer;
-  QSlider _sizeSlider;
-  QSlider _countSlider;
-  QComboBox _rendererSelect;
-  QComboBox _compOpSelect;
-  QComboBox _shapeTypeSelect;
-  QCheckBox _limitFpsCheck;
+  QSlider _size_slider;
+  QSlider _count_slider;
+  QComboBox _renderer_select;
+  QComboBox _comp_op_select;
+  QComboBox _shape_type_select;
+  QCheckBox _limit_fps_check;
   QBLCanvas _canvas;
 
   BLRandom _random;
@@ -22,9 +22,9 @@ public:
   std::vector<BLPoint> _coords;
   std::vector<BLPoint> _steps;
   std::vector<BLRgba32> _colors;
-  BLCompOp _compOp = BL_COMP_OP_SRC_OVER;
-  uint32_t _shapeType = 0;
-  double _rectSize = 64.0;
+  BLCompOp _comp_op = BL_COMP_OP_SRC_OVER;
+  uint32_t _shape_type = 0;
+  double _rect_size = 64.0;
 
   enum ShapeType {
     kShapeRectA,
@@ -43,70 +43,70 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _compOpSelect.addItem("SrcOver", QVariant(int(BL_COMP_OP_SRC_OVER)));
-    _compOpSelect.addItem("SrcCopy", QVariant(int(BL_COMP_OP_SRC_COPY)));
-    _compOpSelect.addItem("SrcAtop", QVariant(int(BL_COMP_OP_SRC_ATOP)));
-    _compOpSelect.addItem("DstAtop", QVariant(int(BL_COMP_OP_DST_ATOP)));
-    _compOpSelect.addItem("Xor", QVariant(int(BL_COMP_OP_XOR)));
-    _compOpSelect.addItem("Plus", QVariant(int(BL_COMP_OP_PLUS)));
-    _compOpSelect.addItem("Multiply", QVariant(int(BL_COMP_OP_MULTIPLY)));
-    _compOpSelect.addItem("Screen", QVariant(int(BL_COMP_OP_SCREEN)));
-    _compOpSelect.addItem("Overlay", QVariant(int(BL_COMP_OP_OVERLAY)));
-    _compOpSelect.addItem("Darken", QVariant(int(BL_COMP_OP_DARKEN)));
-    _compOpSelect.addItem("Lighten", QVariant(int(BL_COMP_OP_LIGHTEN)));
-    _compOpSelect.addItem("Color Dodge", QVariant(int(BL_COMP_OP_COLOR_DODGE)));
-    _compOpSelect.addItem("Color Burn", QVariant(int(BL_COMP_OP_COLOR_BURN)));
-    _compOpSelect.addItem("Hard Light", QVariant(int(BL_COMP_OP_HARD_LIGHT)));
-    _compOpSelect.addItem("Soft Light", QVariant(int(BL_COMP_OP_SOFT_LIGHT)));
-    _compOpSelect.addItem("Difference", QVariant(int(BL_COMP_OP_DIFFERENCE)));
-    _compOpSelect.addItem("Exclusion", QVariant(int(BL_COMP_OP_EXCLUSION)));
+    QBLCanvas::init_renderer_select_box(&_renderer_select);
+    _comp_op_select.addItem("SrcOver", QVariant(int(BL_COMP_OP_SRC_OVER)));
+    _comp_op_select.addItem("SrcCopy", QVariant(int(BL_COMP_OP_SRC_COPY)));
+    _comp_op_select.addItem("SrcAtop", QVariant(int(BL_COMP_OP_SRC_ATOP)));
+    _comp_op_select.addItem("DstAtop", QVariant(int(BL_COMP_OP_DST_ATOP)));
+    _comp_op_select.addItem("Xor", QVariant(int(BL_COMP_OP_XOR)));
+    _comp_op_select.addItem("Plus", QVariant(int(BL_COMP_OP_PLUS)));
+    _comp_op_select.addItem("Multiply", QVariant(int(BL_COMP_OP_MULTIPLY)));
+    _comp_op_select.addItem("Screen", QVariant(int(BL_COMP_OP_SCREEN)));
+    _comp_op_select.addItem("Overlay", QVariant(int(BL_COMP_OP_OVERLAY)));
+    _comp_op_select.addItem("Darken", QVariant(int(BL_COMP_OP_DARKEN)));
+    _comp_op_select.addItem("Lighten", QVariant(int(BL_COMP_OP_LIGHTEN)));
+    _comp_op_select.addItem("Color Dodge", QVariant(int(BL_COMP_OP_COLOR_DODGE)));
+    _comp_op_select.addItem("Color Burn", QVariant(int(BL_COMP_OP_COLOR_BURN)));
+    _comp_op_select.addItem("Hard Light", QVariant(int(BL_COMP_OP_HARD_LIGHT)));
+    _comp_op_select.addItem("Soft Light", QVariant(int(BL_COMP_OP_SOFT_LIGHT)));
+    _comp_op_select.addItem("Difference", QVariant(int(BL_COMP_OP_DIFFERENCE)));
+    _comp_op_select.addItem("Exclusion", QVariant(int(BL_COMP_OP_EXCLUSION)));
 
-    _shapeTypeSelect.addItem("RectA", QVariant(int(kShapeRectA)));
-    _shapeTypeSelect.addItem("RectU", QVariant(int(kShapeRectU)));
-    _shapeTypeSelect.addItem("RectPath", QVariant(int(kShapeRectPath)));
-    _shapeTypeSelect.addItem("RoundRect", QVariant(int(kShapeRoundRect)));
-    _shapeTypeSelect.addItem("Polygon", QVariant(int(kShapePolyPath)));
+    _shape_type_select.addItem("RectA", QVariant(int(kShapeRectA)));
+    _shape_type_select.addItem("RectU", QVariant(int(kShapeRectU)));
+    _shape_type_select.addItem("RectPath", QVariant(int(kShapeRectPath)));
+    _shape_type_select.addItem("RoundRect", QVariant(int(kShapeRoundRect)));
+    _shape_type_select.addItem("Polygon", QVariant(int(kShapePolyPath)));
 
-    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
+    _limit_fps_check.setText(QLatin1String("Limit FPS"));
 
-    _sizeSlider.setOrientation(Qt::Horizontal);
-    _sizeSlider.setMinimum(1);
-    _sizeSlider.setMaximum(128);
-    _sizeSlider.setSliderPosition(64);
+    _size_slider.setOrientation(Qt::Horizontal);
+    _size_slider.setMinimum(1);
+    _size_slider.setMaximum(128);
+    _size_slider.setSliderPosition(64);
 
-    _countSlider.setOrientation(Qt::Horizontal);
-    _countSlider.setMinimum(1);
-    _countSlider.setMaximum(20000);
-    _countSlider.setSliderPosition(200);
+    _count_slider.setOrientation(Qt::Horizontal);
+    _count_slider.setMinimum(1);
+    _count_slider.setMaximum(20000);
+    _count_slider.setSliderPosition(200);
 
-    _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
-    _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
+    _canvas.on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
+    _canvas.on_render_qt = std::bind(&MainWindow::on_render_qt, this, std::placeholders::_1);
 
-    connect(&_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
-    connect(&_compOpSelect, SIGNAL(activated(int)), SLOT(onCompOpChanged(int)));
-    connect(&_shapeTypeSelect, SIGNAL(activated(int)), SLOT(onShapeTypeChanged(int)));
-    connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
-    connect(&_sizeSlider, SIGNAL(valueChanged(int)), SLOT(onSizeChanged(int)));
-    connect(&_countSlider, SIGNAL(valueChanged(int)), SLOT(onCountChanged(int)));
+    connect(&_renderer_select, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
+    connect(&_comp_op_select, SIGNAL(activated(int)), SLOT(onCompOpChanged(int)));
+    connect(&_shape_type_select, SIGNAL(activated(int)), SLOT(onShapeTypeChanged(int)));
+    connect(&_limit_fps_check, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
+    connect(&_size_slider, SIGNAL(valueChanged(int)), SLOT(onSizeChanged(int)));
+    connect(&_count_slider, SIGNAL(valueChanged(int)), SLOT(onCountChanged(int)));
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
-    grid->addWidget(&_rendererSelect, 0, 1);
+    grid->addWidget(&_renderer_select, 0, 1);
 
     grid->addWidget(new QLabel("Comp Op:"), 0, 2);
-    grid->addWidget(&_compOpSelect, 0, 3);
+    grid->addWidget(&_comp_op_select, 0, 3);
 
     grid->addWidget(new QLabel("Shape:"), 0, 4);
-    grid->addWidget(&_shapeTypeSelect, 0, 5);
+    grid->addWidget(&_shape_type_select, 0, 5);
 
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 6);
-    grid->addWidget(&_limitFpsCheck, 0, 7, Qt::AlignRight);
+    grid->addWidget(&_limit_fps_check, 0, 7, Qt::AlignRight);
 
     grid->addWidget(new QLabel("Count:"), 1, 0, 1, 1, Qt::AlignRight);
-    grid->addWidget(&_countSlider, 1, 1, 1, 7);
+    grid->addWidget(&_count_slider, 1, 1, 1, 7);
 
     grid->addWidget(new QLabel("Size:"), 2, 0, 1, 1, Qt::AlignRight);
-    grid->addWidget(&_sizeSlider, 2, 1, 1, 7);
+    grid->addWidget(&_size_slider, 2, 1, 1, 7);
 
     vBox->addLayout(grid);
     vBox->addWidget(&_canvas);
@@ -124,22 +124,22 @@ public:
   void keyPressEvent(QKeyEvent* event) override {}
 
   void onInit() {
-    setCount(_countSlider.sliderPosition());
-    _limitFpsCheck.setChecked(true);
+    setCount(_count_slider.sliderPosition());
+    _limit_fps_check.setChecked(true);
     _updateTitle();
   }
 
-  double randomSign() noexcept { return _random.nextDouble() < 0.5 ? 1.0 : -1.0; }
-  BLRgba32 randomColor() noexcept { return BLRgba32(_random.nextUInt32()); }
+  double randomSign() noexcept { return _random.next_double() < 0.5 ? 1.0 : -1.0; }
+  BLRgba32 randomColor() noexcept { return BLRgba32(_random.next_uint32()); }
 
   Q_SLOT void onToggleAnimate() { _animate = !_animate; }
   Q_SLOT void onStep() { step(); }
 
-  Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt());  }
-  Q_SLOT void onCompOpChanged(int index) { _compOp = (BLCompOp)_compOpSelect.itemData(index).toInt(); };
-  Q_SLOT void onShapeTypeChanged(int index) { _shapeType = _shapeTypeSelect.itemData(index).toInt(); };
+  Q_SLOT void onRendererChanged(int index) { _canvas.set_renderer_type(_renderer_select.itemData(index).toInt());  }
+  Q_SLOT void onCompOpChanged(int index) { _comp_op = (BLCompOp)_comp_op_select.itemData(index).toInt(); };
+  Q_SLOT void onShapeTypeChanged(int index) { _shape_type = _shape_type_select.itemData(index).toInt(); };
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
-  Q_SLOT void onSizeChanged(int value) { _rectSize = value; }
+  Q_SLOT void onSizeChanged(int value) { _rect_size = value; }
   Q_SLOT void onCountChanged(int value) { setCount(size_t(value)); }
 
   Q_SLOT void onTimer() {
@@ -147,13 +147,13 @@ public:
       step();
     }
 
-    _canvas.updateCanvas(true);
+    _canvas.update_canvas(true);
     _updateTitle();
   }
 
   void step() noexcept {
-    double w = _canvas.imageWidth();
-    double h = _canvas.imageHeight();
+    double w = _canvas.image_width();
+    double h = _canvas.image_height();
 
     size_t size = _coords.size();
     for (size_t i = 0; i < size; i++) {
@@ -163,34 +163,34 @@ public:
       vertex += step;
       if (vertex.x <= 0.0 || vertex.x >= w) {
         step.x = -step.x;
-        vertex.x = blMin(vertex.x + step.x, w);
+        vertex.x = bl_min(vertex.x + step.x, w);
       }
 
       if (vertex.y <= 0.0 || vertex.y >= h) {
         step.y = -step.y;
-        vertex.y = blMin(vertex.y + step.y, h);
+        vertex.y = bl_min(vertex.y + step.y, h);
       }
     }
   }
 
-  void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.setCompOp(BL_COMP_OP_SRC_COPY);
-    ctx.fillAll(blBackgroundForCompOp(_compOp));
-    ctx.setCompOp(_compOp);
+  void on_render_blend2d(BLContext& ctx) noexcept {
+    ctx.set_comp_op(BL_COMP_OP_SRC_COPY);
+    ctx.fill_all(bl_background_for_comp_op(_comp_op));
+    ctx.set_comp_op(_comp_op);
 
     size_t i;
     size_t size = _coords.size();
 
-    double rectSize = _rectSize;
-    double halfSize = _rectSize * 0.5;
+    double rectSize = _rect_size;
+    double halfSize = _rect_size * 0.5;
 
-    switch (_shapeType) {
+    switch (_shape_type) {
       case kShapeRectA: {
-        int rectSizeI = int(_rectSize);
+        int rectSizeI = int(_rect_size);
         for (i = 0; i < size; i++) {
           int x = int(_coords[i].x - halfSize);
           int y = int(_coords[i].y - halfSize);
-          ctx.fillRect(BLRectI(x, y, rectSizeI, rectSizeI), _colors[i]);
+          ctx.fill_rect(BLRectI(x, y, rectSizeI, rectSizeI), _colors[i]);
         }
         break;
       }
@@ -199,7 +199,7 @@ public:
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
-          ctx.fillRect(x, y, rectSize, rectSize, _colors[i]);
+          ctx.fill_rect(x, y, rectSize, rectSize, _colors[i]);
         }
         break;
       }
@@ -210,8 +210,8 @@ public:
           double y = _coords[i].y - halfSize;
 
           BLPath path;
-          path.addRect(x, y, rectSize, rectSize);
-          ctx.fillPath(path, _colors[i]);
+          path.add_rect(x, y, rectSize, rectSize);
+          ctx.fill_path(path, _colors[i]);
         }
         break;
       }
@@ -222,12 +222,12 @@ public:
           double y = _coords[i].y - halfSize;
 
           BLPath path;
-          path.moveTo(x + rectSize / 2, y);
-          path.lineTo(x + rectSize, y + rectSize / 3);
-          path.lineTo(x + rectSize - rectSize / 3, y + rectSize);
-          path.lineTo(x + rectSize / 3, y + rectSize);
-          path.lineTo(x, y + rectSize / 3);
-          ctx.fillPath(path, _colors[i]);
+          path.move_to(x + rectSize / 2, y);
+          path.line_to(x + rectSize, y + rectSize / 3);
+          path.line_to(x + rectSize - rectSize / 3, y + rectSize);
+          path.line_to(x + rectSize / 3, y + rectSize);
+          path.line_to(x, y + rectSize / 3);
+          ctx.fill_path(path, _colors[i]);
         }
         break;
       }
@@ -237,32 +237,32 @@ public:
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
 
-          ctx.fillRoundRect(BLRoundRect(x, y, rectSize, rectSize, 10), _colors[i]);
+          ctx.fill_round_rect(BLRoundRect(x, y, rectSize, rectSize, 10), _colors[i]);
         }
         break;
       }
     }
   }
 
-  void onRenderQt(QPainter& ctx) noexcept {
+  void on_render_qt(QPainter& ctx) noexcept {
     ctx.setCompositionMode(QPainter::CompositionMode_Source);
-    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), blRgbaToQColor(blBackgroundForCompOp(_compOp)));
+    ctx.fillRect(0, 0, _canvas.image_width(), _canvas.image_height(), bl_rgba_to_qcolor(bl_background_for_comp_op(_comp_op)));
     ctx.setRenderHint(QPainter::Antialiasing, true);
-    ctx.setCompositionMode(blCompOpToQPainterCompositionMode(_compOp));
+    ctx.setCompositionMode(bl_comp_op_to_qt_composition_mode(_comp_op));
 
     size_t i;
     size_t size = _coords.size();
 
-    double rectSize = _rectSize;
-    double halfSize = _rectSize * 0.5;
+    double rectSize = _rect_size;
+    double halfSize = _rect_size * 0.5;
 
-    switch (_shapeType) {
+    switch (_shape_type) {
       case kShapeRectA: {
-        int rectSizeI = int(_rectSize);
+        int rectSizeI = int(_rect_size);
         for (i = 0; i < size; i++) {
           int x = int(_coords[i].x - halfSize);
           int y = int(_coords[i].y - halfSize);
-          ctx.fillRect(QRect(x, y, rectSizeI, rectSizeI), blRgbaToQColor(_colors[i]));
+          ctx.fillRect(QRect(x, y, rectSizeI, rectSizeI), bl_rgba_to_qcolor(_colors[i]));
         }
         break;
       }
@@ -271,7 +271,7 @@ public:
         for (i = 0; i < size; i++) {
           double x = _coords[i].x - halfSize;
           double y = _coords[i].y - halfSize;
-          ctx.fillRect(QRectF(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize), blRgbaToQColor(_colors[i]));
+          ctx.fillRect(QRectF(_coords[i].x - halfSize, _coords[i].y - halfSize, rectSize, rectSize), bl_rgba_to_qcolor(_colors[i]));
         }
         break;
       }
@@ -283,7 +283,7 @@ public:
 
           QPainterPath path;
           path.addRect(x, y, rectSize, rectSize);
-          ctx.fillPath(path, blRgbaToQColor(_colors[i]));
+          ctx.fillPath(path, bl_rgba_to_qcolor(_colors[i]));
         }
         break;
       }
@@ -299,7 +299,7 @@ public:
           path.lineTo(x + rectSize - rectSize / 3, y + rectSize);
           path.lineTo(x + rectSize / 3, y + rectSize);
           path.lineTo(x, y + rectSize / 3);
-          ctx.fillPath(path, blRgbaToQColor(_colors[i]));
+          ctx.fillPath(path, bl_rgba_to_qcolor(_colors[i]));
         }
         break;
       }
@@ -311,7 +311,7 @@ public:
 
           QPainterPath path;
           path.addRoundedRect(QRectF(x, y, rectSize, rectSize), 10, 10);
-          ctx.fillPath(path, blRgbaToQColor(_colors[i]));
+          ctx.fillPath(path, bl_rgba_to_qcolor(_colors[i]));
         }
         break;
       }
@@ -319,8 +319,8 @@ public:
   }
 
   void setCount(size_t size) {
-    double w = _canvas.imageWidth();
-    double h = _canvas.imageHeight();
+    double w = _canvas.image_width();
+    double h = _canvas.image_height();
     size_t i = _coords.size();
 
     _coords.resize(size);
@@ -328,10 +328,10 @@ public:
     _colors.resize(size);
 
     while (i < size) {
-      _coords[i].reset(_random.nextDouble() * w,
-                       _random.nextDouble() * h);
-      _steps[i].reset((_random.nextDouble() * 0.5 + 0.04) * randomSign(),
-                      (_random.nextDouble() * 0.5 + 0.04) * randomSign());
+      _coords[i].reset(_random.next_double() * w,
+                       _random.next_double() * h);
+      _steps[i].reset((_random.next_double() * 0.5 + 0.04) * randomSign(),
+                      (_random.next_double() * 0.5 + 0.04) * randomSign());
       _colors[i].reset(randomColor());
       i++;
     }
@@ -340,11 +340,11 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Rects [%dx%d] [Size=%d Count=%zu] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.imageWidth(),
-      _canvas.imageHeight(),
-      int(_rectSize),
+      _canvas.image_width(),
+      _canvas.image_height(),
+      int(_rect_size),
       _coords.size(),
-      _canvas.averageRenderTime(),
+      _canvas.average_render_time(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

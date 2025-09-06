@@ -10,27 +10,27 @@ static const double PI = 3.14159265359;
 
 struct TigerPath {
   inline TigerPath()
-    : fillColor(0),
-      strokeColor(0),
-      qtPen(Qt::NoPen),
-      fillRule(BL_FILL_RULE_NON_ZERO),
+    : fill_color(0),
+      stroke_color(0),
+      qt_pen(Qt::NoPen),
+      fill_rule(BL_FILL_RULE_NON_ZERO),
       fill(false),
       stroke(false) {}
   inline ~TigerPath() {}
 
-  BLPath blPath;
-  BLPath blStrokedPath;
-  BLStrokeOptions blStrokeOptions;
+  BLPath bl_path;
+  BLPath bl_stroked_path;
+  BLStrokeOptions bl_stroke_options;
 
-  BLRgba32 fillColor;
-  BLRgba32 strokeColor;
+  BLRgba32 fill_color;
+  BLRgba32 stroke_color;
 
-  QPainterPath qtPath;
-  QPainterPath qtStrokedPath;
-  QPen qtPen;
-  QBrush qtBrush;
+  QPainterPath qt_path;
+  QPainterPath qt_stroked_path;
+  QPen qt_pen;
+  QBrush qt_brush;
 
-  BLFillRule fillRule;
+  BLFillRule fill_rule;
   bool fill;
   bool stroke;
 };
@@ -58,8 +58,8 @@ struct Tiger {
       // Fill params.
       switch (commands[c++]) {
         case 'N': tp->fill = false; break;
-        case 'F': tp->fill = true; tp->fillRule = BL_FILL_RULE_NON_ZERO; break;
-        case 'E': tp->fill = true; tp->fillRule = BL_FILL_RULE_EVEN_ODD; break;
+        case 'F': tp->fill = true; tp->fill_rule = BL_FILL_RULE_NON_ZERO; break;
+        case 'E': tp->fill = true; tp->fill_rule = BL_FILL_RULE_EVEN_ODD; break;
       }
 
       // Stroke params.
@@ -69,23 +69,23 @@ struct Tiger {
       }
 
       switch (commands[c++]) {
-        case 'B': tp->blStrokeOptions.setCaps(BL_STROKE_CAP_BUTT); break;
-        case 'R': tp->blStrokeOptions.setCaps(BL_STROKE_CAP_ROUND); break;
-        case 'S': tp->blStrokeOptions.setCaps(BL_STROKE_CAP_SQUARE); break;
+        case 'B': tp->bl_stroke_options.set_caps(BL_STROKE_CAP_BUTT); break;
+        case 'R': tp->bl_stroke_options.set_caps(BL_STROKE_CAP_ROUND); break;
+        case 'S': tp->bl_stroke_options.set_caps(BL_STROKE_CAP_SQUARE); break;
       }
 
       switch (commands[c++]) {
-        case 'M': tp->blStrokeOptions.join = BL_STROKE_JOIN_MITER_BEVEL; break;
-        case 'R': tp->blStrokeOptions.join = BL_STROKE_JOIN_ROUND; break;
-        case 'B': tp->blStrokeOptions.join = BL_STROKE_JOIN_BEVEL; break;
+        case 'M': tp->bl_stroke_options.join = BL_STROKE_JOIN_MITER_BEVEL; break;
+        case 'R': tp->bl_stroke_options.join = BL_STROKE_JOIN_ROUND; break;
+        case 'B': tp->bl_stroke_options.join = BL_STROKE_JOIN_BEVEL; break;
       }
 
-      tp->blStrokeOptions.miterLimit = points[p++];
-      tp->blStrokeOptions.width = points[p++];
+      tp->bl_stroke_options.miter_limit = points[p++];
+      tp->bl_stroke_options.width = points[p++];
 
       // Stroke & Fill style.
-      tp->strokeColor = BLRgba32(uint32_t(points[p + 0] * 255.0f), uint32_t(points[p + 1] * 255.0f), uint32_t(points[p + 2] * 255.0f), 255);
-      tp->fillColor = BLRgba32(uint32_t(points[p + 3] * 255.0f), uint32_t(points[p + 4] * 255.0f), uint32_t(points[p + 5] * 255.0f), 255);
+      tp->stroke_color = BLRgba32(uint32_t(points[p + 0] * 255.0f), uint32_t(points[p + 1] * 255.0f), uint32_t(points[p + 2] * 255.0f), 255);
+      tp->fill_color = BLRgba32(uint32_t(points[p + 3] * 255.0f), uint32_t(points[p + 4] * 255.0f), uint32_t(points[p + 5] * 255.0f), 255);
       p += 6;
 
       // Path.
@@ -93,60 +93,60 @@ struct Tiger {
       for (i = 0 ; i < count; i++) {
         switch (commands[c++]) {
           case 'M':
-            tp->blPath.moveTo(points[p], h - points[p + 1]);
-            tp->qtPath.moveTo(points[p], h - points[p + 1]);
+            tp->bl_path.move_to(points[p], h - points[p + 1]);
+            tp->qt_path.moveTo(points[p], h - points[p + 1]);
             p += 2;
             break;
           case 'L':
-            tp->blPath.lineTo(points[p], h - points[p + 1]);
-            tp->qtPath.lineTo(points[p], h - points[p + 1]);
+            tp->bl_path.line_to(points[p], h - points[p + 1]);
+            tp->qt_path.lineTo(points[p], h - points[p + 1]);
             p += 2;
             break;
           case 'C':
-            tp->blPath.cubicTo(points[p], h - points[p + 1], points[p + 2], h - points[p + 3], points[p + 4], h - points[p + 5]);
-            tp->qtPath.cubicTo(points[p], h - points[p + 1], points[p + 2], h - points[p + 3], points[p + 4], h - points[p + 5]);
+            tp->bl_path.cubic_to(points[p], h - points[p + 1], points[p + 2], h - points[p + 3], points[p + 4], h - points[p + 5]);
+            tp->qt_path.cubicTo(points[p], h - points[p + 1], points[p + 2], h - points[p + 3], points[p + 4], h - points[p + 5]);
             p += 6;
             break;
           case 'E':
-            tp->blPath.close();
-            tp->qtPath.closeSubpath();
+            tp->bl_path.close();
+            tp->qt_path.closeSubpath();
             break;
         }
       }
 
-      tp->blPath.shrink();
-      tp->qtPath.setFillRule(tp->fillRule == BL_FILL_RULE_NON_ZERO ? Qt::WindingFill : Qt::OddEvenFill);
+      tp->bl_path.shrink();
+      tp->qt_path.setFillRule(tp->fill_rule == BL_FILL_RULE_NON_ZERO ? Qt::WindingFill : Qt::OddEvenFill);
 
       if (tp->fill) {
-        tp->qtBrush = QBrush(blRgbaToQColor(tp->fillColor));
+        tp->qt_brush = QBrush(bl_rgba_to_qcolor(tp->fill_color));
       }
 
       if (tp->stroke) {
-        tp->blStrokedPath.addStrokedPath(tp->blPath, tp->blStrokeOptions, blDefaultApproximationOptions);
-        tp->blStrokedPath.shrink();
+        tp->bl_stroked_path.add_stroked_path(tp->bl_path, tp->bl_stroke_options, bl_default_approximation_options);
+        tp->bl_stroked_path.shrink();
 
-        tp->qtPen = QPen(blRgbaToQColor(tp->strokeColor));
-        tp->qtPen.setWidthF(tp->blStrokeOptions.width);
-        tp->qtPen.setMiterLimit(tp->blStrokeOptions.miterLimit);
+        tp->qt_pen = QPen(bl_rgba_to_qcolor(tp->stroke_color));
+        tp->qt_pen.setWidthF(tp->bl_stroke_options.width);
+        tp->qt_pen.setMiterLimit(tp->bl_stroke_options.miter_limit);
 
         Qt::PenCapStyle qtCapStyle =
-          tp->blStrokeOptions.startCap == BL_STROKE_CAP_BUTT  ? Qt::FlatCap  :
-          tp->blStrokeOptions.startCap == BL_STROKE_CAP_ROUND ? Qt::RoundCap : Qt::SquareCap;
+          tp->bl_stroke_options.start_cap == BL_STROKE_CAP_BUTT  ? Qt::FlatCap  :
+          tp->bl_stroke_options.start_cap == BL_STROKE_CAP_ROUND ? Qt::RoundCap : Qt::SquareCap;
 
         Qt::PenJoinStyle qtJoinStyle =
-          tp->blStrokeOptions.join == BL_STROKE_JOIN_ROUND ? Qt::RoundJoin :
-          tp->blStrokeOptions.join == BL_STROKE_JOIN_BEVEL ? Qt::BevelJoin : Qt::MiterJoin;
+          tp->bl_stroke_options.join == BL_STROKE_JOIN_ROUND ? Qt::RoundJoin :
+          tp->bl_stroke_options.join == BL_STROKE_JOIN_BEVEL ? Qt::BevelJoin : Qt::MiterJoin;
 
-        tp->qtPen.setCapStyle(qtCapStyle);
-        tp->qtPen.setJoinStyle(qtJoinStyle);
+        tp->qt_pen.setCapStyle(qtCapStyle);
+        tp->qt_pen.setJoinStyle(qtJoinStyle);
 
         QPainterPathStroker stroker;
-        stroker.setWidth(tp->blStrokeOptions.width);
-        stroker.setMiterLimit(tp->blStrokeOptions.miterLimit);
+        stroker.setWidth(tp->bl_stroke_options.width);
+        stroker.setMiterLimit(tp->bl_stroke_options.miter_limit);
         stroker.setJoinStyle(qtJoinStyle);
         stroker.setCapStyle(qtCapStyle);
 
-        tp->qtStrokedPath = stroker.createStroke(tp->qtPath);
+        tp->qt_stroked_path = stroker.createStroke(tp->qt_path);
       }
 
       paths.append(tp);
@@ -168,15 +168,15 @@ class MainWindow : public QWidget {
 public:
   QTimer _timer;
   QBLCanvas _canvas;
-  QComboBox _rendererSelect;
-  QCheckBox _limitFpsCheck;
-  QComboBox _cachingSelect;
+  QComboBox _renderer_select;
+  QCheckBox _limit_fps_check;
+  QComboBox _caching_select;
   QSlider _slider;
   Tiger _tiger;
 
   bool _animate = true;
-  bool _cacheStroke = false;
-  bool _renderStroke = true;
+  bool _cache_stroke = false;
+  bool _render_stroke = true;
   double _rot = 0.0;
   double _scale = 1.0;
 
@@ -189,39 +189,39 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    QBLCanvas::initRendererSelectBox(&_rendererSelect);
-    _limitFpsCheck.setText(QLatin1String("Limit FPS"));
+    QBLCanvas::init_renderer_select_box(&_renderer_select);
+    _limit_fps_check.setText(QLatin1String("Limit FPS"));
 
-    _cachingSelect.addItem("None", QVariant(int(0)));
-    _cachingSelect.addItem("Strokes", QVariant(int(1)));
+    _caching_select.addItem("None", QVariant(int(0)));
+    _caching_select.addItem("Strokes", QVariant(int(1)));
 
     _slider.setOrientation(Qt::Horizontal);
     _slider.setMinimum(50);
     _slider.setMaximum(20000);
     _slider.setSliderPosition(1000);
 
-    connect(&_rendererSelect, SIGNAL(currentIndexChanged(int)), SLOT(onRendererChanged(int)));
-    connect(&_limitFpsCheck, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
-    connect(&_cachingSelect, SIGNAL(currentIndexChanged(int)), SLOT(onCachingChanged(int)));
+    connect(&_renderer_select, SIGNAL(currentIndexChanged(int)), SLOT(onRendererChanged(int)));
+    connect(&_limit_fps_check, SIGNAL(stateChanged(int)), SLOT(onLimitFpsChanged(int)));
+    connect(&_caching_select, SIGNAL(currentIndexChanged(int)), SLOT(onCachingChanged(int)));
     connect(&_slider, SIGNAL(valueChanged(int)), SLOT(onZoomChanged(int)));
 
-    _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
-    _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
+    _canvas.on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
+    _canvas.on_render_qt = std::bind(&MainWindow::on_render_qt, this, std::placeholders::_1);
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0, Qt::AlignRight);
-    grid->addWidget(&_rendererSelect, 0, 1);
+    grid->addWidget(&_renderer_select, 0, 1);
 
     grid->addWidget(new QLabel("Caching:"), 0, 2, Qt::AlignRight);
-    grid->addWidget(&_cachingSelect, 0, 3);
+    grid->addWidget(&_caching_select, 0, 3);
 
     grid->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding), 0, 4);
-    grid->addWidget(&_limitFpsCheck, 0, 5);
+    grid->addWidget(&_limit_fps_check, 0, 5);
 
     grid->addWidget(new QLabel("Zoom:"), 1, 0, Qt::AlignRight);
     grid->addWidget(&_slider, 1, 1, 1, 5);
 
-    _canvas.onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
-    _canvas.onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
+    _canvas.on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
+    _canvas.on_render_qt = std::bind(&MainWindow::on_render_qt, this, std::placeholders::_1);
 
     vBox->addLayout(grid);
     vBox->addWidget(&_canvas);
@@ -242,18 +242,18 @@ public:
 
   void onInit() {
     _updateTitle();
-    _limitFpsCheck.setChecked(true);
+    _limit_fps_check.setChecked(true);
   }
 
-  Q_SLOT void onRendererChanged(int index) { _canvas.setRendererType(_rendererSelect.itemData(index).toInt()); }
+  Q_SLOT void onRendererChanged(int index) { _canvas.set_renderer_type(_renderer_select.itemData(index).toInt()); }
   Q_SLOT void onLimitFpsChanged(int value) { _timer.setInterval(value ? 1000 / 120 : 0); }
 
-  Q_SLOT void onCachingChanged(int index) { _cacheStroke = index != 0; }
+  Q_SLOT void onCachingChanged(int index) { _cache_stroke = index != 0; }
   Q_SLOT void onZoomChanged(int value) { _scale = (double(value) / 1000.0); }
 
   Q_SLOT void onToggleAnimate() { _animate = !_animate; }
-  Q_SLOT void onToggleRenderer() { _rendererSelect.setCurrentIndex(_rendererSelect.currentIndex() ^ 1); }
-  Q_SLOT void onToggleStroke() { _renderStroke = !_renderStroke; }
+  Q_SLOT void onToggleRenderer() { _renderer_select.setCurrentIndex(_renderer_select.currentIndex() ^ 1); }
+  Q_SLOT void onToggleStroke() { _render_stroke = !_render_stroke; }
   Q_SLOT void onRotatePrev() { _rot -= 0.25; }
   Q_SLOT void onRotateNext() { _rot += 0.25; }
 
@@ -263,45 +263,45 @@ public:
       if (_rot >= 360) _rot -= 360.0;
     }
 
-    _canvas.updateCanvas(true);
+    _canvas.update_canvas(true);
     _updateTitle();
   }
 
-  void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.fillAll(BLRgba32(0xFF00007Fu));
+  void on_render_blend2d(BLContext& ctx) noexcept {
+    ctx.fill_all(BLRgba32(0xFF00007Fu));
 
-    bool renderStroke = _renderStroke;
-    double minX = 17;
-    double minY = 53;
-    double maxX = 562.0;
-    double maxY = 613.0;
-    double s = blMin(_canvas.imageWidth() / (maxX - minX), _canvas.imageHeight() / (maxY - minY)) * _scale;
+    bool renderStroke = _render_stroke;
+    double min_x = 17;
+    double min_y = 53;
+    double max_x = 562.0;
+    double max_y = 613.0;
+    double s = bl_min(_canvas.image_width() / (max_x - min_x), _canvas.image_height() / (max_y - min_y)) * _scale;
 
     BLMatrix2D transform;
     transform.reset();
-    transform.rotate((_rot / 180.0) * PI, minX + maxX / 2.0, minY + maxY / 2.0);
-    transform.postTranslate(-maxX / 2, -maxY / 2);
+    transform.rotate((_rot / 180.0) * PI, min_x + max_x / 2.0, min_y + max_y / 2.0);
+    transform.post_translate(-max_x / 2, -max_y / 2);
 
     ctx.save();
-    ctx.translate(_canvas.imageWidth() / 2, _canvas.imageHeight() / 2);
+    ctx.translate(_canvas.image_width() / 2, _canvas.image_height() / 2);
     ctx.scale(s);
-    ctx.applyTransform(transform);
+    ctx.apply_transform(transform);
 
     for (size_t i = 0, count = _tiger.paths.size(); i < count; i++) {
       const TigerPath* tp = _tiger.paths[i];
 
       if (tp->fill) {
-        ctx.setFillRule(tp->fillRule);
-        ctx.fillPath(tp->blPath, tp->fillColor);
+        ctx.set_fill_rule(tp->fill_rule);
+        ctx.fill_path(tp->bl_path, tp->fill_color);
       }
 
       if (tp->stroke && renderStroke) {
-        if (_cacheStroke) {
-          ctx.fillPath(tp->blStrokedPath, tp->strokeColor);
+        if (_cache_stroke) {
+          ctx.fill_path(tp->bl_stroked_path, tp->stroke_color);
         }
         else {
-          ctx.setStrokeOptions(tp->blStrokeOptions);
-          ctx.strokePath(tp->blPath, tp->strokeColor);
+          ctx.set_stroke_options(tp->bl_stroke_options);
+          ctx.stroke_path(tp->bl_path, tp->stroke_color);
         }
       }
     }
@@ -309,25 +309,25 @@ public:
     ctx.restore();
   }
 
-  void onRenderQt(QPainter& ctx) noexcept {
-    bool renderStroke = _renderStroke;
+  void on_render_qt(QPainter& ctx) noexcept {
+    bool renderStroke = _render_stroke;
 
-    ctx.fillRect(0, 0, _canvas.imageWidth(), _canvas.imageHeight(), QColor(0, 0, 0x7F));
+    ctx.fillRect(0, 0, _canvas.image_width(), _canvas.image_height(), QColor(0, 0, 0x7F));
     ctx.setRenderHint(QPainter::Antialiasing, true);
 
-    double minX = 17;
-    double minY = 53;
-    double maxX = 562.0;
-    double maxY = 613.0;
-    double s = blMin(_canvas.imageWidth() / (maxX - minX), _canvas.imageHeight() / (maxY - minY)) * _scale;
+    double min_x = 17;
+    double min_y = 53;
+    double max_x = 562.0;
+    double max_y = 613.0;
+    double s = bl_min(_canvas.image_width() / (max_x - min_x), _canvas.image_height() / (max_y - min_y)) * _scale;
 
     BLMatrix2D m;
     m.reset();
-    m.rotate((_rot / 180.0) * PI, minX + maxX / 2.0, minY + maxY / 2.0);
-    m.postTranslate(-maxX / 2, -maxY / 2);
+    m.rotate((_rot / 180.0) * PI, min_x + max_x / 2.0, min_y + max_y / 2.0);
+    m.post_translate(-max_x / 2, -max_y / 2);
 
     ctx.save();
-    ctx.translate(_canvas.imageWidth() / 2, _canvas.imageHeight() / 2);
+    ctx.translate(_canvas.image_width() / 2, _canvas.image_height() / 2);
     ctx.scale(s, s);
     ctx.setTransform(QTransform(m.m00, m.m01, m.m10, m.m11, m.m20, m.m21), true);
 
@@ -335,14 +335,14 @@ public:
       const TigerPath* tp = _tiger.paths[i];
 
       if (tp->fill) {
-        ctx.fillPath(tp->qtPath, tp->qtBrush);
+        ctx.fillPath(tp->qt_path, tp->qt_brush);
       }
 
       if (tp->stroke && renderStroke) {
-        if (_cacheStroke)
-          ctx.fillPath(tp->qtStrokedPath, tp->qtPen.brush());
+        if (_cache_stroke)
+          ctx.fillPath(tp->qt_stroked_path, tp->qt_pen.brush());
         else
-          ctx.strokePath(tp->qtPath, tp->qtPen);
+          ctx.strokePath(tp->qt_path, tp->qt_pen);
       }
     }
 
@@ -352,9 +352,9 @@ public:
   void _updateTitle() {
     char buf[256];
     snprintf(buf, 256, "Tiger [%dx%d] [RenderTime=%.2fms FPS=%.1f]",
-      _canvas.imageWidth(),
-      _canvas.imageHeight(),
-      _canvas.averageRenderTime(),
+      _canvas.image_width(),
+      _canvas.image_height(),
+      _canvas.average_render_time(),
       _canvas.fps());
 
     QString title = QString::fromUtf8(buf);

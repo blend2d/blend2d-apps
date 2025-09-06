@@ -13,8 +13,8 @@
 
 namespace blbench {
 
-static inline uint32_t toAgg2DBlendMode(BLCompOp compOp) {
-  switch (compOp) {
+static inline uint32_t to_agg2d_blend_mode(BLCompOp comp_op) {
+  switch (comp_op) {
     case BL_COMP_OP_CLEAR      : return uint32_t(Agg2D::BlendClear); break;
     case BL_COMP_OP_SRC_COPY   : return uint32_t(Agg2D::BlendSrc); break;
     case BL_COMP_OP_DST_COPY   : return uint32_t(Agg2D::BlendDst); break;
@@ -45,7 +45,7 @@ static inline uint32_t toAgg2DBlendMode(BLCompOp compOp) {
   }
 }
 
-static inline Agg2D::Color toAgg2DColor(BLRgba32 rgba32) {
+static inline Agg2D::Color to_agg2d_color(BLRgba32 rgba32) {
   return Agg2D::Color(rgba32.r(), rgba32.g(), rgba32.b(), rgba32.a());
 }
 
@@ -55,28 +55,25 @@ struct AggModule : public Backend {
   AggModule();
   ~AggModule() override;
 
-  void renderScanlines(const BLRect& rect, StyleKind style);
-  void fillRectAA(int x, int y, int w, int h, StyleKind style);
+  bool supports_comp_op(BLCompOp comp_op) const override;
+  bool supports_style(StyleKind style) const override;
 
-  bool supportsCompOp(BLCompOp compOp) const override;
-  bool supportsStyle(StyleKind style) const override;
-
-  void beforeRun() override;
+  void before_run() override;
   void flush() override;
-  void afterRun() override;
+  void after_run() override;
 
-  void prepareFillStrokeOption(RenderOp op);
+  void prepare_fill_stroke_option(RenderOp op);
 
   template<typename RectT>
-  void setupStyle(RenderOp op, const RectT& rect);
+  void setup_style(RenderOp op, const RectT& rect);
 
-  void renderRectA(RenderOp op) override;
-  void renderRectF(RenderOp op) override;
-  void renderRectRotated(RenderOp op) override;
-  void renderRoundF(RenderOp op) override;
-  void renderRoundRotated(RenderOp op) override;
-  void renderPolygon(RenderOp op, uint32_t complexity) override;
-  void renderShape(RenderOp op, ShapeData shape) override;
+  void render_rect_a(RenderOp op) override;
+  void render_rect_f(RenderOp op) override;
+  void render_rect_rotated(RenderOp op) override;
+  void render_round_f(RenderOp op) override;
+  void render_round_rotated(RenderOp op) override;
+  void render_polygon(RenderOp op, uint32_t complexity) override;
+  void render_shape(RenderOp op, ShapeData shape) override;
 };
 
 AggModule::AggModule() {
@@ -84,11 +81,11 @@ AggModule::AggModule() {
 }
 AggModule::~AggModule() {}
 
-bool AggModule::supportsCompOp(BLCompOp compOp) const {
-  return toAgg2DBlendMode(compOp) != 0xFFFFFFFFu;
+bool AggModule::supports_comp_op(BLCompOp comp_op) const {
+  return to_agg2d_blend_mode(comp_op) != 0xFFFFFFFFu;
 }
 
-bool AggModule::supportsStyle(StyleKind style) const {
+bool AggModule::supports_style(StyleKind style) const {
   return style == StyleKind::kSolid         ||
          style == StyleKind::kLinearPad     ||
          style == StyleKind::kLinearRepeat  ||
@@ -98,36 +95,36 @@ bool AggModule::supportsStyle(StyleKind style) const {
          style == StyleKind::kRadialReflect ;
 }
 
-void AggModule::beforeRun() {
-  int w = int(_params.screenW);
-  int h = int(_params.screenH);
+void AggModule::before_run() {
+  int w = int(_params.screen_w);
+  int h = int(_params.screen_h);
 
-  BLImageData surfaceData;
+  BLImageData surface_data;
   _surface.create(w, h, BL_FORMAT_PRGB32);
-  _surface.makeMutable(&surfaceData);
+  _surface.make_mutable(&surface_data);
 
   _ctx.attach(
-    static_cast<unsigned char*>(surfaceData.pixelData),
-    unsigned(surfaceData.size.w),
-    unsigned(surfaceData.size.h),
-    int(surfaceData.stride));
+    static_cast<unsigned char*>(surface_data.pixel_data),
+    unsigned(surface_data.size.w),
+    unsigned(surface_data.size.h),
+    int(surface_data.stride));
 
   _ctx.fillEvenOdd(false);
   _ctx.noLine();
   _ctx.blendMode(Agg2D::BlendSrc);
   _ctx.clearAll(Agg2D::Color(0, 0, 0, 0));
-  _ctx.blendMode(Agg2D::BlendMode(toAgg2DBlendMode(_params.compOp)));
+  _ctx.blendMode(Agg2D::BlendMode(to_agg2d_blend_mode(_params.comp_op)));
 }
 
 void AggModule::flush() {
   // Nothing...
 }
 
-void AggModule::afterRun() {
+void AggModule::after_run() {
   _ctx.attach(nullptr, 0, 0, 0);
 }
 
-void AggModule::prepareFillStrokeOption(RenderOp op) {
+void AggModule::prepare_fill_stroke_option(RenderOp op) {
   if (op == RenderOp::kStroke)
     _ctx.noFill();
   else
@@ -135,14 +132,14 @@ void AggModule::prepareFillStrokeOption(RenderOp op) {
 }
 
 template<typename RectT>
-void AggModule::setupStyle(RenderOp op, const RectT& rect) {
+void AggModule::setup_style(RenderOp op, const RectT& rect) {
   switch (_params.style) {
     case StyleKind::kSolid: {
-      BLRgba32 color = _rndColor.nextRgba32();
+      BLRgba32 color = _rnd_color.next_rgba32();
       if (op == RenderOp::kStroke)
-        _ctx.lineColor(toAgg2DColor(color));
+        _ctx.lineColor(to_agg2d_color(color));
       else
-        _ctx.fillColor(toAgg2DColor(color));
+        _ctx.fillColor(to_agg2d_color(color));
       break;
     }
 
@@ -154,14 +151,14 @@ void AggModule::setupStyle(RenderOp op, const RectT& rect) {
       double x2 = rect.x + rect.w * 0.8;
       double y2 = rect.y + rect.h * 0.8;
 
-      BLRgba32 c1 = _rndColor.nextRgba32();
-      BLRgba32 c2 = _rndColor.nextRgba32();
-      BLRgba32 c3 = _rndColor.nextRgba32();
+      BLRgba32 c1 = _rnd_color.next_rgba32();
+      BLRgba32 c2 = _rnd_color.next_rgba32();
+      BLRgba32 c3 = _rnd_color.next_rgba32();
 
       if (op == RenderOp::kStroke)
-        _ctx.lineLinearGradient(x1, y1, x2, y2, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+        _ctx.lineLinearGradient(x1, y1, x2, y2, to_agg2d_color(c1), to_agg2d_color(c2), to_agg2d_color(c3));
       else
-        _ctx.fillLinearGradient(x1, y1, x2, y2, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+        _ctx.fillLinearGradient(x1, y1, x2, y2, to_agg2d_color(c1), to_agg2d_color(c2), to_agg2d_color(c3));
       break;
     }
 
@@ -172,14 +169,14 @@ void AggModule::setupStyle(RenderOp op, const RectT& rect) {
       double cy = rect.y + rect.h / 2.0;
       double cr = (rect.w + rect.h) / 4.0;
 
-      BLRgba32 c1 = _rndColor.nextRgba32();
-      BLRgba32 c2 = _rndColor.nextRgba32();
-      BLRgba32 c3 = _rndColor.nextRgba32();
+      BLRgba32 c1 = _rnd_color.next_rgba32();
+      BLRgba32 c2 = _rnd_color.next_rgba32();
+      BLRgba32 c3 = _rnd_color.next_rgba32();
 
       if (op == RenderOp::kStroke)
-        _ctx.lineRadialGradient(cx, cy, cr, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+        _ctx.lineRadialGradient(cx, cy, cr, to_agg2d_color(c1), to_agg2d_color(c2), to_agg2d_color(c3));
       else
-        _ctx.fillRadialGradient(cx, cy, cr, toAgg2DColor(c1), toAgg2DColor(c2), toAgg2DColor(c3));
+        _ctx.fillRadialGradient(cx, cy, cr, to_agg2d_color(c1), to_agg2d_color(c2), to_agg2d_color(c3));
       break;
     }
 
@@ -188,55 +185,55 @@ void AggModule::setupStyle(RenderOp op, const RectT& rect) {
   }
 }
 
-void AggModule::renderRectA(RenderOp op) {
-  BLSizeI bounds(_params.screenW, _params.screenH);
+void AggModule::render_rect_a(RenderOp op) {
+  BLSizeI bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  int wh = _params.shapeSize;
+  int wh = _params.shape_size;
 
-  prepareFillStrokeOption(op);
+  prepare_fill_stroke_option(op);
 
   if (_params.style == StyleKind::kSolid && op != RenderOp::kStroke) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRectI rect = _rndCoord.nextRectI(bounds, wh, wh);
-      _ctx.fillRectangleI(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, toAgg2DColor(_rndColor.nextRgba32()));
+      BLRectI rect = _rnd_coord.next_rect_i(bounds, wh, wh);
+      _ctx.fillRectangleI(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, to_agg2d_color(_rnd_color.next_rgba32()));
     }
   }
   else {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRectI rect = _rndCoord.nextRectI(bounds, wh, wh);
-      setupStyle(op, rect);
+      BLRectI rect = _rnd_coord.next_rect_i(bounds, wh, wh);
+      setup_style(op, rect);
       _ctx.rectangle(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
     }
   }
 }
 
-void AggModule::renderRectF(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void AggModule::render_rect_f(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  double wh = _params.shapeSize;
+  double wh = _params.shape_size;
 
-  prepareFillStrokeOption(op);
+  prepare_fill_stroke_option(op);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
-    setupStyle(op, rect);
+    BLRect rect = _rnd_coord.next_rect(bounds, wh, wh);
+    setup_style(op, rect);
     _ctx.rectangle(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
   }
 }
 
-void AggModule::renderRectRotated(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void AggModule::render_rect_rotated(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
 
-  double cx = double(_params.screenW) * 0.5;
-  double cy = double(_params.screenH) * 0.5;
-  double wh = _params.shapeSize;
+  double cx = double(_params.screen_w) * 0.5;
+  double cy = double(_params.screen_h) * 0.5;
+  double wh = _params.shape_size;
   double angle = 0.0;
 
-  prepareFillStrokeOption(op);
+  prepare_fill_stroke_option(op);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-    BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+    BLRect rect(_rnd_coord.next_rect(bounds, wh, wh));
 
     agg::trans_affine affine;
     affine.translate(-cx, -cy);
@@ -244,42 +241,42 @@ void AggModule::renderRectRotated(RenderOp op) {
     affine.translate(cx, cy);
 
     _ctx.affine(affine);
-    setupStyle(op, rect);
+    setup_style(op, rect);
     _ctx.rectangle(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
     _ctx.resetTransformations();
   }
 }
 
-void AggModule::renderRoundF(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void AggModule::render_round_f(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  double wh = _params.shapeSize;
+  double wh = _params.shape_size;
 
-  prepareFillStrokeOption(op);
+  prepare_fill_stroke_option(op);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
-    double radius = _rndExtra.nextDouble(4.0, 40.0);
+    BLRect rect = _rnd_coord.next_rect(bounds, wh, wh);
+    double radius = _rnd_extra.next_double(4.0, 40.0);
 
-    setupStyle(op, rect);
+    setup_style(op, rect);
     _ctx.roundedRect(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, radius);
   }
 }
 
-void AggModule::renderRoundRotated(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void AggModule::render_round_rotated(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
 
-  double cx = double(_params.screenW) * 0.5;
-  double cy = double(_params.screenH) * 0.5;
-  double wh = _params.shapeSize;
+  double cx = double(_params.screen_w) * 0.5;
+  double cy = double(_params.screen_h) * 0.5;
+  double wh = _params.shape_size;
   double angle = 0.0;
 
-  prepareFillStrokeOption(op);
+  prepare_fill_stroke_option(op);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-    BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-    double radius = _rndExtra.nextDouble(4.0, 40.0);
+    BLRect rect(_rnd_coord.next_rect(bounds, wh, wh));
+    double radius = _rnd_extra.next_double(4.0, 40.0);
 
     agg::trans_affine affine;
     affine.translate(-cx, -cy);
@@ -287,75 +284,75 @@ void AggModule::renderRoundRotated(RenderOp op) {
     affine.translate(cx, cy);
     _ctx.affine(affine);
 
-    setupStyle(op, rect);
+    setup_style(op, rect);
     _ctx.roundedRect(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, radius);
     _ctx.resetTransformations();
   }
 }
 
-void AggModule::renderPolygon(RenderOp op, uint32_t complexity) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
+void AggModule::render_polygon(RenderOp op, uint32_t complexity) {
+  BLSizeI bounds(_params.screen_w - _params.shape_size,
+                 _params.screen_h - _params.shape_size);
 
   StyleKind style = _params.style;
-  double wh = _params.shapeSize;
+  double wh = _params.shape_size;
 
-  prepareFillStrokeOption(op);
+  prepare_fill_stroke_option(op);
   _ctx.fillEvenOdd(op == RenderOp::kFillEvenOdd);
 
-  Agg2D::DrawPathFlag drawPathFlag = op == RenderOp::kStroke ? Agg2D::StrokeOnly : Agg2D::FillOnly;
+  Agg2D::DrawPathFlag draw_path_flag = op == RenderOp::kStroke ? Agg2D::StrokeOnly : Agg2D::FillOnly;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLPoint base(_rndCoord.nextPoint(bounds));
+    BLPoint base(_rnd_coord.nextPoint(bounds));
 
-    double x = _rndCoord.nextDouble(base.x, base.x + wh);
-    double y = _rndCoord.nextDouble(base.y, base.y + wh);
+    double x = _rnd_coord.next_double(base.x, base.x + wh);
+    double y = _rnd_coord.next_double(base.y, base.y + wh);
 
     _ctx.resetPath();
     _ctx.moveTo(x, y);
 
     for (uint32_t p = 1; p < complexity; p++) {
-      x = _rndCoord.nextDouble(base.x, base.x + wh);
-      y = _rndCoord.nextDouble(base.y, base.y + wh);
+      x = _rnd_coord.next_double(base.x, base.x + wh);
+      y = _rnd_coord.next_double(base.y, base.y + wh);
       _ctx.lineTo(x, y);
     }
 
-    setupStyle(op, BLRect(base.x, base.y, wh, wh));
-    _ctx.drawPath(drawPathFlag);
+    setup_style(op, BLRect(base.x, base.y, wh, wh));
+    _ctx.drawPath(draw_path_flag);
   }
 }
 
-void AggModule::renderShape(RenderOp op, ShapeData shape) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
+void AggModule::render_shape(RenderOp op, ShapeData shape) {
+  BLSizeI bounds(_params.screen_w - _params.shape_size,
+                 _params.screen_h - _params.shape_size);
 
   StyleKind style = _params.style;
-  double wh = double(_params.shapeSize);
+  double wh = double(_params.shape_size);
 
-  prepareFillStrokeOption(op);
+  prepare_fill_stroke_option(op);
   _ctx.fillEvenOdd(op == RenderOp::kFillEvenOdd);
 
-  Agg2D::DrawPathFlag drawPathFlag = op == RenderOp::kStroke ? Agg2D::StrokeOnly : Agg2D::FillOnly;
+  Agg2D::DrawPathFlag draw_path_flag = op == RenderOp::kStroke ? Agg2D::StrokeOnly : Agg2D::FillOnly;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLPoint base(_rndCoord.nextPoint(bounds));
+    BLPoint base(_rnd_coord.nextPoint(bounds));
     ShapeIterator it(shape);
 
     _ctx.resetPath();
-    while (it.hasCommand()) {
-      if (it.isMoveTo()) {
+    while (it.has_command()) {
+      if (it.is_move_to()) {
         _ctx.moveTo(base.x + it.x(0) * wh, base.y + it.y(0) * wh);
       }
-      else if (it.isLineTo()) {
+      else if (it.is_line_to()) {
         _ctx.lineTo(base.x + it.x(0) * wh, base.y + it.y(0) * wh);
       }
-      else if (it.isQuadTo()) {
+      else if (it.is_quad_to()) {
         _ctx.quadricCurveTo(
           base.x + it.x(0) * wh, base.y + it.y(0) * wh,
           base.x + it.x(1) * wh, base.y + it.y(1) * wh
         );
       }
-      else if (it.isCubicTo()) {
+      else if (it.is_cubic_to()) {
         _ctx.cubicCurveTo(
           base.x + it.x(0) * wh, base.y + it.y(0) * wh,
           base.x + it.x(1) * wh, base.y + it.y(1) * wh,
@@ -368,12 +365,12 @@ void AggModule::renderShape(RenderOp op, ShapeData shape) {
       it.next();
     }
 
-    setupStyle(op, BLRect(base.x, base.y, wh, wh));
-    _ctx.drawPath(drawPathFlag);
+    setup_style(op, BLRect(base.x, base.y, wh, wh));
+    _ctx.drawPath(draw_path_flag);
   }
 }
 
-Backend* createAggBackend() {
+Backend* create_agg_backend() {
   return new AggModule();
 }
 

@@ -43,7 +43,7 @@
 
 namespace blbench {
 
-static constexpr uint32_t kSupportedBackends =
+static constexpr uint32_t supported_backends_mask =
 #if defined(BLEND2D_APPS_ENABLE_AGG)
   (1u << uint32_t(BackendKind::kAGG)) |
 #endif
@@ -64,7 +64,7 @@ static constexpr uint32_t kSupportedBackends =
 #endif
   (1u << uint32_t(BackendKind::kBlend2D));
 
-static const char* backendKindNameList[] = {
+static const char* backend_kind_name_table[] = {
   "Blend2D",
   "AGG",
   "Cairo",
@@ -74,7 +74,7 @@ static const char* backendKindNameList[] = {
   "CoreGraphics"
 };
 
-static const char* testKindNameList[] = {
+static const char* test_kind_name_table[] = {
   "FillRectA",
   "FillRectU",
   "FillRectRot",
@@ -106,7 +106,7 @@ static const char* testKindNameList[] = {
   "StrokeWorld"
 };
 
-static const char* compOpNameList[] = {
+static const char* comp_op_name_table[] = {
   "SrcOver",
   "SrcCopy",
   "SrcIn",
@@ -138,7 +138,7 @@ static const char* compOpNameList[] = {
   "Exclusion"
 };
 
-static const char* styleKindNameList[] = {
+static const char* style_kind_name_table[] = {
   "Solid",
   "Linear@Pad",
   "Linear@Repeat",
@@ -151,15 +151,15 @@ static const char* styleKindNameList[] = {
   "Pattern_BI"
 };
 
-static const int benchShapeSizeList[kBenchShapeSizeCount] = {
+static const int bench_shape_size_table[kBenchShapeSizeCount] = {
   8, 16, 32, 64, 128, 256
 };
 
-const char benchBorderStr[] = "+--------------------+-------------+---------------+----------+----------+----------+----------+----------+----------+\n";
-const char benchHeaderStr[] = "|%-20s"             "| CompOp      | Style         | 8x8      | 16x16    | 32x32    | 64x64    | 128x128  | 256x256  |\n";
-const char benchDataFmt[]   = "|%-20s"             "| %-12s"     "| %-14s"       "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "|\n";
+const char bench_border_str[] = "+--------------------+-------------+---------------+----------+----------+----------+----------+----------+----------+\n";
+const char bench_header_str[] = "|%-20s"             "| CompOp      | Style         | 8x8      | 16x16    | 32x32    | 64x64    | 128x128  | 256x256  |\n";
+const char bench_fata_fmt_str[]   = "|%-20s"             "| %-12s"     "| %-14s"       "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "| %-9s"   "|\n";
 
-static const char* getOSString() {
+static const char* get_os_string() {
 #if defined(__ANDROID__)
   return "android";
 #elif defined(__linux__)
@@ -185,7 +185,7 @@ static const char* getOSString() {
 #endif
 }
 
-static const char* getCpuArchString() {
+static const char* get_cpu_arch_string() {
 #if defined(_M_X64) || defined(__amd64) || defined(__amd64__) || defined(__x86_64) || defined(__x86_64__)
   return "x86_64";
 #elif defined(_M_IX86) || defined(__i386) || defined(__i386__)
@@ -209,7 +209,7 @@ static const char* getCpuArchString() {
 #endif
 }
 
-static const char* getFormatString(BLFormat format) {
+static const char* get_format_string(BLFormat format) {
   switch (format) {
     case BL_FORMAT_PRGB32:
       return "prgb32";
@@ -246,7 +246,7 @@ static bool strieq(const char* a, const char* b) {
   return true;
 }
 
-static uint32_t searchStringList(const char** listData, size_t listSize, const char* key) {
+static uint32_t search_string_list(const char** listData, size_t listSize, const char* key) {
   for (size_t i = 0; i < listSize; i++)
     if (strieq(listData[i], key))
       return uint32_t(i);
@@ -261,7 +261,7 @@ static void spacesToUnderscores(char* s) {
   }
 }
 
-static BLArray<BLString> splitString(const char* s) {
+static BLArray<BLString> split_string(const char* s) {
   BLArray<BLString> arr;
   while (*s) {
     const char* end = strchr(s, ',');
@@ -278,13 +278,13 @@ static BLArray<BLString> splitString(const char* s) {
   return arr;
 }
 
-static std::tuple<int, uint32_t> parseList(const char** listData, size_t listSize, const char* inputList, const char* parseErrorMsg) {
+static std::tuple<int, uint32_t> parse_list(const char** listData, size_t listSize, const char* inputList, const char* parseErrorMsg) {
   int listOp = 0;
   uint32_t parsedMask = 0;
-  BLArray<BLString> parts = splitString(inputList);
+  BLArray<BLString> parts = split_string(inputList);
 
   for (const BLString& part : parts) {
-    if (part.empty())
+    if (part.is_empty())
       continue;
 
     const char* p = part.data();
@@ -306,13 +306,13 @@ static std::tuple<int, uint32_t> parseList(const char** listData, size_t listSiz
       return std::tuple<int, uint32_t>(-2, 0);
     }
 
-    uint32_t backendIdx = searchStringList(listData, listSize, p);
-    if (backendIdx == 0xFFFFFFFFu) {
+    uint32_t backend_index = search_string_list(listData, listSize, p);
+    if (backend_index == 0xFFFFFFFFu) {
       printf("ERROR: %s [%s]: couldn't recognize '%s' part\n", parseErrorMsg, inputList, p);
       return std::tuple<int, uint32_t>(-2, 0);
     }
 
-    parsedMask |= 1u << backendIdx;
+    parsedMask |= 1u << backend_index;
   }
 
   return std::tuple<int, uint32_t>(listOp, parsedMask);
@@ -322,33 +322,38 @@ struct DurationFormat {
   char data[64];
 
   inline void format(double cpms) {
-    if (cpms <= 0.1)
+    if (cpms <= 0.1) {
       snprintf(data, 64, "%0.4f", cpms);
-    else if (cpms <= 1.0)
+    }
+    else if (cpms <= 1.0) {
       snprintf(data, 64, "%0.3f", cpms);
-    else if (cpms < 10.0)
+    }
+    else if (cpms < 10.0) {
       snprintf(data, 64, "%0.2f", cpms);
-    else if (cpms < 100.0)
+    }
+    else if (cpms < 100.0) {
       snprintf(data, 64, "%0.1f", cpms);
-    else
+    }
+    else {
       snprintf(data, 64, "%llu", (unsigned long long)std::round(cpms));
+    }
   }
 };
 
 BenchApp::BenchApp(int argc, char** argv)
-  : _cmdLine(argc, argv),
+  : _cmd_line(argc, argv),
     _isolated(false),
-    _deepBench(false),
-    _saveImages(false),
-    _backends(kSupportedBackends),
+    _deep_bench(false),
+    _save_images(false),
+    _backends(supported_backends_mask),
     _repeat(1),
     _quantity(0) {}
 
 BenchApp::~BenchApp() {}
 
-void BenchApp::printAppInfo() const {
-  BLRuntimeBuildInfo buildInfo;
-  BLRuntime::queryBuildInfo(&buildInfo);
+void BenchApp::print_app_info() const {
+  BLRuntimeBuildInfo build_info;
+  BLRuntime::query_build_info(&build_info);
 
   printf(
     "Blend2D Benchmarking Tool\n"
@@ -358,16 +363,16 @@ void BenchApp::printAppInfo() const {
     "  Build Type : %s\n"
     "  Compiled By: %s\n"
     "\n",
-    buildInfo.majorVersion,
-    buildInfo.minorVersion,
-    buildInfo.patchVersion,
-    buildInfo.buildType == BL_RUNTIME_BUILD_TYPE_DEBUG ? "Debug" : "Release",
-    buildInfo.compilerInfo);
+    build_info.major_version,
+    build_info.minor_version,
+    build_info.patch_version,
+    build_info.build_type == BL_RUNTIME_BUILD_TYPE_DEBUG ? "Debug" : "Release",
+    build_info.compiler_info);
 
   fflush(stdout);
 }
 
-void BenchApp::printOptions() const {
+void BenchApp::print_options() const {
   const char no_yes[][4] = { "no", "yes" };
 
   printf(
@@ -387,34 +392,34 @@ void BenchApp::printOptions() const {
     _width,
     _height,
     _quantity,
-    _sizeCount,
-    _compOp == 0xFFFFFFFF ? "all" : compOpNameList[_compOp],
+    _size_count,
+    _comp_op == 0xFFFFFFFF ? "all" : comp_op_name_table[_comp_op],
     _repeat,
-    _backends == kSupportedBackends ? "all" : "...",
-    no_yes[_saveImages],
-    no_yes[_saveOverview],
-    no_yes[_deepBench],
+    _backends == supported_backends_mask ? "all" : "...",
+    no_yes[_save_images],
+    no_yes[_save_overview],
+    no_yes[_deep_bench],
     no_yes[_isolated]
   );
 
   fflush(stdout);
 }
 
-void BenchApp::printBackends() const {
+void BenchApp::print_backends() const {
   printf("Backends supported (by default all built-in backends are enabled):\n");
   const char disabled_enabled[][16] = { "disabled", "enabled" };
 
-  for (uint32_t backendIdx = 0; backendIdx < kBackendKindCount; backendIdx++) {
-    uint32_t backendMask = 1u << backendIdx;
+  for (uint32_t backend_index = 0; backend_index < kBackendKindCount; backend_index++) {
+    uint32_t backend_mask = 1u << backend_index;
 
-    if (backendMask & kSupportedBackends) {
+    if (backend_mask & supported_backends_mask) {
       printf("  - %-15s [%s]\n",
-        backendKindNameList[backendIdx],
-        disabled_enabled[(_backends & backendMask) != 0]);
+        backend_kind_name_table[backend_index],
+        disabled_enabled[(_backends & backend_mask) != 0]);
     }
     else {
       printf("  - %-15s [not supported]\n",
-        backendKindNameList[backendIdx]);
+        backend_kind_name_table[backend_index]);
     }
   }
 
@@ -422,21 +427,21 @@ void BenchApp::printBackends() const {
   fflush(stdout);
 }
 
-bool BenchApp::parseCommandLine() {
-  _width = _cmdLine.valueAsUInt("--width", _width);
-  _height = _cmdLine.valueAsUInt("--height", _height);
-  _compOp = 0xFFFFFFFFu;
-  _sizeCount = _cmdLine.valueAsUInt("--size-count", _sizeCount);
-  _quantity = _cmdLine.valueAsUInt("--quantity", _quantity);
-  _repeat = _cmdLine.valueAsUInt("--repeat", _repeat);
+bool BenchApp::parse_command_line() {
+  _width = _cmd_line.value_as_uint("--width", _width);
+  _height = _cmd_line.value_as_uint("--height", _height);
+  _comp_op = 0xFFFFFFFFu;
+  _size_count = _cmd_line.value_as_uint("--size-count", _size_count);
+  _quantity = _cmd_line.value_as_uint("--quantity", _quantity);
+  _repeat = _cmd_line.value_as_uint("--repeat", _repeat);
 
-  _saveImages = _cmdLine.hasArg("--save-images");
-  _saveOverview = _cmdLine.hasArg("--save-overview");
-  _deepBench = _cmdLine.hasArg("--deep");
-  _isolated = _cmdLine.hasArg("--isolated");
+  _save_images = _cmd_line.has_arg("--save-images");
+  _save_overview = _cmd_line.has_arg("--save-overview");
+  _deep_bench = _cmd_line.has_arg("--deep");
+  _isolated = _cmd_line.has_arg("--isolated");
 
-  const char* compOpString = _cmdLine.valueOf("--compOp", nullptr);
-  const char* backendString = _cmdLine.valueOf("--backend", nullptr);
+  const char* comp_op_string = _cmd_line.value_of("--comp_op", nullptr);
+  const char* backend_string = _cmd_line.value_of("--backend", nullptr);
 
   if (_width < 10|| _width > 4096) {
     printf("ERROR: Invalid --width=%u specified\n", _width);
@@ -448,8 +453,8 @@ bool BenchApp::parseCommandLine() {
     return false;
   }
 
-  if (_sizeCount == 0 || _sizeCount > kBenchShapeSizeCount) {
-    printf("ERROR: Invalid --size-count=%u specified\n", _sizeCount);
+  if (_size_count == 0 || _size_count > kBenchShapeSizeCount) {
+    printf("ERROR: Invalid --size-count=%u specified\n", _size_count);
     return false;
   }
 
@@ -463,67 +468,70 @@ bool BenchApp::parseCommandLine() {
     return false;
   }
 
-  if (_saveImages && !_quantity) {
+  if (_save_images && !_quantity) {
     printf("ERROR: Missing --quantity argument; it must be provided when --save-images is used\n");
     return false;
   }
 
-  if (_saveOverview && !_quantity) {
+  if (_save_overview && !_quantity) {
     printf("ERROR: Missing --quantity argument; it must be provided when --save-overview is used\n");
     return false;
   }
 
-  if (compOpString && strcmp(compOpString, "all") != 0) {
-    _compOp = searchStringList(compOpNameList, ARRAY_SIZE(compOpNameList), compOpString);
-    if (_compOp == 0xFFFFFFFF) {
-      printf("ERROR: Invalid composition operator [%s] specified\n", compOpString);
+  if (comp_op_string && strcmp(comp_op_string, "all") != 0) {
+    _comp_op = search_string_list(comp_op_name_table, ARRAY_SIZE(comp_op_name_table), comp_op_string);
+    if (_comp_op == 0xFFFFFFFF) {
+      printf("ERROR: Invalid composition operator [%s] specified\n", comp_op_string);
       return false;
     }
   }
 
-  if (backendString && strcmp(backendString, "all") != 0) {
-    std::tuple<int, uint32_t> v = parseList(backendKindNameList, kBackendKindCount, backendString, "Invalid --backend list");
+  if (backend_string && strcmp(backend_string, "all") != 0) {
+    std::tuple<int, uint32_t> v = parse_list(backend_kind_name_table, kBackendKindCount, backend_string, "Invalid --backend list");
 
-    if (std::get<0>(v) == -2)
+    if (std::get<0>(v) == -2) {
       return false;
+    }
 
-    if (std::get<0>(v) == 1)
+    if (std::get<0>(v) == 1) {
       _backends = std::get<1>(v);
-    else if (std::get<0>(v) == -1)
+    }
+    else if (std::get<0>(v) == -1) {
       _backends &= ~std::get<1>(v);
+    }
   }
 
   return true;
 }
 
 bool BenchApp::init() {
-  if (_cmdLine.hasArg("--help")) {
+  if (_cmd_line.has_arg("--help")) {
     info();
     exit(0);
   }
 
-  if (!parseCommandLine()) {
+  if (!parse_command_line()) {
     info();
     exit(1);
   }
 
-  return readImage(_spriteData[0], "#0", _resource_babelfish_png, sizeof(_resource_babelfish_png)) &&
-         readImage(_spriteData[1], "#1", _resource_ksplash_png  , sizeof(_resource_ksplash_png  )) &&
-         readImage(_spriteData[2], "#2", _resource_ktip_png     , sizeof(_resource_ktip_png     )) &&
-         readImage(_spriteData[3], "#3", _resource_firewall_png , sizeof(_resource_firewall_png ));
+  return read_image(_sprite_data[0], "#0", _resource_babelfish_png, sizeof(_resource_babelfish_png)) &&
+         read_image(_sprite_data[1], "#1", _resource_ksplash_png  , sizeof(_resource_ksplash_png  )) &&
+         read_image(_sprite_data[2], "#2", _resource_ktip_png     , sizeof(_resource_ktip_png     )) &&
+         read_image(_sprite_data[3], "#3", _resource_firewall_png , sizeof(_resource_firewall_png ));
 }
 
 void BenchApp::info() {
-  BLRuntimeBuildInfo buildInfo;
-  BLRuntime::queryBuildInfo(&buildInfo);
+  BLRuntimeBuildInfo build_info;
+  BLRuntime::query_build_info(&build_info);
 
-  printAppInfo();
-  printOptions();
-  printBackends();
+  print_app_info();
+  print_options();
+  print_backends();
 }
 
-bool BenchApp::readImage(BLImage& image, const char* name, const void* data, size_t size) noexcept {
-  BLResult result = image.readFromData(data, size);
+bool BenchApp::read_image(BLImage& image, const char* name, const void* data, size_t size) noexcept {
+  BLResult result = image.read_from_data(data, size);
   if (result != BL_SUCCESS) {
     printf("Failed to read an image '%s' used for benchmarking\n", name);
     return false;
@@ -533,9 +541,9 @@ bool BenchApp::readImage(BLImage& image, const char* name, const void* data, siz
   }
 }
 
-BLImage BenchApp::getScaledSprite(uint32_t id, uint32_t size) const {
-  auto it = _scaledSprites.find(size);
-  if (it != _scaledSprites.end()) {
+BLImage BenchApp::get_scaled_sprite(uint32_t id, uint32_t size) const {
+  auto it = _scaled_sprites.find(size);
+  if (it != _scaled_sprites.end()) {
     return it->second[id];
   }
 
@@ -543,19 +551,19 @@ BLImage BenchApp::getScaledSprite(uint32_t id, uint32_t size) const {
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
     BLImage::scale(
       scaled[i],
-      _spriteData[i],
+      _sprite_data[i],
       BLSizeI(size, size), BL_IMAGE_SCALE_FILTER_BILINEAR);
   }
-  _scaledSprites.emplace(size, scaled);
+  _scaled_sprites.emplace(size, scaled);
   return scaled[id];
 }
 
-bool BenchApp::isBackendEnabled(BackendKind backendKind) const {
-  return (_backends & (1u << uint32_t(backendKind))) != 0;
+bool BenchApp::is_backend_enabled(BackendKind backend_kind) const {
+  return (_backends & (1u << uint32_t(backend_kind))) != 0;
 }
 
-bool BenchApp::isStyleEnabled(StyleKind style) const {
-  if (_deepBench)
+bool BenchApp::is_style_enabled(StyleKind style) const {
+  if (_deep_bench)
     return true;
 
   // If this is not a deep run we just select the following styles to be tested:
@@ -567,65 +575,65 @@ bool BenchApp::isStyleEnabled(StyleKind style) const {
          style == StyleKind::kPatternBI ;
 }
 
-void BenchApp::serializeSystemInfo(JSONBuilder& json) const {
-  BLRuntimeSystemInfo systemInfo;
-  BLRuntime::querySystemInfo(&systemInfo);
+void BenchApp::serialize_system_info(JSONBuilder& json) const {
+  BLRuntimeSystemInfo system_info;
+  BLRuntime::query_system_info(&system_info);
 
-  json.beforeRecord().addKey("environment").openObject();
-  json.beforeRecord().addKey("os").addString(getOSString());
-  json.closeObject(true);
+  json.before_record().add_key("environment").open_object();
+  json.before_record().add_key("os").add_string(get_os_string());
+  json.close_object(true);
 
-  json.beforeRecord().addKey("cpu").openObject();
-  json.beforeRecord().addKey("arch").addString(getCpuArchString());
-  json.beforeRecord().addKey("vendor").addString(systemInfo.cpuVendor);
-  json.beforeRecord().addKey("brand").addString(systemInfo.cpuBrand);
-  json.closeObject(true);
+  json.before_record().add_key("cpu").open_object();
+  json.before_record().add_key("arch").add_string(get_cpu_arch_string());
+  json.before_record().add_key("vendor").add_string(system_info.cpu_vendor);
+  json.before_record().add_key("brand").add_string(system_info.cpu_brand);
+  json.close_object(true);
 }
 
-void BenchApp::serializeParams(JSONBuilder& json, const BenchParams& params) const {
-  json.beforeRecord().addKey("screen").openObject();
-  json.beforeRecord().addKey("width").addUInt(params.screenW);
-  json.beforeRecord().addKey("height").addUInt(params.screenH);
-  json.beforeRecord().addKey("format").addString(getFormatString(params.format));
-  json.closeObject(true);
+void BenchApp::serialize_params(JSONBuilder& json, const BenchParams& params) const {
+  json.before_record().add_key("screen").open_object();
+  json.before_record().add_key("width").add_uint(params.screen_w);
+  json.before_record().add_key("height").add_uint(params.screen_h);
+  json.before_record().add_key("format").add_string(get_format_string(params.format));
+  json.close_object(true);
 }
 
-void BenchApp::serializeOptions(JSONBuilder& json, const BenchParams& params) const {
-  json.beforeRecord().addKey("options").openObject();
-  json.beforeRecord().addKey("quantity").addUInt(params.quantity);
-  json.beforeRecord().addKey("sizes").openArray();
-  for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++) {
-    json.addStringf("%dx%d", benchShapeSizeList[sizeId], benchShapeSizeList[sizeId]);
+void BenchApp::serialize_options(JSONBuilder& json, const BenchParams& params) const {
+  json.before_record().add_key("options").open_object();
+  json.before_record().add_key("quantity").add_uint(params.quantity);
+  json.before_record().add_key("sizes").open_array();
+  for (uint32_t size_index = 0; size_index < _size_count; size_index++) {
+    json.add_stringf("%dx%d", bench_shape_size_table[size_index], bench_shape_size_table[size_index]);
   }
-  json.closeArray();
-  json.beforeRecord().addKey("repeat").addUInt(_repeat);
-  json.closeObject(true);
+  json.close_array();
+  json.before_record().add_key("repeat").add_uint(_repeat);
+  json.close_object(true);
 }
 
 int BenchApp::run() {
   BenchParams params{};
-  params.screenW = _width;
-  params.screenH = _height;
+  params.screen_w = _width;
+  params.screen_h = _height;
   params.format = BL_FORMAT_PRGB32;
-  params.strokeWidth = 2.0;
+  params.stroke_width = 2.0;
 
-  BLString jsonContent;
-  JSONBuilder json(&jsonContent);
+  BLString json_content;
+  JSONBuilder json(&json_content);
 
-  json.openObject();
+  json.open_object();
 
-  serializeSystemInfo(json);
-  serializeParams(json, params);
-  serializeOptions(json, params);
+  serialize_system_info(json);
+  serialize_params(json, params);
+  serialize_options(json, params);
 
-  json.beforeRecord().addKey("runs").openArray();
+  json.before_record().add_key("runs").open_array();
 
   if (_isolated) {
     BLRuntimeSystemInfo si;
-    BLRuntime::querySystemInfo(&si);
+    BLRuntime::query_system_info(&si);
 
     // Only use features that could actually make a difference.
-    static const uint32_t x86Features[] = {
+    static const uint32_t x86_features[] = {
       BL_RUNTIME_CPU_FEATURE_X86_SSE2,
       BL_RUNTIME_CPU_FEATURE_X86_SSE3,
       BL_RUNTIME_CPU_FEATURE_X86_SSSE3,
@@ -636,195 +644,198 @@ int BenchApp::run() {
       BL_RUNTIME_CPU_FEATURE_X86_AVX512
     };
 
-    const uint32_t* features = x86Features;
-    uint32_t featureCount = ARRAY_SIZE(x86Features);
+    const uint32_t* features = x86_features;
+    uint32_t feature_count = ARRAY_SIZE(x86_features);
 
-    for (uint32_t i = 0; i < featureCount; i++) {
-      if ((si.cpuFeatures & features[i]) == features[i]) {
-        Backend* backend = createBlend2DBackend(0, features[i]);
-        runBackendTests(*backend, params, json);
+    for (uint32_t i = 0; i < feature_count; i++) {
+      if ((si.cpu_features & features[i]) == features[i]) {
+        Backend* backend = create_blend2d_backend(0, features[i]);
+        run_backend_tests(*backend, params, json);
         delete backend;
       }
     }
   }
   else {
-    if (isBackendEnabled(BackendKind::kBlend2D)) {
-      Backend* backend = backend = createBlend2DBackend(0);
-      runBackendTests(*backend, params, json);
+    if (is_backend_enabled(BackendKind::kBlend2D)) {
+      Backend* backend = backend = create_blend2d_backend(0);
+      run_backend_tests(*backend, params, json);
       delete backend;
 
-      backend = createBlend2DBackend(2);
-      runBackendTests(*backend, params, json);
+      backend = create_blend2d_backend(2);
+      run_backend_tests(*backend, params, json);
       delete backend;
 
-      backend = createBlend2DBackend(4);
-      runBackendTests(*backend, params, json);
+      backend = create_blend2d_backend(4);
+      run_backend_tests(*backend, params, json);
       delete backend;
     }
 
 #if defined(BLEND2D_APPS_ENABLE_AGG)
-    if (isBackendEnabled(BackendKind::kAGG)) {
-      Backend* backend = createAggBackend();
-      runBackendTests(*backend, params, json);
+    if (is_backend_enabled(BackendKind::kAGG)) {
+      Backend* backend = create_agg_backend();
+      run_backend_tests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_CAIRO)
-    if (isBackendEnabled(BackendKind::kCairo)) {
-      Backend* backend = createCairoBackend();
-      runBackendTests(*backend, params, json);
+    if (is_backend_enabled(BackendKind::kCairo)) {
+      Backend* backend = create_cairo_backend();
+      run_backend_tests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_QT)
-    if (isBackendEnabled(BackendKind::kQt)) {
-      Backend* backend = createQtBackend();
-      runBackendTests(*backend, params, json);
+    if (is_backend_enabled(BackendKind::kQt)) {
+      Backend* backend = create_qt_backend();
+      run_backend_tests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_SKIA)
-    if (isBackendEnabled(BackendKind::kSkia)) {
-      Backend* backend = createSkiaBackend();
-      runBackendTests(*backend, params, json);
+    if (is_backend_enabled(BackendKind::kSkia)) {
+      Backend* backend = create_skia_backend();
+      run_backend_tests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_JUCE)
-    if (isBackendEnabled(BackendKind::kJUCE)) {
-      Backend* backend = createJuceBackend();
-      runBackendTests(*backend, params, json);
+    if (is_backend_enabled(BackendKind::kJUCE)) {
+      Backend* backend = create_juce_backend();
+      run_backend_tests(*backend, params, json);
       delete backend;
     }
 #endif
 
 #if defined(BLEND2D_APPS_ENABLE_COREGRAPHICS)
-    if (isBackendEnabled(BackendKind::kCoreGraphics)) {
-      Backend* backend = createCGBackend();
-      runBackendTests(*backend, params, json);
+    if (is_backend_enabled(BackendKind::kCoreGraphics)) {
+      Backend* backend = create_cg_backend();
+      run_backend_tests(*backend, params, json);
       delete backend;
     }
 #endif
   }
 
-  json.closeArray(true);
-  json.closeObject(true);
+  json.close_array(true);
+  json.close_object(true);
   json.nl();
 
   printf("\n");
-  fputs(jsonContent.data(), stdout);
+  fputs(json_content.data(), stdout);
 
   return 0;
 }
 
-int BenchApp::runBackendTests(Backend& backend, BenchParams& params, JSONBuilder& json) {
-  char fileName[256];
-  char styleString[128];
+int BenchApp::run_backend_tests(Backend& backend, BenchParams& params, JSONBuilder& json) {
+  char file_name[256];
+  char style_string[128];
 
-  BLImage overviewImage;
-  BLContext overviewCtx;
+  BLImage overview_image;
+  BLContext overview_ctx;
 
-  if (_saveOverview) {
-    overviewImage.create(1 + ((_width + 1) * _sizeCount), _height + 2, BL_FORMAT_XRGB32);
-    overviewCtx.begin(overviewImage);
+  if (_save_overview) {
+    overview_image.create(1 + ((_width + 1) * _size_count), _height + 2, BL_FORMAT_XRGB32);
+    overview_ctx.begin(overview_image);
   }
 
   double cpms[kBenchShapeSizeCount] {};
-  uint64_t cpmsTotal[kBenchShapeSizeCount] {};
+  uint64_t cpms_total[kBenchShapeSizeCount] {};
   DurationFormat fmt[kBenchShapeSizeCount] {};
 
-  uint32_t compOpFirst = BL_COMP_OP_SRC_OVER;
-  uint32_t compOpLast  = BL_COMP_OP_SRC_COPY;
+  uint32_t comp_op_first = BL_COMP_OP_SRC_OVER;
+  uint32_t comp_op_last  = BL_COMP_OP_SRC_COPY;
 
-  if (_compOp != 0xFFFFFFFFu) {
-    compOpFirst = compOpLast = _compOp;
+  if (_comp_op != 0xFFFFFFFFu) {
+    comp_op_first = comp_op_last = _comp_op;
   }
 
-  json.beforeRecord().openObject();
-  json.beforeRecord().addKey("name").addString(backend.name());
-  backend.serializeInfo(json);
-  json.beforeRecord().addKey("records").openArray();
+  json.before_record().open_object();
+  json.before_record().add_key("name").add_string(backend.name());
+  backend.serialize_info(json);
+  json.before_record().add_key("records").open_array();
 
-  for (uint32_t compOp = compOpFirst; compOp <= compOpLast; compOp++) {
-    params.compOp = BLCompOp(compOp);
-    if (!backend.supportsCompOp(params.compOp))
+  for (uint32_t comp_op = comp_op_first; comp_op <= comp_op_last; comp_op++) {
+    params.comp_op = BLCompOp(comp_op);
+    if (!backend.supports_comp_op(params.comp_op))
       continue;
 
-    for (uint32_t styleIdx = 0; styleIdx < kStyleKindCount; styleIdx++) {
-      StyleKind style = StyleKind(styleIdx);
-      if (!isStyleEnabled(style) || !backend.supportsStyle(style))
+    for (uint32_t style_index = 0; style_index < kStyleKindCount; style_index++) {
+      StyleKind style = StyleKind(style_index);
+      if (!is_style_enabled(style) || !backend.supports_style(style)) {
         continue;
+      }
+
       params.style = style;
 
       // Remove '@' from the style name if not running a deep benchmark.
-      strcpy(styleString, styleKindNameList[styleIdx]);
+      strcpy(style_string, style_kind_name_table[style_index]);
 
-      if (!_deepBench) {
-        char* x = strchr(styleString, '@');
+      if (!_deep_bench) {
+        char* x = strchr(style_string, '@');
         if (x != nullptr) x[0] = '\0';
       }
 
-      memset(cpmsTotal, 0, sizeof(cpmsTotal));
+      memset(cpms_total, 0, sizeof(cpms_total));
 
-      printf(benchBorderStr);
-      printf(benchHeaderStr, backend._name);
-      printf(benchBorderStr);
+      printf(bench_border_str);
+      printf(bench_header_str, backend._name);
+      printf(bench_border_str);
 
-      for (uint32_t testIdx = 0; testIdx < kTestKindCount; testIdx++) {
-        params.testKind = TestKind(testIdx);
+      for (uint32_t test_index = 0; test_index < kTestKindCount; test_index++) {
+        params.testKind = TestKind(test_index);
 
-        if (_saveOverview) {
-          overviewCtx.fillAll(BLRgba32(0xFF000000u));
-          overviewCtx.strokeRect(BLRect(0.5, 0.5, overviewImage.width() - 1, overviewImage.height() - 1), BLRgba32(0xFFFFFFFF));
+        if (_save_overview) {
+          overview_ctx.fill_all(BLRgba32(0xFF000000u));
+          overview_ctx.stroke_rect(BLRect(0.5, 0.5, overview_image.width() - 1, overview_image.height() - 1), BLRgba32(0xFFFFFFFF));
         }
 
-        for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++) {
-          params.shapeSize = benchShapeSizeList[sizeId];
-          uint64_t duration = runSingleTest(backend, params);
+        for (uint32_t size_index = 0; size_index < _size_count; size_index++) {
+          params.shape_size = bench_shape_size_table[size_index];
+          uint64_t duration = run_single_test(backend, params);
 
-          cpms[sizeId] = double(params.quantity) * double(1000) / double(duration);
-          cpmsTotal[sizeId] += cpms[sizeId];
+          cpms[size_index] = double(params.quantity) * double(1000) / double(duration);
+          cpms_total[size_index] += cpms[size_index];
 
-          if (_saveOverview) {
-            overviewCtx.blitImage(BLPointI(1 + (sizeId * (_width + 1)), 1), backend._surface);
-            overviewCtx.fillRect(BLRectI(1 + (sizeId * (_width + 1)) + _width, 1, 1, _height), BLRgba32(0xFFFFFFFF));
-            if (sizeId == _sizeCount - 1) {
-              snprintf(fileName, 256, "%s-%s-%s-%s.png",
+          if (_save_overview) {
+            overview_ctx.blit_image(BLPointI(1 + (size_index * (_width + 1)), 1), backend._surface);
+            overview_ctx.fill_rect(BLRectI(1 + (size_index * (_width + 1)) + _width, 1, 1, _height), BLRgba32(0xFFFFFFFF));
+            if (size_index == _size_count - 1) {
+              snprintf(file_name, 256, "%s-%s-%s-%s.png",
                 backend._name,
-                testKindNameList[uint32_t(params.testKind)],
-                compOpNameList[uint32_t(params.compOp)],
-                styleString);
-              spacesToUnderscores(fileName);
-              overviewImage.writeToFile(fileName);
+                test_kind_name_table[uint32_t(params.testKind)],
+                comp_op_name_table[uint32_t(params.comp_op)],
+                style_string);
+              spacesToUnderscores(file_name);
+              overview_image.write_to_file(file_name);
             }
           }
 
-          if (_saveImages) {
+          if (_save_images) {
             // Save only the last two as these are easier to compare visually.
-            if (sizeId >= _sizeCount - 2) {
-              snprintf(fileName, 256, "%s-%s-%s-%s-%c.png",
+            if (size_index >= _size_count - 2) {
+              snprintf(file_name, 256, "%s-%s-%s-%s-%c.png",
                 backend._name,
-                testKindNameList[uint32_t(params.testKind)],
-                compOpNameList[uint32_t(params.compOp)],
-                styleString,
-                'A' + sizeId);
-              spacesToUnderscores(fileName);
-              backend._surface.writeToFile(fileName);
+                test_kind_name_table[uint32_t(params.testKind)],
+                comp_op_name_table[uint32_t(params.comp_op)],
+                style_string,
+                'A' + size_index);
+              spacesToUnderscores(file_name);
+              backend._surface.write_to_file(file_name);
             }
           }
         }
 
-        for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++)
-          fmt[sizeId].format(cpms[sizeId]);
+        for (uint32_t size_index = 0; size_index < _size_count; size_index++) {
+          fmt[size_index].format(cpms[size_index]);
+        }
 
-        printf(benchDataFmt,
-          testKindNameList[uint32_t(params.testKind)],
-          compOpNameList[uint32_t(params.compOp)],
-          styleString,
+        printf(bench_fata_fmt_str,
+          test_kind_name_table[uint32_t(params.testKind)],
+          comp_op_name_table[uint32_t(params.comp_op)],
+          style_string,
           fmt[0].data,
           fmt[1].data,
           fmt[2].data,
@@ -832,87 +843,93 @@ int BenchApp::runBackendTests(Backend& backend, BenchParams& params, JSONBuilder
           fmt[4].data,
           fmt[5].data);
 
-        json.beforeRecord()
-            .openObject()
-            .addKey("test").addString(testKindNameList[uint32_t(params.testKind)])
-            .comma().alignTo(36).addKey("compOp").addString(compOpNameList[uint32_t(params.compOp)])
-            .comma().alignTo(58).addKey("style").addString(styleString);
+        json.before_record()
+            .open_object()
+            .add_key("test").add_string(test_kind_name_table[uint32_t(params.testKind)])
+            .comma().align_to(36).add_key("compOp").add_string(comp_op_name_table[uint32_t(params.comp_op)])
+            .comma().align_to(58).add_key("style").add_string(style_string);
 
-        json.addKey("rcpms").openArray();
-        for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++) {
-          json.addStringWithoutQuotes(fmt[sizeId].data);
+        json.add_key("rcpms").open_array();
+        for (uint32_t size_index = 0; size_index < _size_count; size_index++) {
+          json.add_stringWithoutQuotes(fmt[size_index].data);
         }
-        json.closeArray();
+        json.close_array();
 
-        json.closeObject();
+        json.close_object();
       }
 
-      for (uint32_t sizeId = 0; sizeId < _sizeCount; sizeId++)
-        fmt[sizeId].format(cpmsTotal[sizeId]);
+      for (uint32_t size_index = 0; size_index < _size_count; size_index++) {
+        fmt[size_index].format(cpms_total[size_index]);
+      }
 
-      printf(benchBorderStr);
-      printf(benchDataFmt,
+      printf(bench_border_str);
+      printf(bench_fata_fmt_str,
         "Total",
-        compOpNameList[uint32_t(params.compOp)],
-        styleString,
+        comp_op_name_table[uint32_t(params.comp_op)],
+        style_string,
         fmt[0].data,
         fmt[1].data,
         fmt[2].data,
         fmt[3].data,
         fmt[4].data,
         fmt[5].data);
-      printf(benchBorderStr);
+      printf(bench_border_str);
       printf("\n");
     }
   }
 
-  json.closeArray(true);
-  json.closeObject(true);
+  json.close_array(true);
+  json.close_object(true);
 
   return 0;
 }
 
-uint64_t BenchApp::runSingleTest(Backend& backend, BenchParams& params) {
-  constexpr uint32_t kInitialQuantity = 25;
-  constexpr uint32_t kMinimumDurationUS = 1000;
-  constexpr uint32_t kMaxRepeatIfNoImprovement = 10;
+uint64_t BenchApp::run_single_test(Backend& backend, BenchParams& params) {
+  constexpr uint32_t initial_quantity = 25;
+  constexpr uint32_t minimum_duration_in_us = 1000;
+  constexpr uint32_t max_repeat_if_no_improvement = 10;
 
   uint32_t attempt = 0;
   uint64_t duration = std::numeric_limits<uint64_t>::max();
-  uint32_t noImprovement = 0;
+  uint32_t no_improvement = 0;
 
   params.quantity = _quantity;
 
   if (_quantity == 0u) {
     // If quantity is zero it means to deduce it based on execution time of each test.
-    params.quantity = kInitialQuantity;
+    params.quantity = initial_quantity;
     for (;;) {
       backend.run(*this, params);
-      if (backend._duration >= kMinimumDurationUS) {
+      if (backend._duration >= minimum_duration_in_us) {
         // Make this the first attempt to reduce the time of benchmarking.
         attempt = 1;
         duration = backend._duration;
         break;
       }
 
-      if (backend._duration < 100)
+      if (backend._duration < 100) {
         params.quantity *= 10;
-      else if (backend._duration < 500)
+      }
+      else if (backend._duration < 500) {
         params.quantity *= 3;
-      else
+      }
+      else {
         params.quantity *= 2;
+      }
     }
   }
 
   while (attempt < _repeat) {
     backend.run(*this, params);
 
-    if (duration > backend._duration)
+    if (duration > backend._duration) {
       duration = backend._duration;
-    else
-      noImprovement++;
+    }
+    else {
+      no_improvement++;
+    }
 
-    if (noImprovement >= kMaxRepeatIfNoImprovement)
+    if (no_improvement >= max_repeat_if_no_improvement)
       break;
 
     attempt++;

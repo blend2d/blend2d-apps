@@ -97,18 +97,18 @@ static constexpr uint32_t kBenchShapeSizeCount = 6;
 // ====================
 
 struct BenchParams {
-  uint32_t screenW;
-  uint32_t screenH;
+  uint32_t screen_w;
+  uint32_t screen_h;
 
   BLFormat format;
   uint32_t quantity;
 
   TestKind testKind;
   StyleKind style;
-  BLCompOp compOp;
-  uint32_t shapeSize;
+  BLCompOp comp_op;
+  uint32_t shape_size;
 
-  double strokeWidth;
+  double stroke_width;
 };
 
 // blbench::BenchRandom
@@ -124,68 +124,68 @@ struct BenchRandom {
 
   inline void rewind() { _prng = _initial; }
 
-  inline int nextInt() {
-    return int(_prng.nextUInt32() & 0x7FFFFFFFu);
+  inline int next_int() {
+    return int(_prng.next_uint32() & 0x7FFFFFFFu);
   }
 
-  inline int nextInt(int a, int b) {
-    return int(nextDouble(double(a), double(b)));
+  inline int next_int(int a, int b) {
+    return int(next_double(double(a), double(b)));
   }
 
-  inline double nextDouble() {
-    return _prng.nextDouble();
+  inline double next_double() {
+    return _prng.next_double();
   }
 
-  inline double nextDouble(double a, double b) {
-    return a + _prng.nextDouble() * (b - a);
+  inline double next_double(double a, double b) {
+    return a + _prng.next_double() * (b - a);
   }
 
   inline BLPoint nextPoint(const BLSizeI& bounds) {
-    double x = nextDouble(0.0, double(bounds.w));
-    double y = nextDouble(0.0, double(bounds.h));
+    double x = next_double(0.0, double(bounds.w));
+    double y = next_double(0.0, double(bounds.h));
     return BLPoint(x, y);
   }
 
   inline BLPointI nextIntPoint(const BLSizeI& bounds) {
-    int x = nextInt(0, bounds.w);
-    int y = nextInt(0, bounds.h);
+    int x = next_int(0, bounds.w);
+    int y = next_int(0, bounds.h);
     return BLPointI(x, y);
   }
 
-  inline void nextRectT(BLRect& out, const BLSize& bounds, double w, double h) {
-    double x = nextDouble(0.0, bounds.w - w);
-    double y = nextDouble(0.0, bounds.h - h);
+  inline void next_rect_t(BLRect& out, const BLSize& bounds, double w, double h) {
+    double x = next_double(0.0, bounds.w - w);
+    double y = next_double(0.0, bounds.h - h);
     out.reset(x, y, w, h);
   }
 
-  inline void nextRectT(BLRectI& out, const BLSizeI& bounds, int w, int h) {
-    int x = nextInt(0, bounds.w - w);
-    int y = nextInt(0, bounds.h - h);
+  inline void next_rect_t(BLRectI& out, const BLSizeI& bounds, int w, int h) {
+    int x = next_int(0, bounds.w - w);
+    int y = next_int(0, bounds.h - h);
     out.reset(x, y, w, h);
   }
 
-  inline BLRect nextRect(const BLSize& bounds, double w, double h) {
-    double x = nextDouble(0.0, bounds.w - w);
-    double y = nextDouble(0.0, bounds.h - h);
+  inline BLRect next_rect(const BLSize& bounds, double w, double h) {
+    double x = next_double(0.0, bounds.w - w);
+    double y = next_double(0.0, bounds.h - h);
     return BLRect(x, y, w, h);
   }
 
-  inline BLRectI nextRectI(const BLSizeI& bounds, int w, int h) {
-    int x = nextInt(0, bounds.w - w);
-    int y = nextInt(0, bounds.h - h);
+  inline BLRectI next_rect_i(const BLSizeI& bounds, int w, int h) {
+    int x = next_int(0, bounds.w - w);
+    int y = next_int(0, bounds.h - h);
     return BLRectI(x, y, w, h);
   }
 
-  inline BLRgba32 nextRgb32() {
-    return BLRgba32(_prng.nextUInt32() | 0xFF000000u);
+  inline BLRgba32 next_rgb32() {
+    return BLRgba32(_prng.next_uint32() | 0xFF000000u);
   }
 
-  inline BLRgba32 nextRgba32() {
-    return BLRgba32(_prng.nextUInt32());
+  inline BLRgba32 next_rgba32() {
+    return BLRgba32(_prng.next_uint32());
   }
 
-  inline BLRgba32 nextRgba32(uint32_t mask) {
-    return BLRgba32(_prng.nextUInt32() | mask);
+  inline BLRgba32 next_rgba32(uint32_t mask) {
+    return BLRgba32(_prng.next_uint32() | mask);
   }
 };
 
@@ -201,13 +201,13 @@ struct Backend {
   uint64_t _duration {};
 
   //! Random number generator for coordinates (points or rectangles).
-  BenchRandom _rndCoord;
+  BenchRandom _rnd_coord;
   //! Random number generator for colors.
-  BenchRandom _rndColor;
+  BenchRandom _rnd_color;
   //! Random number generator for extras (radius).
-  BenchRandom _rndExtra;
+  BenchRandom _rnd_extra;
   //! Random number generator for sprites.
-  uint32_t _rndSpriteId {};
+  uint32_t _rnd_sprite_id {};
 
   //! Blend surface (used by all modules).
   BLImage _surface;
@@ -222,28 +222,28 @@ struct Backend {
   inline const char* name() const { return _name; }
 
   inline uint32_t nextSpriteId() {
-    uint32_t i = _rndSpriteId;
-    if (++_rndSpriteId >= kBenchNumSprites)
-      _rndSpriteId = 0;
+    uint32_t i = _rnd_sprite_id;
+    if (++_rnd_sprite_id >= kBenchNumSprites)
+      _rnd_sprite_id = 0;
     return i;
   };
 
-  virtual void serializeInfo(JSONBuilder& json) const;
+  virtual void serialize_info(JSONBuilder& json) const;
 
-  virtual bool supportsCompOp(BLCompOp compOp) const = 0;
-  virtual bool supportsStyle(StyleKind style) const = 0;
+  virtual bool supports_comp_op(BLCompOp comp_op) const = 0;
+  virtual bool supports_style(StyleKind style) const = 0;
 
-  virtual void beforeRun() = 0;
+  virtual void before_run() = 0;
   virtual void flush() = 0;
-  virtual void afterRun() = 0;
+  virtual void after_run() = 0;
 
-  virtual void renderRectA(RenderOp op) = 0;
-  virtual void renderRectF(RenderOp op) = 0;
-  virtual void renderRectRotated(RenderOp op) = 0;
-  virtual void renderRoundF(RenderOp op) = 0;
-  virtual void renderRoundRotated(RenderOp op) = 0;
-  virtual void renderPolygon(RenderOp op, uint32_t complexity) = 0;
-  virtual void renderShape(RenderOp op, ShapeData shape) = 0;
+  virtual void render_rect_a(RenderOp op) = 0;
+  virtual void render_rect_f(RenderOp op) = 0;
+  virtual void render_rect_rotated(RenderOp op) = 0;
+  virtual void render_round_f(RenderOp op) = 0;
+  virtual void render_round_rotated(RenderOp op) = 0;
+  virtual void render_polygon(RenderOp op, uint32_t complexity) = 0;
+  virtual void render_shape(RenderOp op, ShapeData shape) = 0;
 };
 
 } // {blbench}

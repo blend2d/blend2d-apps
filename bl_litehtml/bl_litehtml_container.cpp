@@ -69,10 +69,10 @@ static BLRectI accumulateDirtyRects(const litehtml::position::vector& dirty_rect
 
   BLBoxI dirty_acc(INT_MAX, INT_MAX, INT_MIN, INT_MIN);
   for (const litehtml::position& dirty_rect : dirty_rects) {
-    dirty_acc = BLBoxI(blMin(dirty_acc.x0, dirty_rect.x),
-                       blMin(dirty_acc.y0, dirty_rect.y),
-                       blMax(dirty_acc.x1, dirty_rect.right()),
-                       blMax(dirty_acc.y1, dirty_rect.bottom()));
+    dirty_acc = BLBoxI(bl_min(dirty_acc.x0, dirty_rect.x),
+                       bl_min(dirty_acc.y0, dirty_rect.y),
+                       bl_max(dirty_acc.x1, dirty_rect.right()),
+                       bl_max(dirty_acc.y1, dirty_rect.bottom()));
   }
 
   return BLRectI(dirty_acc.x0, dirty_acc.y0, dirty_acc.x1 - dirty_acc.x0, dirty_acc.y1 - dirty_acc.y0);
@@ -176,23 +176,23 @@ litehtml::uint_ptr BLLiteHtmlContainer::create_font(const char* faceName, int si
   BLFontFace face;
   BLFontCore font;
 
-  blFontInit(&font);
+  bl_font_init(&font);
 
   for (const auto& fontName : fontNames) {
     const char* fName = fontName.c_str();
 
-    if (fontName == "monospace" && !_doc->_monospaceFamily.empty())
+    if (fontName == "monospace" && !_doc->_monospaceFamily.is_empty())
       fName = _doc->_monospaceFamily.data();
 
-    if (_doc->_fontManager.queryFace(fName, properties, face) == BL_SUCCESS) {
+    if (_doc->_fontManager.query_face(fName, properties, face) == BL_SUCCESS) {
       BLFontMetrics blfm;
-      blFontCreateFromFace(&font, &face, float(size));
-      blFontGetMetrics(&font, &blfm);
+      bl_font_create_from_face(&font, &face, float(size));
+      bl_font_get_metrics(&font, &blfm);
 
       fm->ascent = int(blfm.ascent);
       fm->descent = int(blfm.descent);
-      fm->height = int(blfm.ascent + blfm.descent + blfm.lineGap);
-      fm->x_height = int(blfm.xHeight);
+      fm->height = int(blfm.ascent + blfm.descent + blfm.line_gap);
+      fm->x_height = int(blfm.x_height);
 
       BLFontCore* h = new BLFont(std::move(font.dcast()));
       return (litehtml::uint_ptr)h;
@@ -211,11 +211,11 @@ int BLLiteHtmlContainer::text_width(const char* text, litehtml::uint_ptr hFont) 
   BLFont* font = (BLFont*)hFont;
 
   _glyphBuffer.clear();
-  _glyphBuffer.setUtf8Text(text);
+  _glyphBuffer.set_utf8_text(text);
 
-  if (blFontShape(font, &_glyphBuffer) == BL_SUCCESS) {
+  if (bl_font_shape(font, &_glyphBuffer) == BL_SUCCESS) {
     BLTextMetrics m;
-    blFontGetTextMetrics(font, &_glyphBuffer, &m);
+    bl_font_get_text_metrics(font, &_glyphBuffer, &m);
 
     int w = int(m.advance.x);
     return w;
@@ -230,7 +230,7 @@ void BLLiteHtmlContainer::draw_text(litehtml::uint_ptr hdc, const char* text, li
   BLFont* font = (BLFont*)hFont;
 
   int ascent = int(font->metrics().ascent);
-  ctx->fillUtf8Text(BLPoint(pos.x, pos.y + ascent), *font, text, SIZE_MAX, rgba32FromWebColor(color));
+  ctx->fill_utf8_text(BLPoint(pos.x, pos.y + ascent), *font, text, SIZE_MAX, rgba32FromWebColor(color));
 }
 
 int BLLiteHtmlContainer::pt_to_px(int pt) const {
@@ -250,13 +250,13 @@ void BLLiteHtmlContainer::draw_list_marker(litehtml::uint_ptr hdc, const litehtm
 
   if (marker.image.empty()) {
     if (marker.marker_type == litehtml::list_style_type_square) {
-      ctx->fillRect(positionToRect(marker.pos), rgba32FromWebColor(marker.color));
+      ctx->fill_rect(positionToRect(marker.pos), rgba32FromWebColor(marker.color));
     }
     else if (marker.marker_type == litehtml::list_style_type_disc) {
-      ctx->fillEllipse(positionToEllipse(marker.pos), rgba32FromWebColor(marker.color));
+      ctx->fill_ellipse(positionToEllipse(marker.pos), rgba32FromWebColor(marker.color));
     }
     else if (marker.marker_type == litehtml::list_style_type_circle) {
-      ctx->strokeEllipse(positionToEllipse(marker.pos), rgba32FromWebColor(marker.color));
+      ctx->stroke_ellipse(positionToEllipse(marker.pos), rgba32FromWebColor(marker.color));
     }
     else {
       // TOOD: ???
@@ -265,7 +265,7 @@ void BLLiteHtmlContainer::draw_list_marker(litehtml::uint_ptr hdc, const litehtm
   else {
     const BLImage* img = getImage(marker.image.c_str(), marker.baseurl);
     if (img) {
-      ctx->blitImage(positionToRect(marker.pos), *img);
+      ctx->blit_image(positionToRect(marker.pos), *img);
     }
   }
 }
@@ -274,7 +274,7 @@ void BLLiteHtmlContainer::load_image(const char* src, const char* baseurl, bool 
   BLString path = _doc->resolveLink(BLStringView{src, strlen(src)}, true);
   BLImage img;
 
-  if (img.readFromFile(path.data()) == BL_SUCCESS) {
+  if (img.read_from_file(path.data()) == BL_SUCCESS) {
     // path.replace(0, pathIndex, "");
     _images[path] = img;
   }
@@ -298,13 +298,13 @@ void BLLiteHtmlContainer::get_image_size(const char* src, const char* baseurl, l
 
 static void render_insert_gradient_stops(BLGradient& gradient, const std::vector<litehtml::background_layer::color_point>& color_points, double offset_scale = 1.0) {
   for (const auto& color_point : color_points) {
-    gradient.addStop(double(color_point.offset) * offset_scale, rgba32FromWebColor(color_point.color));
+    gradient.add_stop(double(color_point.offset) * offset_scale, rgba32FromWebColor(color_point.color));
   }
 }
 
 static void render_styled(BLContext* ctx, const litehtml::background_layer& layer, const BLObjectCore& style) noexcept {
   BLRectI rect(layer.border_box.x, layer.border_box.y, layer.border_box.width, layer.border_box.height);
-  ctx->fillRect(rect, static_cast<const BLVarCore&>(style));
+  ctx->fill_rect(rect, static_cast<const BLVarCore&>(style));
 }
 
 void BLLiteHtmlContainer::draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const std::string& url, const std::string& base_url) {
@@ -326,7 +326,7 @@ void BLLiteHtmlContainer::draw_image(litehtml::uint_ptr hdc, const litehtml::bac
   int h = layer.border_box.height;
 
   if (img->width() >= w && img->height() >= h) {
-    ctx->blitImage(BLRectI(x, y, w, h), *img);
+    ctx->blit_image(BLRectI(x, y, w, h), *img);
     return;
   }
 
@@ -338,7 +338,7 @@ void BLLiteHtmlContainer::draw_image(litehtml::uint_ptr hdc, const litehtml::bac
     case litehtml::background_repeat_no_repeat: extendMode = BL_EXTEND_MODE_PAD; break;
   }
 
-  BLPattern pattern(*img, extendMode, BLMatrix2D::makeTranslation(x, y));
+  BLPattern pattern(*img, extendMode, BLMatrix2D::make_translation(x, y));
   render_styled(ctx, layer, pattern);
 }
 
@@ -352,7 +352,7 @@ void BLLiteHtmlContainer::draw_solid_fill(litehtml::uint_ptr hdc, const litehtml
   BLContext* ctx = (BLContext*)hdc;
   BLRectI rect(layer.border_box.x, layer.border_box.y, layer.border_box.width, layer.border_box.height);
 
-  ctx->fillRect(rect, rgba32FromWebColor(color));
+  ctx->fill_rect(rect, rgba32FromWebColor(color));
 }
 
 void BLLiteHtmlContainer::draw_linear_gradient(litehtml::uint_ptr hdc, const litehtml::background_layer& layer, const litehtml::background_layer::linear_gradient& gradient) {
@@ -382,13 +382,13 @@ void BLLiteHtmlContainer::draw_radial_gradient(litehtml::uint_ptr hdc, const lit
   if (rx != ry) {
     double aspect_ratio = double(ry) / double(rx);
 
-    BLMatrix2D m = BLMatrix2D::makeScaling(1.0, aspect_ratio);
-    m.postTranslate(cx, cy);
-    style.setTransform(m);
+    BLMatrix2D m = BLMatrix2D::make_scaling(1.0, aspect_ratio);
+    m.post_translate(cx, cy);
+    style.set_transform(m);
   }
   else {
-    BLMatrix2D m = BLMatrix2D::makeTranslation(cx, cy);
-    style.setTransform(m);
+    BLMatrix2D m = BLMatrix2D::make_translation(cx, cy);
+    style.set_transform(m);
   }
 
   render_insert_gradient_stops(style, gradient.color_points);
@@ -412,7 +412,7 @@ void BLLiteHtmlContainer::draw_borders(litehtml::uint_ptr hdc, const litehtml::b
   if (isBorderVisible(borders.left)) {
     const litehtml::border& b = borders.left;
     if (borderSideEquals(b, borders.right) && borderSideEquals(b, borders.top) && borderSideEquals(b, borders.bottom)) {
-      ctx->strokeRect(
+      ctx->stroke_rect(
         double(draw_pos.x) + double(b.width) * 0.5,
         double(draw_pos.y) + double(b.width) * 0.5,
         double(draw_pos.width) - double(b.width),
@@ -422,7 +422,7 @@ void BLLiteHtmlContainer::draw_borders(litehtml::uint_ptr hdc, const litehtml::b
   }
 
   if (isBorderVisible(borders.left)) {
-    ctx->fillRect(
+    ctx->fill_rect(
       BLRectI(
         draw_pos.x,
         draw_pos.y,
@@ -432,7 +432,7 @@ void BLLiteHtmlContainer::draw_borders(litehtml::uint_ptr hdc, const litehtml::b
   }
 
   if (isBorderVisible(borders.top)) {
-    ctx->fillRect(
+    ctx->fill_rect(
       BLRectI(
         draw_pos.x,
         draw_pos.y,
@@ -442,7 +442,7 @@ void BLLiteHtmlContainer::draw_borders(litehtml::uint_ptr hdc, const litehtml::b
   }
 
   if (isBorderVisible(borders.right)) {
-    ctx->fillRect(
+    ctx->fill_rect(
       BLRectI(
         draw_pos.x + draw_pos.width - borders.right.width,
         draw_pos.y,
@@ -452,7 +452,7 @@ void BLLiteHtmlContainer::draw_borders(litehtml::uint_ptr hdc, const litehtml::b
   }
 
   if (isBorderVisible(borders.bottom)) {
-    ctx->fillRect(
+    ctx->fill_rect(
       BLRectI(
         draw_pos.x,
         draw_pos.y + draw_pos.height - borders.bottom.width,
@@ -516,13 +516,13 @@ void BLLiteHtmlContainer::set_cursor(const char* cursor) {
 void BLLiteHtmlContainer::import_css(litehtml::string& text, const litehtml::string& url, litehtml::string& baseurl) {
   BLString resolved = _doc->resolveLink(BLStringView{url.data(), url.size()}, true);
 
-  if (resolved.empty())
+  if (resolved.is_empty())
     return;
 
   BLArray<uint8_t> content;
-  BLFileSystem::readFile(resolved.data(), content);
+  BLFileSystem::read_file(resolved.data(), content);
 
-  if (!content.empty()) {
+  if (!content.is_empty()) {
     text.assign((const char*)content.data(), content.size());
   }
   else {
@@ -594,10 +594,10 @@ void BLLiteHtmlDocument::setViewportPosition(const BLPointI& pt) {
 
 double BLLiteHtmlDocument::averageFrameDuration() const noexcept {
   double sum = 0.0;
-  for (size_t i = 0; i < _renderTimeCount; i++) {
-    sum += _renderTime[i];
+  for (size_t i = 0; i < _render_timeCount; i++) {
+    sum += _render_time[i];
   }
-  return sum / double(_renderTimeCount);
+  return sum / double(_render_timeCount);
 }
 
 BLString BLLiteHtmlDocument::resolveLink(BLStringView link, bool stripParams) {
@@ -658,24 +658,24 @@ void BLLiteHtmlDocument::createFromURL(BLStringView url, BLStringView masterCSS)
   BLFileInfo fileInfo;
   BLResult result;
 
-  result = BLFileSystem::fileInfo(path.data(), &fileInfo);
+  result = BLFileSystem::file_info(path.data(), &fileInfo);
   if (result != BL_SUCCESS) {
     return;
   }
 
-  if (fileInfo.isDirectory()) {
+  if (fileInfo.is_directory()) {
     if (!endsWithSlash(path.view()))
       path.append('/');
   }
 
   size_t urlPathEnd = path.size();
 
-  if (fileInfo.isDirectory()) {
+  if (fileInfo.is_directory()) {
     path.append("index.html");
   }
 
   BLArray<uint8_t> content;
-  result = BLFileSystem::readFile(path.data(), content);
+  result = BLFileSystem::read_file(path.data(), content);
 
   if (result != BL_SUCCESS) {
     return;
@@ -782,9 +782,9 @@ void BLLiteHtmlDocument::draw(BLContext& ctx) {
   auto endTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = endTime - startTime;
 
-  _renderTimeIndex = (_renderTimeIndex + 1) & 31;
-  _renderTime[_renderTimeIndex] = duration.count() * 1000;
+  _render_timeIndex = (_render_timeIndex + 1) & 31;
+  _render_time[_render_timeIndex] = duration.count() * 1000;
 
-  if (_renderTimeCount < 32u)
-    _renderTimeCount++;
+  if (_render_timeCount < 32u)
+    _render_timeCount++;
 }

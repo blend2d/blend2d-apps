@@ -10,32 +10,32 @@ class PerformanceTimer {
 public:
   typedef std::chrono::high_resolution_clock::time_point TimePoint;
 
-  TimePoint _startTime {};
-  TimePoint _endTime {};
+  TimePoint _start_time {};
+  TimePoint _end_time {};
 
   inline void start() {
-    _startTime = std::chrono::high_resolution_clock::now();
+    _start_time = std::chrono::high_resolution_clock::now();
   }
 
   inline void stop() {
-    _endTime = std::chrono::high_resolution_clock::now();
+    _end_time = std::chrono::high_resolution_clock::now();
   }
 
   inline double duration() const {
-    std::chrono::duration<double> elapsed = _endTime - _startTime;
+    std::chrono::duration<double> elapsed = _end_time - _start_time;
     return elapsed.count() * 1000;
   }
 };
 
-static void debugGlyphBufferSink(const char* message, size_t size, void* userData) noexcept {
-  BLString* buffer = static_cast<BLString*>(userData);
+static void debug_glyph_buffer_sink(const char* message, size_t size, void* user_data) noexcept {
+  BLString* buffer = static_cast<BLString*>(user_data);
   buffer->append(message, size);
   buffer->append('\n');
 }
 
-static bool isTagChar(char c) noexcept { return uint8_t(c) >= 32u && uint8_t(c) < 128u; }
+static bool is_tag_char(char c) noexcept { return uint8_t(c) >= 32u && uint8_t(c) < 128u; }
 
-static BLFontFeatureSettings parseFontFeatures(const QString& s) {
+static BLFontFeatureSettings parse_font_features(const QString& s) {
   BLFontFeatureSettings settings;
   QStringList parts = s.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
 
@@ -49,14 +49,15 @@ static BLFontFeatureSettings parseFontFeatures(const QString& s) {
     char tag3 = part[3].toLatin1();
     char eq   = part[4].toLatin1();
 
-    if (isTagChar(tag0) && isTagChar(tag1) && isTagChar(tag2) && isTagChar(tag3) && eq == '=') {
-      BLTag featureTag = BL_MAKE_TAG(uint8_t(tag0), uint8_t(tag1), uint8_t(tag2), uint8_t(tag3));
-      QString featureValue = part.sliced(5);
+    if (is_tag_char(tag0) && is_tag_char(tag1) && is_tag_char(tag2) && is_tag_char(tag3) && eq == '=') {
+      BLTag feature_tag = BL_MAKE_TAG(uint8_t(tag0), uint8_t(tag1), uint8_t(tag2), uint8_t(tag3));
+      QString feature_value = part.sliced(5);
 
       bool ok;
-      unsigned uintVal = featureValue.toUInt(&ok);
+      unsigned unsigned_value = feature_value.toUInt(&ok);
+
       if (ok) {
-        settings.setValue(featureTag, uintVal);
+        settings.set_value(feature_tag, unsigned_value);
       }
     }
   }
@@ -69,23 +70,23 @@ class MainWindow : public QWidget {
 
 public:
   // Widgets.
-  QComboBox* _rendererSelect {};
-  QComboBox* _styleSelect {};
-  QLineEdit* _fileSelected {};
-  QPushButton* _fileSelectButton {};
+  QComboBox* _renderer_select {};
+  QComboBox* _style_select {};
+  QLineEdit* _file_selected {};
+  QPushButton* _file_selected_button {};
   QSlider* _slider {};
   QLineEdit* _text {};
-  QLineEdit* _featuresList {};
-  QLineEdit* _featuresSelect {};
+  QLineEdit* _features_list {};
+  QLineEdit* _features_select {};
   QBLCanvas* _canvas {};
-  QCheckBox* _otDebug {};
+  QCheckBox* _ot_debug {};
 
-  int _qtApplicationFontId = -1;
+  int _qt_application_font_id = -1;
 
   // Loaded font.
-  BLFontFace _blFace;
-  QFont _qtFont;
-  QRawFont _qtRawFont;
+  BLFontFace _bl_face;
+  QFont _qt_font;
+  QRawFont _qt_raw_font;
 
   MainWindow() {
     QVBoxLayout* vBox = new QVBoxLayout();
@@ -96,17 +97,17 @@ public:
     grid->setContentsMargins(5, 5, 5, 5);
     grid->setSpacing(5);
 
-    _rendererSelect = new QComboBox();
-    QBLCanvas::initRendererSelectBox(_rendererSelect);
+    _renderer_select = new QComboBox();
+    QBLCanvas::init_renderer_select_box(_renderer_select);
 
-    _styleSelect = new QComboBox();
-    _styleSelect->addItem("Solid Color", QVariant(int(0)));
-    _styleSelect->addItem("Linear Gradient", QVariant(int(1)));
-    _styleSelect->addItem("Radial Gradient", QVariant(int(2)));
-    _styleSelect->addItem("Conic Gradient", QVariant(int(3)));
+    _style_select = new QComboBox();
+    _style_select->addItem("Solid Color", QVariant(int(0)));
+    _style_select->addItem("Linear Gradient", QVariant(int(1)));
+    _style_select->addItem("Radial Gradient", QVariant(int(2)));
+    _style_select->addItem("Conic Gradient", QVariant(int(3)));
 
-    _fileSelected = new QLineEdit("");
-    _fileSelectButton = new QPushButton("Select...");
+    _file_selected = new QLineEdit("");
+    _file_selected_button = new QPushButton("Select...");
     _slider = new QSlider();
     _canvas = new QBLCanvas();
 
@@ -118,45 +119,45 @@ public:
     _text = new QLineEdit();
     _text->setText(QString("Test"));
 
-    _featuresList = new QLineEdit();
-    _featuresList->setReadOnly(true);
+    _features_list = new QLineEdit();
+    _features_list->setReadOnly(true);
 
-    _featuresSelect = new QLineEdit();
+    _features_select = new QLineEdit();
 
-    _otDebug = new QCheckBox();
-    _otDebug->setText(QLatin1String("OpenType Dbg"));
+    _ot_debug = new QCheckBox();
+    _ot_debug->setText(QLatin1String("OpenType Dbg"));
 
-    connect(_rendererSelect, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
-    connect(_styleSelect, SIGNAL(activated(int)), SLOT(onStyleChanged(int)));
-    connect(_otDebug, SIGNAL(stateChanged(int)), SLOT(valueChanged(int)));
-    connect(_fileSelectButton, SIGNAL(clicked()), SLOT(selectFile()));
-    connect(_fileSelected, SIGNAL(textChanged(const QString&)), SLOT(fileChanged(const QString&)));
+    connect(_renderer_select, SIGNAL(activated(int)), SLOT(onRendererChanged(int)));
+    connect(_style_select, SIGNAL(activated(int)), SLOT(onStyleChanged(int)));
+    connect(_ot_debug, SIGNAL(stateChanged(int)), SLOT(valueChanged(int)));
+    connect(_file_selected_button, SIGNAL(clicked()), SLOT(selectFile()));
+    connect(_file_selected, SIGNAL(textChanged(const QString&)), SLOT(fileChanged(const QString&)));
     connect(_slider, SIGNAL(valueChanged(int)), SLOT(valueChanged(int)));
     connect(_text, SIGNAL(textChanged(const QString&)), SLOT(textChanged(const QString&)));
-    connect(_featuresSelect, SIGNAL(textChanged(const QString&)), SLOT(textChanged(const QString&)));
+    connect(_features_select, SIGNAL(textChanged(const QString&)), SLOT(textChanged(const QString&)));
 
-    _canvas->onRenderB2D = std::bind(&MainWindow::onRenderB2D, this, std::placeholders::_1);
-    _canvas->onRenderQt = std::bind(&MainWindow::onRenderQt, this, std::placeholders::_1);
+    _canvas->on_render_blend2d = std::bind(&MainWindow::on_render_blend2d, this, std::placeholders::_1);
+    _canvas->on_render_qt = std::bind(&MainWindow::on_render_qt, this, std::placeholders::_1);
 
     grid->addWidget(new QLabel("Renderer:"), 0, 0);
-    grid->addWidget(_rendererSelect, 0, 1);
-    grid->addWidget(_otDebug, 0, 4);
+    grid->addWidget(_renderer_select, 0, 1);
+    grid->addWidget(_ot_debug, 0, 4);
 
     grid->addWidget(new QLabel("Style:"), 1, 0);
-    grid->addWidget(_styleSelect, 1, 1);
+    grid->addWidget(_style_select, 1, 1);
 
     grid->addWidget(new QLabel("Font:"), 2, 0);
-    grid->addWidget(_fileSelected, 2, 1, 1, 3);
-    grid->addWidget(_fileSelectButton, 2, 4);
+    grid->addWidget(_file_selected, 2, 1, 1, 3);
+    grid->addWidget(_file_selected_button, 2, 4);
 
     grid->addWidget(new QLabel("Size:"), 3, 0);
     grid->addWidget(_slider, 3, 1, 1, 4);
 
     grid->addWidget(new QLabel("Font Features:"), 4, 0);
-    grid->addWidget(_featuresList, 4, 1, 1, 4);
+    grid->addWidget(_features_list, 4, 1, 1, 4);
 
     grid->addWidget(new QLabel("Active FEAT=V "), 5, 0);
-    grid->addWidget(_featuresSelect, 5, 1, 1, 4);
+    grid->addWidget(_features_select, 5, 1, 1, 4);
 
     grid->addWidget(new QLabel("Text:"), 6, 0);
     grid->addWidget(_text, 6, 1, 1, 4);
@@ -172,23 +173,24 @@ public:
   void mouseReleaseEvent(QMouseEvent* event) override {}
   void mouseMoveEvent(QMouseEvent* event) override {}
 
-  void reloadFont(const char* fileName) {
-    _blFace.reset();
-    if (_qtApplicationFontId != -1)
-      QFontDatabase::removeApplicationFont(_qtApplicationFontId);
+  void reloadFont(const char* file_name) {
+    _bl_face.reset();
+    if (_qt_application_font_id != -1) {
+      QFontDatabase::removeApplicationFont(_qt_application_font_id);
+    }
 
-    BLArray<uint8_t> dataBuffer;
-    if (BLFileSystem::readFile(fileName, dataBuffer) == BL_SUCCESS) {
+    BLArray<uint8_t> data_buffer;
+    if (BLFileSystem::read_file(file_name, data_buffer) == BL_SUCCESS) {
       BLFontData fontData;
-      if (fontData.createFromData(dataBuffer) == BL_SUCCESS) {
-        _blFace.createFromData(fontData, 0);
+      if (fontData.create_from_data(data_buffer) == BL_SUCCESS) {
+        _bl_face.create_from_data(fontData, 0);
 
         BLArray<BLTag> tags;
-        _blFace.getFeatureTags(&tags);
+        _bl_face.get_feature_tags(&tags);
 
         QString tagsStringified;
         for (BLTag tag : tags) {
-          char tagString[4] = {
+          char tag_string[4] = {
             char((tag >> 24) & 0xFF),
             char((tag >> 16) & 0xFF),
             char((tag >>  8) & 0xFF),
@@ -199,27 +201,27 @@ public:
             tagsStringified.append(QLatin1String(" ", 1));
           }
 
-          tagsStringified.append(QLatin1String(tagString, 4));
+          tagsStringified.append(QLatin1String(tag_string, 4));
         }
 
-        _featuresList->setText(tagsStringified);
+        _features_list->setText(tagsStringified);
       }
 
-      QByteArray qtBuffer(reinterpret_cast<const char*>(dataBuffer.data()), dataBuffer.size());
-      _qtApplicationFontId = QFontDatabase::addApplicationFontFromData(qtBuffer);
+      QByteArray qt_buffer(reinterpret_cast<const char*>(data_buffer.data()), data_buffer.size());
+      _qt_application_font_id = QFontDatabase::addApplicationFontFromData(qt_buffer);
     }
   }
 
 private Q_SLOTS:
-  Q_SLOT void onStyleChanged(int index) { _canvas->updateCanvas(); }
-  Q_SLOT void onRendererChanged(int index) { _canvas->setRendererType(_rendererSelect->itemData(index).toInt()); }
+  Q_SLOT void onStyleChanged(int index) { _canvas->update_canvas(); }
+  Q_SLOT void onRendererChanged(int index) { _canvas->set_renderer_type(_renderer_select->itemData(index).toInt()); }
 
   void selectFile() {
-    QString fileName = _fileSelected->text();
+    QString file_name = _file_selected->text();
     QFileDialog dialog(this);
 
-    if (!fileName.isEmpty())
-      dialog.setDirectory(QFileInfo(fileName).absoluteDir().path());
+    if (!file_name.isEmpty())
+      dialog.setDirectory(QFileInfo(file_name).absoluteDir().path());
 
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
@@ -227,32 +229,32 @@ private Q_SLOTS:
     dialog.setViewMode(QFileDialog::Detail);
 
     if (dialog.exec() == QDialog::Accepted) {
-      fileName = dialog.selectedFiles()[0];
-      _fileSelected->setText(fileName);
+      file_name = dialog.selectedFiles()[0];
+      _file_selected->setText(file_name);
     }
   }
 
   void fileChanged(const QString&) {
-    QByteArray fileNameUtf8 = _fileSelected->text().toUtf8();
-    fileNameUtf8.append('\0');
+    QByteArray file_name_utf8 = _file_selected->text().toUtf8();
+    file_name_utf8.append('\0');
 
-    reloadFont(fileNameUtf8.constData());
-    _canvas->updateCanvas();
+    reloadFont(file_name_utf8.constData());
+    _canvas->update_canvas();
   }
 
   void valueChanged(int value) {
-    _canvas->updateCanvas();
+    _canvas->update_canvas();
   }
 
   void textChanged(const QString&) {
-    _canvas->updateCanvas();
+    _canvas->update_canvas();
   }
 
 public:
-  void onRenderB2D(BLContext& ctx) noexcept {
-    ctx.fillAll(BLRgba32(0xFF000000));
+  void on_render_blend2d(BLContext& ctx) noexcept {
+    ctx.fill_all(BLRgba32(0xFF000000));
 
-    int styleId = _styleSelect->currentIndex();
+    int styleId = _style_select->currentIndex();
     BLVar style;
 
     switch (styleId) {
@@ -263,41 +265,41 @@ public:
       }
 
       case 1: {
-        double w = _canvas->blImage.width();
-        double h = _canvas->blImage.height();
+        double w = _canvas->bl_image.width();
+        double h = _canvas->bl_image.height();
 
         BLGradient g(BLLinearGradientValues(0, 0, w, h));
-        g.addStop(0.0, BLRgba32(0xFFFF0000));
-        g.addStop(0.5, BLRgba32(0xFFAF00AF));
-        g.addStop(1.0, BLRgba32(0xFF0000FF));
+        g.add_stop(0.0, BLRgba32(0xFFFF0000));
+        g.add_stop(0.5, BLRgba32(0xFFAF00AF));
+        g.add_stop(1.0, BLRgba32(0xFF0000FF));
 
         style = g;
         break;
       }
 
       case 2: {
-        double w = _canvas->blImage.width();
-        double h = _canvas->blImage.height();
-        double r = blMin(w, h);
+        double w = _canvas->bl_image.width();
+        double h = _canvas->bl_image.height();
+        double r = bl_min(w, h);
 
         BLGradient g(BLRadialGradientValues(w * 0.5, h * 0.5, w * 0.5, h * 0.5, r * 0.5));
-        g.addStop(0.0, BLRgba32(0xFFFF0000));
-        g.addStop(0.5, BLRgba32(0xFFAF00AF));
-        g.addStop(1.0, BLRgba32(0xFF0000FF));
+        g.add_stop(0.0, BLRgba32(0xFFFF0000));
+        g.add_stop(0.5, BLRgba32(0xFFAF00AF));
+        g.add_stop(1.0, BLRgba32(0xFF0000FF));
 
         style = g;
         break;
       }
 
       case 3: {
-        double w = _canvas->blImage.width();
-        double h = _canvas->blImage.height();
+        double w = _canvas->bl_image.width();
+        double h = _canvas->bl_image.height();
 
         BLGradient g(BLConicGradientValues(w * 0.5, h * 0.5, 0.0));
-        g.addStop(0.00, BLRgba32(0xFFFF0000));
-        g.addStop(0.33, BLRgba32(0xFFAF00AF));
-        g.addStop(0.66, BLRgba32(0xFF0000FF));
-        g.addStop(1.00, BLRgba32(0xFFFF0000));
+        g.add_stop(0.00, BLRgba32(0xFFFF0000));
+        g.add_stop(0.33, BLRgba32(0xFFAF00AF));
+        g.add_stop(0.66, BLRgba32(0xFF0000FF));
+        g.add_stop(1.00, BLRgba32(0xFFFF0000));
 
         style = g;
         break;
@@ -305,37 +307,37 @@ public:
     }
 
     BLFont font;
-    BLFontFeatureSettings featureSettings = parseFontFeatures(_featuresSelect->text());
-    font.createFromFace(_blFace, _slider->value(), featureSettings);
+    BLFontFeatureSettings featureSettings = parse_font_features(_features_select->text());
+    font.create_from_face(_bl_face, _slider->value(), featureSettings);
 
     // Qt uses UTF-16 strings, Blend2D can process them natively.
     QString text = _text->text();
     PerformanceTimer timer;
     timer.start();
-    ctx.fillUtf16Text(BLPoint(10, 10 + font.size()), font, reinterpret_cast<const uint16_t*>(text.constData()), text.length(), style);
+    ctx.fill_utf16_text(BLPoint(10, 10 + font.size()), font, reinterpret_cast<const uint16_t*>(text.constData()), text.length(), style);
     timer.stop();
 
-    if (_otDebug->checkState() == Qt::Checked) {
+    if (_ot_debug->checkState() == Qt::Checked) {
       BLGlyphBuffer gb;
       BLString output;
-      gb.setDebugSink(debugGlyphBufferSink, &output);
-      gb.setUtf16Text(reinterpret_cast<const uint16_t*>(text.constData()), text.length());
+      gb.set_debug_sink(debug_glyph_buffer_sink, &output);
+      gb.set_utf16_text(reinterpret_cast<const uint16_t*>(text.constData()), text.length());
       font.shape(gb);
 
       BLFont smallFont;
-      smallFont.createFromFace(_blFace, 22.0f);
+      smallFont.create_from_face(_bl_face, 22.0f);
       BLFontMetrics metrics = smallFont.metrics();
 
       size_t i = 0;
       BLPoint pos(10, 10 + font.size() * 1.2 + smallFont.size());
       while (i < output.size()) {
-        size_t end = blMin(output.indexOf('\n', i), output.size());
+        size_t end = bl_min(output.index_of('\n', i), output.size());
 
         BLRgba32 color = BLRgba32(0xFFFFFFFF);
         if (end - i > 0 && output.data()[i] == '[')
           color = BLRgba32(0xFFFFFF00);
 
-        ctx.fillUtf8Text(pos, smallFont, output.data() + i, end - i, color);
+        ctx.fill_utf8_text(pos, smallFont, output.data() + i, end - i, color);
         pos.y += metrics.ascent + metrics.descent;
         i = end + 1;
       }
@@ -344,13 +346,13 @@ public:
     _updateTitle(timer.duration());
   }
 
-  void onRenderQt(QPainter& ctx) noexcept {
+  void on_render_qt(QPainter& ctx) noexcept {
     ctx.fillRect(0, 0, _canvas->width(), _canvas->height(), QColor(0, 0, 0));
 
-    if (_qtApplicationFontId == -1)
+    if (_qt_application_font_id == -1)
       return;
 
-    int styleId = _styleSelect->currentIndex();
+    int styleId = _style_select->currentIndex();
     QBrush brush;
 
     switch (styleId) {
@@ -361,8 +363,8 @@ public:
       }
 
       case 1: {
-        double w = _canvas->blImage.width();
-        double h = _canvas->blImage.height();
+        double w = _canvas->bl_image.width();
+        double h = _canvas->bl_image.height();
 
         QLinearGradient g(qreal(0), qreal(0), qreal(w), qreal(h));
         g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
@@ -374,9 +376,9 @@ public:
       }
 
       case 2: {
-        double w = _canvas->blImage.width();
-        double h = _canvas->blImage.height();
-        double r = blMin(w, h);
+        double w = _canvas->bl_image.width();
+        double h = _canvas->bl_image.height();
+        double r = bl_min(w, h);
 
         QRadialGradient g(qreal(w * 0.5), qreal(h * 0.5), qreal(r * 0.5), qreal(w * 0.5), qreal(h * 0.5));
         g.setColorAt(0.0f, QColor(0xFF, 0x00, 0x00));
@@ -388,8 +390,8 @@ public:
       }
 
       case 3: {
-        double w = _canvas->blImage.width();
-        double h = _canvas->blImage.height();
+        double w = _canvas->bl_image.width();
+        double h = _canvas->bl_image.height();
 
         QConicalGradient g(qreal(w * 0.5), qreal(h * 0.5), 0.0);
         g.setColorAt(0.00f, QColor(0xFF, 0x00, 0x00));
@@ -402,7 +404,7 @@ public:
       }
     }
 
-    QStringList families = QFontDatabase::applicationFontFamilies(_qtApplicationFontId);
+    QStringList families = QFontDatabase::applicationFontFamilies(_qt_application_font_id);
     QFont font = QFont(families[0]);
     font.setPixelSize(_slider->value());
     font.setHintingPreference(QFont::PreferNoHinting);

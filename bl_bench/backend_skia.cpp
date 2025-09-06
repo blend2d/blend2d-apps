@@ -19,16 +19,16 @@
 
 namespace blbench {
 
-static inline SkIRect toSkIRect(const BLRectI& rect) {
+static inline SkIRect to_sk_irect(const BLRectI& rect) {
   return SkIRect::MakeXYWH(rect.x, rect.y, rect.w, rect.h);
 }
 
-static inline SkRect toSkRect(const BLRect& rect) {
+static inline SkRect to_sk_rect(const BLRect& rect) {
   return SkRect::MakeXYWH(SkScalar(rect.x), SkScalar(rect.y), SkScalar(rect.w), SkScalar(rect.h));
 }
 
-static uint32_t toSkBlendMode(BLCompOp compOp) {
-  switch (compOp) {
+static uint32_t to_sk_blend_mode(BLCompOp comp_op) {
+  switch (comp_op) {
     case BL_COMP_OP_SRC_OVER   : return uint32_t(SkBlendMode::kSrcOver);
     case BL_COMP_OP_SRC_COPY   : return uint32_t(SkBlendMode::kSrc);
     case BL_COMP_OP_SRC_IN     : return uint32_t(SkBlendMode::kSrcIn);
@@ -60,33 +60,33 @@ static uint32_t toSkBlendMode(BLCompOp compOp) {
 }
 
 struct SkiaModule final : public Backend {
-  SkCanvas* _skCanvas {};
-  SkBitmap _skSurface;
-  SkBitmap _skSprites[4];
+  SkCanvas* _sk_canvas {};
+  SkBitmap _sk_surface;
+  SkBitmap _sk_sprites[4];
 
-  SkBlendMode _blendMode {};
-  SkTileMode _gradientTileMode {};
+  SkBlendMode _blend_mode {};
+  SkTileMode _gradient_tile_mode {};
 
   SkiaModule();
   ~SkiaModule() override;
 
   template<typename RectT>
-  sk_sp<SkShader> createShader(StyleKind style, const RectT& rect);
+  sk_sp<SkShader> create_shader(StyleKind style, const RectT& rect);
 
-  bool supportsCompOp(BLCompOp compOp) const override;
-  bool supportsStyle(StyleKind style) const override;
+  bool supports_comp_op(BLCompOp comp_op) const override;
+  bool supports_style(StyleKind style) const override;
 
-  void beforeRun() override;
+  void before_run() override;
   void flush() override;
-  void afterRun() override;
+  void after_run() override;
 
-  void renderRectA(RenderOp op) override;
-  void renderRectF(RenderOp op) override;
-  void renderRectRotated(RenderOp op) override;
-  void renderRoundF(RenderOp op) override;
-  void renderRoundRotated(RenderOp op) override;
-  void renderPolygon(RenderOp op, uint32_t complexity) override;
-  void renderShape(RenderOp op, ShapeData shape) override;
+  void render_rect_a(RenderOp op) override;
+  void render_rect_f(RenderOp op) override;
+  void render_rect_rotated(RenderOp op) override;
+  void render_round_f(RenderOp op) override;
+  void render_round_rotated(RenderOp op) override;
+  void render_polygon(RenderOp op, uint32_t complexity) override;
+  void render_shape(RenderOp op, ShapeData shape) override;
 };
 
 SkiaModule::SkiaModule() {
@@ -95,7 +95,7 @@ SkiaModule::SkiaModule() {
 SkiaModule::~SkiaModule() {}
 
 template<typename RectT>
-sk_sp<SkShader> SkiaModule::createShader(StyleKind style, const RectT& rect) {
+sk_sp<SkShader> SkiaModule::create_shader(StyleKind style, const RectT& rect) {
   static const SkScalar positions3[3] = {
     SkScalar(0.0),
     SkScalar(0.5),
@@ -121,12 +121,12 @@ sk_sp<SkShader> SkiaModule::createShader(StyleKind style, const RectT& rect) {
       };
 
       SkColor colors[3] = {
-        _rndColor.nextRgba32().value,
-        _rndColor.nextRgba32().value,
-        _rndColor.nextRgba32().value
+        _rnd_color.next_rgba32().value,
+        _rnd_color.next_rgba32().value,
+        _rnd_color.next_rgba32().value
       };
 
-      return SkGradientShader::MakeLinear(pts, colors, positions3, 3, _gradientTileMode);
+      return SkGradientShader::MakeLinear(pts, colors, positions3, 3, _gradient_tile_mode);
     }
 
     case StyleKind::kRadialPad:
@@ -139,9 +139,9 @@ sk_sp<SkShader> SkiaModule::createShader(StyleKind style, const RectT& rect) {
       double fy = cy - cr / 2;
 
       SkColor colors[3] = {
-        _rndColor.nextRgba32().value,
-        _rndColor.nextRgba32().value,
-        _rndColor.nextRgba32().value
+        _rnd_color.next_rgba32().value,
+        _rnd_color.next_rgba32().value,
+        _rnd_color.next_rgba32().value
       };
 
       return SkGradientShader::MakeTwoPointConical(
@@ -149,18 +149,18 @@ sk_sp<SkShader> SkiaModule::createShader(StyleKind style, const RectT& rect) {
         SkScalar(cr),
         SkPoint::Make(SkScalar(fx), SkScalar(fy)),
         SkScalar(0.0),
-        colors, positions3, 3, _gradientTileMode);
+        colors, positions3, 3, _gradient_tile_mode);
     }
 
     case StyleKind::kConic: {
       double cx = rect.x + rect.w / 2;
       double cy = rect.y + rect.h / 2;
-      BLRgba32 c = _rndColor.nextRgba32();
+      BLRgba32 c = _rnd_color.next_rgba32();
 
       SkColor colors[4] = {
         c.value,
-        _rndColor.nextRgba32().value,
-        _rndColor.nextRgba32().value,
+        _rnd_color.next_rgba32().value,
+        _rnd_color.next_rgba32().value,
         c.value
       };
 
@@ -169,10 +169,10 @@ sk_sp<SkShader> SkiaModule::createShader(StyleKind style, const RectT& rect) {
 
     case StyleKind::kPatternNN:
     case StyleKind::kPatternBI: {
-      uint32_t spriteId = nextSpriteId();
-      SkFilterMode filterMode = style == StyleKind::kPatternNN ? SkFilterMode::kNearest : SkFilterMode::kLinear;
+      uint32_t sprite_id = nextSpriteId();
+      SkFilterMode filter_mode = style == StyleKind::kPatternNN ? SkFilterMode::kNearest : SkFilterMode::kLinear;
       SkMatrix m = SkMatrix::Translate(SkScalar(rect.x), SkScalar(rect.y));
-      return _skSprites[spriteId].makeShader(SkSamplingOptions(filterMode), m);
+      return _sk_sprites[sprite_id].makeShader(SkSamplingOptions(filter_mode), m);
     }
 
     default: {
@@ -181,11 +181,11 @@ sk_sp<SkShader> SkiaModule::createShader(StyleKind style, const RectT& rect) {
   }
 }
 
-bool SkiaModule::supportsCompOp(BLCompOp compOp) const {
-  return toSkBlendMode(compOp) != 0xFFFFFFFFu;
+bool SkiaModule::supports_comp_op(BLCompOp comp_op) const {
+  return to_sk_blend_mode(comp_op) != 0xFFFFFFFFu;
 }
 
-bool SkiaModule::supportsStyle(StyleKind style) const {
+bool SkiaModule::supports_style(StyleKind style) const {
   return style == StyleKind::kSolid         ||
          style == StyleKind::kLinearPad     ||
          style == StyleKind::kLinearRepeat  ||
@@ -198,44 +198,44 @@ bool SkiaModule::supportsStyle(StyleKind style) const {
          style == StyleKind::kPatternBI     ;
 }
 
-void SkiaModule::beforeRun() {
-  int w = int(_params.screenW);
-  int h = int(_params.screenH);
+void SkiaModule::before_run() {
+  int w = int(_params.screen_w);
+  int h = int(_params.screen_h);
   StyleKind style = _params.style;
 
   // Initialize the sprites.
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
     const BLImage& sprite = _sprites[i];
 
-    BLImageData spriteData;
-    sprite.getData(&spriteData);
+    BLImageData sprite_data;
+    sprite.get_data(&sprite_data);
 
-    SkImageInfo spriteInfo = SkImageInfo::Make(spriteData.size.w, spriteData.size.h, kBGRA_8888_SkColorType, kPremul_SkAlphaType);
-    _skSprites[i].installPixels(spriteInfo, spriteData.pixelData, size_t(spriteData.stride));
+    SkImageInfo sprite_info = SkImageInfo::Make(sprite_data.size.w, sprite_data.size.h, kBGRA_8888_SkColorType, kPremul_SkAlphaType);
+    _sk_sprites[i].installPixels(sprite_info, sprite_data.pixel_data, size_t(sprite_data.stride));
   }
 
   // Initialize the surface and the context.
-  BLImageData surfaceData;
+  BLImageData surface_data;
   _surface.create(w, h, _params.format);
-  _surface.makeMutable(&surfaceData);
+  _surface.make_mutable(&surface_data);
 
-  SkImageInfo surfaceInfo = SkImageInfo::Make(w, h, kBGRA_8888_SkColorType, kPremul_SkAlphaType);
-  _skSurface.installPixels(surfaceInfo, surfaceData.pixelData, size_t(surfaceData.stride));
-  _skSurface.erase(0x00000000, SkIRect::MakeXYWH(0, 0, w, h));
+  SkImageInfo surface_info = SkImageInfo::Make(w, h, kBGRA_8888_SkColorType, kPremul_SkAlphaType);
+  _sk_surface.installPixels(surface_info, surface_data.pixel_data, size_t(surface_data.stride));
+  _sk_surface.erase(0x00000000, SkIRect::MakeXYWH(0, 0, w, h));
 
-  _skCanvas = new SkCanvas(_skSurface);
+  _sk_canvas = new SkCanvas(_sk_surface);
 
   // Setup globals.
-  _blendMode = SkBlendMode(toSkBlendMode(_params.compOp));
-  _gradientTileMode = SkTileMode::kClamp;
+  _blend_mode = SkBlendMode(to_sk_blend_mode(_params.comp_op));
+  _gradient_tile_mode = SkTileMode::kClamp;
 
   switch (style) {
-    case StyleKind::kLinearPad    : _gradientTileMode = SkTileMode::kClamp ; break;
-    case StyleKind::kLinearRepeat : _gradientTileMode = SkTileMode::kRepeat; break;
-    case StyleKind::kLinearReflect: _gradientTileMode = SkTileMode::kMirror; break;
-    case StyleKind::kRadialPad    : _gradientTileMode = SkTileMode::kClamp ; break;
-    case StyleKind::kRadialRepeat : _gradientTileMode = SkTileMode::kRepeat; break;
-    case StyleKind::kRadialReflect: _gradientTileMode = SkTileMode::kMirror; break;
+    case StyleKind::kLinearPad    : _gradient_tile_mode = SkTileMode::kClamp ; break;
+    case StyleKind::kLinearRepeat : _gradient_tile_mode = SkTileMode::kRepeat; break;
+    case StyleKind::kLinearReflect: _gradient_tile_mode = SkTileMode::kMirror; break;
+    case StyleKind::kRadialPad    : _gradient_tile_mode = SkTileMode::kClamp ; break;
+    case StyleKind::kRadialRepeat : _gradient_tile_mode = SkTileMode::kRepeat; break;
+    case StyleKind::kRadialReflect: _gradient_tile_mode = SkTileMode::kMirror; break;
 
     default:
       break;
@@ -246,237 +246,239 @@ void SkiaModule::flush() {
   // Nothing...
 }
 
-void SkiaModule::afterRun() {
-  delete _skCanvas;
-  _skCanvas = nullptr;
-  _skSurface.reset();
+void SkiaModule::after_run() {
+  delete _sk_canvas;
+  _sk_canvas = nullptr;
+  _sk_surface.reset();
 
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
-    _skSprites[i].reset();
+    _sk_sprites[i].reset();
   }
 }
 
-void SkiaModule::renderRectA(RenderOp op) {
-  BLSizeI bounds(_params.screenW, _params.screenH);
+void SkiaModule::render_rect_a(RenderOp op) {
+  BLSizeI bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  int wh = _params.shapeSize;
+  int wh = _params.shape_size;
 
   SkPaint p;
   p.setStyle(op == RenderOp::kStroke ? SkPaint::kStroke_Style : SkPaint::kFill_Style);
   p.setAntiAlias(true);
-  p.setBlendMode(_blendMode);
-  p.setStrokeWidth(SkScalar(_params.strokeWidth));
+  p.setBlendMode(_blend_mode);
+  p.setStrokeWidth(SkScalar(_params.stroke_width));
 
   if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRectI rect = _rndCoord.nextRectI(bounds, wh, wh);
+      BLRectI rect = _rnd_coord.next_rect_i(bounds, wh, wh);
 
-      p.setColor(_rndColor.nextRgba32().value);
-      _skCanvas->drawIRect(toSkIRect(rect), p);
+      p.setColor(_rnd_color.next_rgba32().value);
+      _sk_canvas->drawIRect(to_sk_irect(rect), p);
     }
   }
   else {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRectI rect = _rndCoord.nextRectI(bounds, wh, wh);
+      BLRectI rect = _rnd_coord.next_rect_i(bounds, wh, wh);
 
-      p.setShader(createShader(style, rect));
-      _skCanvas->drawIRect(toSkIRect(rect), p);
+      p.setShader(create_shader(style, rect));
+      _sk_canvas->drawIRect(to_sk_irect(rect), p);
     }
   }
 }
 
-void SkiaModule::renderRectF(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void SkiaModule::render_rect_f(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  double wh = _params.shapeSize;
+  double wh = _params.shape_size;
 
   SkPaint p;
   p.setStyle(op == RenderOp::kStroke ? SkPaint::kStroke_Style : SkPaint::kFill_Style);
   p.setAntiAlias(true);
-  p.setBlendMode(_blendMode);
-  p.setStrokeWidth(SkScalar(_params.strokeWidth));
+  p.setBlendMode(_blend_mode);
+  p.setStrokeWidth(SkScalar(_params.stroke_width));
 
   if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
+      BLRect rect = _rnd_coord.next_rect(bounds, wh, wh);
 
-      p.setColor(_rndColor.nextRgba32().value);
-      _skCanvas->drawRect(toSkRect(rect), p);
+      p.setColor(_rnd_color.next_rgba32().value);
+      _sk_canvas->drawRect(to_sk_rect(rect), p);
     }
   }
   else {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
+      BLRect rect = _rnd_coord.next_rect(bounds, wh, wh);
 
-      p.setShader(createShader(style, rect));
-      _skCanvas->drawRect(toSkRect(rect), p);
+      p.setShader(create_shader(style, rect));
+      _sk_canvas->drawRect(to_sk_rect(rect), p);
     }
   }
 }
 
-void SkiaModule::renderRectRotated(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void SkiaModule::render_rect_rotated(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
 
-  double cx = double(_params.screenW) * 0.5;
-  double cy = double(_params.screenH) * 0.5;
-  double wh = _params.shapeSize;
+  double cx = double(_params.screen_w) * 0.5;
+  double cy = double(_params.screen_h) * 0.5;
+  double wh = _params.shape_size;
   double angle = 0.0;
 
   SkPaint p;
   p.setStyle(op == RenderOp::kStroke ? SkPaint::kStroke_Style : SkPaint::kFill_Style);
   p.setAntiAlias(true);
-  p.setBlendMode(_blendMode);
-  p.setStrokeWidth(SkScalar(_params.strokeWidth));
+  p.setBlendMode(_blend_mode);
+  p.setStrokeWidth(SkScalar(_params.stroke_width));
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-    BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
+    BLRect rect = _rnd_coord.next_rect(bounds, wh, wh);
 
-    _skCanvas->rotate(SkRadiansToDegrees(angle), SkScalar(cx), SkScalar(cy));
+    _sk_canvas->rotate(SkRadiansToDegrees(angle), SkScalar(cx), SkScalar(cy));
 
     if (style == StyleKind::kSolid)
-      p.setColor(_rndColor.nextRgba32().value);
+      p.setColor(_rnd_color.next_rgba32().value);
     else
-      p.setShader(createShader(style, rect));
+      p.setShader(create_shader(style, rect));
 
-    _skCanvas->drawRect(toSkRect(rect), p);
-    _skCanvas->resetMatrix();
+    _sk_canvas->drawRect(to_sk_rect(rect), p);
+    _sk_canvas->resetMatrix();
   }
 }
 
-void SkiaModule::renderRoundF(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void SkiaModule::render_round_f(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  double wh = _params.shapeSize;
+  double wh = _params.shape_size;
 
   SkPaint p;
   p.setStyle(op == RenderOp::kStroke ? SkPaint::kStroke_Style : SkPaint::kFill_Style);
   p.setAntiAlias(true);
-  p.setBlendMode(_blendMode);
-  p.setStrokeWidth(SkScalar(_params.strokeWidth));
+  p.setBlendMode(_blend_mode);
+  p.setStrokeWidth(SkScalar(_params.stroke_width));
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
-    double radius = _rndExtra.nextDouble(4.0, 40.0);
+    BLRect rect = _rnd_coord.next_rect(bounds, wh, wh);
+    double radius = _rnd_extra.next_double(4.0, 40.0);
 
     if (style == StyleKind::kSolid)
-      p.setColor(_rndColor.nextRgba32().value);
+      p.setColor(_rnd_color.next_rgba32().value);
     else
-      p.setShader(createShader(style, rect));
+      p.setShader(create_shader(style, rect));
 
-    _skCanvas->drawRoundRect(toSkRect(rect), SkScalar(radius), SkScalar(radius), p);
+    _sk_canvas->drawRoundRect(to_sk_rect(rect), SkScalar(radius), SkScalar(radius), p);
   }
 }
 
-void SkiaModule::renderRoundRotated(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void SkiaModule::render_round_rotated(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
 
-  double cx = double(_params.screenW) * 0.5;
-  double cy = double(_params.screenH) * 0.5;
-  double wh = _params.shapeSize;
+  double cx = double(_params.screen_w) * 0.5;
+  double cy = double(_params.screen_h) * 0.5;
+  double wh = _params.shape_size;
   double angle = 0.0;
 
   SkPaint p;
   p.setStyle(op == RenderOp::kStroke ? SkPaint::kStroke_Style : SkPaint::kFill_Style);
   p.setAntiAlias(true);
-  p.setBlendMode(_blendMode);
-  p.setStrokeWidth(SkScalar(_params.strokeWidth));
+  p.setBlendMode(_blend_mode);
+  p.setStrokeWidth(SkScalar(_params.stroke_width));
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-    _skCanvas->rotate(SkRadiansToDegrees(angle), SkScalar(cx), SkScalar(cy));
+    _sk_canvas->rotate(SkRadiansToDegrees(angle), SkScalar(cx), SkScalar(cy));
 
-    BLRect rect = _rndCoord.nextRect(bounds, wh, wh);
-    double radius = _rndExtra.nextDouble(4.0, 40.0);
+    BLRect rect = _rnd_coord.next_rect(bounds, wh, wh);
+    double radius = _rnd_extra.next_double(4.0, 40.0);
 
     if (style == StyleKind::kSolid)
-      p.setColor(_rndColor.nextRgba32().value);
+      p.setColor(_rnd_color.next_rgba32().value);
     else
-      p.setShader(createShader(style, rect));
+      p.setShader(create_shader(style, rect));
 
-    _skCanvas->drawRoundRect(toSkRect(rect), SkScalar(radius), SkScalar(radius), p);
-    _skCanvas->resetMatrix();
+    _sk_canvas->drawRoundRect(to_sk_rect(rect), SkScalar(radius), SkScalar(radius), p);
+    _sk_canvas->resetMatrix();
   }
 }
 
-void SkiaModule::renderPolygon(RenderOp op, uint32_t complexity) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
-  StyleKind style = _params.style;
-  double wh = double(_params.shapeSize);
+void SkiaModule::render_polygon(RenderOp op, uint32_t complexity) {
+  static constexpr uint32_t kPointCapacity = 128;
 
-  enum { kPointCapacity = 128 };
-  if (complexity > kPointCapacity)
+  BLSizeI bounds(_params.screen_w - _params.shape_size,
+                 _params.screen_h - _params.shape_size);
+  StyleKind style = _params.style;
+  double wh = double(_params.shape_size);
+
+  if (complexity > kPointCapacity) {
     return;
+  }
 
   SkPoint points[kPointCapacity];
 
   SkPaint p;
   p.setStyle(op == RenderOp::kStroke ? SkPaint::kStroke_Style : SkPaint::kFill_Style);
   p.setAntiAlias(true);
-  p.setBlendMode(_blendMode);
-  p.setStrokeWidth(SkScalar(_params.strokeWidth));
+  p.setBlendMode(_blend_mode);
+  p.setStrokeWidth(SkScalar(_params.stroke_width));
 
   // SKIA cannot draw a polygon without having a path, so we have two cases here.
   if (op != RenderOp::kStroke) {
     SkPathFillType fillType = op == RenderOp::kFillEvenOdd ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding;
 
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLPoint base(_rndCoord.nextPoint(bounds));
+      BLPoint base(_rnd_coord.nextPoint(bounds));
 
       SkPath path;
       path.setFillType(fillType);
 
       double x, y;
-      x = _rndCoord.nextDouble(base.x, base.x + wh);
-      y = _rndCoord.nextDouble(base.y, base.y + wh);
+      x = _rnd_coord.next_double(base.x, base.x + wh);
+      y = _rnd_coord.next_double(base.y, base.y + wh);
       path.moveTo(SkPoint::Make(SkScalar(x), SkScalar(y)));
 
       for (uint32_t j = 1; j < complexity; j++) {
-        x = _rndCoord.nextDouble(base.x, base.x + wh);
-        y = _rndCoord.nextDouble(base.y, base.y + wh);
+        x = _rnd_coord.next_double(base.x, base.x + wh);
+        y = _rnd_coord.next_double(base.y, base.y + wh);
         path.lineTo(SkPoint::Make(SkScalar(x), SkScalar(y)));
       }
 
       if (style == StyleKind::kSolid) {
-        p.setColor(_rndColor.nextRgba32().value);
+        p.setColor(_rnd_color.next_rgba32().value);
       }
       else {
         BLRect rect(base.x, base.y, wh, wh);
-        p.setShader(createShader(style, rect));
+        p.setShader(create_shader(style, rect));
       }
 
-      _skCanvas->drawPath(path, p);
+      _sk_canvas->drawPath(path, p);
     }
   }
   else {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLPoint base(_rndCoord.nextPoint(bounds));
+      BLPoint base(_rnd_coord.nextPoint(bounds));
 
       for (uint32_t j = 0; j < complexity; j++) {
-        double x = _rndCoord.nextDouble(base.x, base.x + wh);
-        double y = _rndCoord.nextDouble(base.y, base.y + wh);
+        double x = _rnd_coord.next_double(base.x, base.x + wh);
+        double y = _rnd_coord.next_double(base.y, base.y + wh);
         points[j].set(SkScalar(x), SkScalar(y));
       }
 
       if (style == StyleKind::kSolid) {
-        p.setColor(_rndColor.nextRgba32().value);
+        p.setColor(_rnd_color.next_rgba32().value);
       }
       else {
         BLRect rect(base.x, base.y, wh, wh);
-        p.setShader(createShader(style, rect));
+        p.setShader(create_shader(style, rect));
       }
 
-      _skCanvas->drawPoints(SkCanvas::kPolygon_PointMode, complexity, points, p);
+      _sk_canvas->drawPoints(SkCanvas::kPolygon_PointMode, complexity, points, p);
     }
   }
 }
 
-void SkiaModule::renderShape(RenderOp op, ShapeData shape) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
+void SkiaModule::render_shape(RenderOp op, ShapeData shape) {
+  BLSizeI bounds(_params.screen_w - _params.shape_size,
+                 _params.screen_h - _params.shape_size);
   StyleKind style = _params.style;
-  double wh = double(_params.shapeSize);
+  double wh = double(_params.shape_size);
 
   SkPathFillType fillType = op == RenderOp::kFillEvenOdd ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding;
 
@@ -484,19 +486,19 @@ void SkiaModule::renderShape(RenderOp op, ShapeData shape) {
   path.setFillType(fillType);
 
   ShapeIterator it(shape);
-  while (it.hasCommand()) {
-    if (it.isMoveTo()) {
+  while (it.has_command()) {
+    if (it.is_move_to()) {
       path.moveTo(SkScalar(it.x(0) * wh), SkScalar(it.y(0) * wh));
     }
-    else if (it.isLineTo()) {
+    else if (it.is_line_to()) {
       path.lineTo(SkScalar(it.x(0) * wh), SkScalar(it.y(0) * wh));
     }
-    else if (it.isQuadTo()) {
+    else if (it.is_quad_to()) {
       path.quadTo(
         SkScalar(it.x(0) * wh), SkScalar(it.y(0) * wh),
         SkScalar(it.x(1) * wh), SkScalar(it.y(1) * wh));
     }
-    else if (it.isCubicTo()) {
+    else if (it.is_cubic_to()) {
       path.cubicTo(
         SkScalar(it.x(0) * wh), SkScalar(it.y(0) * wh),
         SkScalar(it.x(1) * wh), SkScalar(it.y(1) * wh),
@@ -511,28 +513,28 @@ void SkiaModule::renderShape(RenderOp op, ShapeData shape) {
   SkPaint p;
   p.setStyle(op == RenderOp::kStroke ? SkPaint::kStroke_Style : SkPaint::kFill_Style);
   p.setAntiAlias(true);
-  p.setBlendMode(_blendMode);
-  p.setStrokeWidth(SkScalar(_params.strokeWidth));
+  p.setBlendMode(_blend_mode);
+  p.setStrokeWidth(SkScalar(_params.stroke_width));
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLPoint base(_rndCoord.nextPoint(bounds));
+    BLPoint base(_rnd_coord.nextPoint(bounds));
 
-    _skCanvas->translate(SkScalar(base.x), SkScalar(base.y));
+    _sk_canvas->translate(SkScalar(base.x), SkScalar(base.y));
 
     if (style == StyleKind::kSolid) {
-      p.setColor(_rndColor.nextRgba32().value);
+      p.setColor(_rnd_color.next_rgba32().value);
     }
     else {
       BLRect rect(0, 0, wh, wh);
-      p.setShader(createShader(style, rect));
+      p.setShader(create_shader(style, rect));
     }
 
-    _skCanvas->drawPath(path, p);
-    _skCanvas->resetMatrix();
+    _sk_canvas->drawPath(path, p);
+    _sk_canvas->resetMatrix();
   }
 }
 
-Backend* createSkiaBackend() {
+Backend* create_skia_backend() {
   return new SkiaModule();
 }
 

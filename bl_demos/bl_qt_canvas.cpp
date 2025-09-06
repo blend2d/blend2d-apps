@@ -4,11 +4,11 @@
 #include <chrono>
 
 QBLCanvas::QBLCanvas()
-  : _rendererType(RendererBlend2D),
+  : _renderer_type(RendererBlend2D),
     _dirty(true),
     _fps(0),
-    _frameCount(0) {
-  _elapsedTimer.start();
+    _frame_count(0) {
+  _elapsed_timer.start();
   setMouseTracking(true);
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
@@ -16,45 +16,45 @@ QBLCanvas::QBLCanvas()
 QBLCanvas::~QBLCanvas() {}
 
 void QBLCanvas::resizeEvent(QResizeEvent* event) {
-  _resizeCanvas();
+  _resize_canvas();
 }
 
 void QBLCanvas::paintEvent(QPaintEvent *event) {
   QPainter painter(this);
   if (_dirty)
-    _renderCanvas();
-  painter.drawImage(QPoint(0, 0), qtImage);
+    _render_canvas();
+  painter.drawImage(QPoint(0, 0), qt_image);
 }
 
 void QBLCanvas::mousePressEvent(QMouseEvent* event) {
-  if (onMouseEvent)
-    onMouseEvent(event);
+  if (on_mouse_event)
+    on_mouse_event(event);
 }
 
 void QBLCanvas::mouseReleaseEvent(QMouseEvent* event) {
-  if (onMouseEvent)
-    onMouseEvent(event);
+  if (on_mouse_event)
+    on_mouse_event(event);
 }
 
 void QBLCanvas::mouseMoveEvent(QMouseEvent* event) {
-  if (onMouseEvent)
-    onMouseEvent(event);
+  if (on_mouse_event)
+    on_mouse_event(event);
 }
 
-void QBLCanvas::setRendererType(uint32_t rendererType) {
-  _rendererType = rendererType;
-  updateCanvas();
+void QBLCanvas::set_renderer_type(uint32_t renderer_type) {
+  _renderer_type = renderer_type;
+  update_canvas();
 }
 
-void QBLCanvas::updateCanvas(bool force) {
+void QBLCanvas::update_canvas(bool force) {
   if (force)
-    _renderCanvas();
+    _render_canvas();
   else
     _dirty = true;
-  repaint(0, 0, imageSize().w, imageSize().h);
+  repaint(0, 0, image_size().w, image_size().h);
 }
 
-void QBLCanvas::_resizeCanvas() {
+void QBLCanvas::_resize_canvas() {
   int w = width();
   int h = height();
 
@@ -62,82 +62,82 @@ void QBLCanvas::_resizeCanvas() {
   int sw = int(float(w) * s);
   int sh = int(float(h) * s);
 
-  if (qtImage.width() == sw && qtImage.height() == sh)
+  if (qt_image.width() == sw && qt_image.height() == sh)
     return;
 
   QImage::Format qimage_format = QImage::Format_ARGB32_Premultiplied;
 
-  qtImage = QImage(sw, sh, qimage_format);
-  qtImage.setDevicePixelRatio(s);
+  qt_image = QImage(sw, sh, qimage_format);
+  qt_image.setDevicePixelRatio(s);
 
-  unsigned char* qimage_bits = qtImage.bits();
-  qsizetype qimage_stride = qtImage.bytesPerLine();
+  unsigned char* qimage_bits = qt_image.bits();
+  qsizetype qimage_stride = qt_image.bytesPerLine();
 
-  qtImageNonScaling = QImage(qimage_bits, sw, sh, qimage_stride, qimage_format);
-  blImage.createFromData(sw, sh, BL_FORMAT_PRGB32, qimage_bits, intptr_t(qimage_stride));
+  qt_image_non_scaling = QImage(qimage_bits, sw, sh, qimage_stride, qimage_format);
+  bl_image.create_from_data(sw, sh, BL_FORMAT_PRGB32, qimage_bits, intptr_t(qimage_stride));
 
-  updateCanvas(false);
+  update_canvas(false);
 }
 
-void QBLCanvas::_renderCanvas() {
+void QBLCanvas::_render_canvas() {
   auto startTime = std::chrono::high_resolution_clock::now();
 
-  if (_rendererType == RendererQt) {
-    if (onRenderQt) {
-      QPainter ctx(&qtImageNonScaling);
-      onRenderQt(ctx);
+  if (_renderer_type == RendererQt) {
+    if (on_render_qt) {
+      QPainter ctx(&qt_image_non_scaling);
+      on_render_qt(ctx);
     }
   }
   else {
-    if (onRenderB2D) {
-      // In Blend2D case the non-zero _rendererType specifies the number of threads.
-      BLContextCreateInfo createInfo {};
-      createInfo.threadCount = _rendererType;
+    if (on_render_blend2d) {
+      // In Blend2D case the non-zero _renderer_type specifies the number of threads.
+      BLContextCreateInfo create_info {};
+      create_info.thread_count = _renderer_type;
 
-      BLContext ctx(blImage, createInfo);
-      onRenderB2D(ctx);
+      BLContext ctx(bl_image, create_info);
+      on_render_blend2d(ctx);
     }
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = endTime - startTime;
 
-  _renderTimePos = (_renderTimePos + 1) & 31;
-  _renderTime[_renderTimePos] = duration.count();
-  _renderedFrames++;
+  _render_time_pos = (_render_time_pos + 1) & 31;
+  _render_time[_render_time_pos] = duration.count();
+  _rendered_frames++;
 
   _dirty = false;
-  _afterRender();
+  _after_render();
 }
 
-void QBLCanvas::_afterRender() {
-  uint64_t t = _elapsedTimer.elapsed();
+void QBLCanvas::_after_render() {
+  uint64_t t = _elapsed_timer.elapsed();
 
-  _frameCount++;
+  _frame_count++;
   if (t >= 1000) {
-    _fps = _frameCount / double(t) * 1000.0;
-    _frameCount = 0;
-    _elapsedTimer.start();
+    _fps = _frame_count / double(t) * 1000.0;
+    _frame_count = 0;
+    _elapsed_timer.start();
   }
 }
 
-double QBLCanvas::lastRenderTime() const {
-  return _renderedFrames > 0 ? _renderTime[_renderTimePos] : 0.0;
+double QBLCanvas::last_render_time() const {
+  return _rendered_frames > 0 ? _render_time[_render_time_pos] : 0.0;
 }
 
-double QBLCanvas::averageRenderTime() const {
+double QBLCanvas::average_render_time() const {
   double sum = 0.0;
-  size_t count = _renderedFrames < 32 ? _renderedFrames : size_t(32);
+  size_t count = _rendered_frames < 32 ? _rendered_frames : size_t(32);
 
   for (size_t i = 0; i < count; i++) {
-    sum += _renderTime[i];
+    sum += _render_time[i];
   }
 
   return (sum * 1000.0) / double(count);
 }
 
-void QBLCanvas::initRendererSelectBox(QComboBox* dst, bool blend2DOnly) {
-  static const uint32_t rendererTypes[] = {
+void QBLCanvas::init_renderer_select_box(QComboBox* dst, bool blend2d_only) {
+  static const uint32_t renderer_types[] = {
     RendererQt,
     RendererBlend2D,
     RendererBlend2D_1t,
@@ -148,30 +148,30 @@ void QBLCanvas::initRendererSelectBox(QComboBox* dst, bool blend2DOnly) {
     RendererBlend2D_16t
   };
 
-  for (const auto& rendererType : rendererTypes) {
-    if (rendererType == RendererQt && blend2DOnly)
+  for (const auto& renderer_type : renderer_types) {
+    if (renderer_type == RendererQt && blend2d_only)
       continue;
-    QString s = rendererTypeToString(rendererType);
-    dst->addItem(s, QVariant(int(rendererType)));
+    QString s = renderer_type_to_string(renderer_type);
+    dst->addItem(s, QVariant(int(renderer_type)));
   }
 
-  dst->setCurrentIndex(blend2DOnly ? 0 : 1);
+  dst->setCurrentIndex(blend2d_only ? 0 : 1);
 }
 
-QString QBLCanvas::rendererTypeToString(uint32_t rendererType) {
+QString QBLCanvas::renderer_type_to_string(uint32_t renderer_type) {
   char buffer[32];
-  switch (rendererType) {
+  switch (renderer_type) {
     case RendererQt:
       return QLatin1String("Qt");
 
     default:
-      if (rendererType > 32)
+      if (renderer_type > 32)
         return QString();
 
-      if (rendererType == 0)
+      if (renderer_type == 0)
         return QLatin1String("Blend2D");
 
-      snprintf(buffer, sizeof(buffer), "Blend2D %uT", rendererType);
+      snprintf(buffer, sizeof(buffer), "Blend2D %uT", renderer_type);
       return QLatin1String(buffer);
   }
 }

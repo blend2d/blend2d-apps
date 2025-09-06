@@ -13,7 +13,7 @@
 
 namespace blbench {
 
-static uint32_t toCGBitmapInfo(BLFormat format) noexcept {
+static uint32_t to_cg_bitmap_info(BLFormat format) noexcept {
   switch (format) {
     case BL_FORMAT_PRGB32: return kCGImageByteOrder32Little | kCGImageAlphaPremultipliedFirst;
     case BL_FORMAT_XRGB32: return kCGImageByteOrder32Little | kCGImageAlphaNoneSkipFirst;
@@ -22,8 +22,8 @@ static uint32_t toCGBitmapInfo(BLFormat format) noexcept {
   }
 }
 
-static CGBlendMode toCGBlendMode(BLCompOp compOp) noexcept {
-  switch (compOp) {
+static CGBlendMode to_cg_blend_mode(BLCompOp comp_op) noexcept {
+  switch (comp_op) {
     case BL_COMP_OP_SRC_OVER   : return kCGBlendModeNormal;
     case BL_COMP_OP_SRC_COPY   : return kCGBlendModeCopy;
     case BL_COMP_OP_SRC_IN     : return kCGBlendModeSourceIn;
@@ -54,11 +54,11 @@ static CGBlendMode toCGBlendMode(BLCompOp compOp) noexcept {
 }
 
 template<typename RectT>
-static inline CGRect toCGRect(const RectT& rect) noexcept {
+static inline CGRect to_cg_rect(const RectT& rect) noexcept {
   return CGRectMake(CGFloat(rect.x), CGFloat(rect.y), CGFloat(rect.w), CGFloat(rect.h));
 }
 
-static inline void toCGColorComponents(CGFloat components[4], BLRgba32 color) noexcept {
+static inline void to_cg_color_components(CGFloat components[4], BLRgba32 color) noexcept {
   constexpr CGFloat scale = CGFloat(1.0f / 255.0f);
   components[0] = CGFloat(int(color.r())) * scale;
   components[1] = CGFloat(int(color.g())) * scale;
@@ -68,15 +68,15 @@ static inline void toCGColorComponents(CGFloat components[4], BLRgba32 color) no
 
 static void flipImage(BLImage& img) noexcept {
   BLImageData imgData;
-  img.makeMutable(&imgData);
+  img.make_mutable(&imgData);
 
   uint32_t h = uint32_t(imgData.size.h);
   intptr_t stride = imgData.stride;
-  uint8_t* pixelData = static_cast<uint8_t*>(imgData.pixelData);
+  uint8_t* pixel_data = static_cast<uint8_t*>(imgData.pixel_data);
 
   for (uint32_t y = 0; y < h / 2; y++) {
-    uint8_t* a = pixelData + intptr_t(y) * stride;
-    uint8_t* b = pixelData + intptr_t(h - y - 1) * stride;
+    uint8_t* a = pixel_data + intptr_t(y) * stride;
+    uint8_t* b = pixel_data + intptr_t(h - y - 1) * stride;
 
     for (size_t x = 0; x < size_t(stride); x++) {
       std::swap(a[x], b[x]);
@@ -86,43 +86,43 @@ static void flipImage(BLImage& img) noexcept {
 }
 
 struct CoreGraphicsModule : public Backend {
-  CGImageRef _cgSprites[kBenchNumSprites] {};
+  CGImageRef _cg_sprites[kBenchNumSprites] {};
 
-  CGColorSpaceRef _cgColorspace {};
-  CGContextRef _cgContext {};
+  CGColorSpaceRef _cg_colorspace {};
+  CGContextRef _cg_ctx {};
 
   CoreGraphicsModule();
   ~CoreGraphicsModule() override;
 
-  void serializeInfo(JSONBuilder& json) const override;
+  void serialize_info(JSONBuilder& json) const override;
 
-  bool supportsCompOp(BLCompOp compOp) const override;
-  bool supportsStyle(StyleKind style) const override;
+  bool supports_comp_op(BLCompOp comp_op) const override;
+  bool supports_style(StyleKind style) const override;
 
-  void beforeRun() override;
+  void before_run() override;
   void flush() override;
-  void afterRun() override;
+  void after_run() override;
 
-  CGGradientRef createGradient(StyleKind style) noexcept;
+  CGGradientRef create_gradient(StyleKind style) noexcept;
 
-  BL_INLINE void renderSolidPath(RenderOp op) noexcept;
+  BL_INLINE void render_solid_path(RenderOp op) noexcept;
 
   template<typename RectT>
-  BL_INLINE void renderSolidRect(const RectT& rect, RenderOp op) noexcept;
+  BL_INLINE void render_solid_rect(const RectT& rect, RenderOp op) noexcept;
 
   template<bool kSaveGState, typename RectT>
-  BL_INLINE void renderStyledPath(const RectT& rect, StyleKind style, RenderOp op) noexcept;
+  BL_INLINE void render_styled_path(const RectT& rect, StyleKind style, RenderOp op) noexcept;
 
   template<bool kSaveGState, typename RectT>
-  BL_INLINE void renderStyledRect(const RectT& rect, StyleKind style, RenderOp op) noexcept;
+  BL_INLINE void render_styled_rect(const RectT& rect, StyleKind style, RenderOp op) noexcept;
 
-  void renderRectA(RenderOp op) override;
-  void renderRectF(RenderOp op) override;
-  void renderRectRotated(RenderOp op) override;
-  void renderRoundF(RenderOp op) override;
-  void renderRoundRotated(RenderOp op) override;
-  void renderPolygon(RenderOp op, uint32_t complexity) override;
-  void renderShape(RenderOp op, ShapeData shape) override;
+  void render_rect_a(RenderOp op) override;
+  void render_rect_f(RenderOp op) override;
+  void render_rect_rotated(RenderOp op) override;
+  void render_round_f(RenderOp op) override;
+  void render_round_rotated(RenderOp op) override;
+  void render_polygon(RenderOp op, uint32_t complexity) override;
+  void render_shape(RenderOp op, ShapeData shape) override;
 };
 
 CoreGraphicsModule::CoreGraphicsModule() {
@@ -131,36 +131,36 @@ CoreGraphicsModule::CoreGraphicsModule() {
 
 CoreGraphicsModule::~CoreGraphicsModule() {}
 
-void CoreGraphicsModule::serializeInfo(JSONBuilder& json) const {
+void CoreGraphicsModule::serialize_info(JSONBuilder& json) const {
 }
 
-bool CoreGraphicsModule::supportsCompOp(BLCompOp compOp) const {
-  return compOp == BL_COMP_OP_SRC_OVER    ||
-         compOp == BL_COMP_OP_SRC_COPY    ||
-         compOp == BL_COMP_OP_SRC_IN      ||
-         compOp == BL_COMP_OP_SRC_OUT     ||
-         compOp == BL_COMP_OP_SRC_ATOP    ||
-         compOp == BL_COMP_OP_DST_OVER    ||
-         compOp == BL_COMP_OP_DST_IN      ||
-         compOp == BL_COMP_OP_DST_OUT     ||
-         compOp == BL_COMP_OP_DST_ATOP    ||
-         compOp == BL_COMP_OP_XOR         ||
-         compOp == BL_COMP_OP_CLEAR       ||
-         compOp == BL_COMP_OP_PLUS        ||
-         compOp == BL_COMP_OP_MULTIPLY    ||
-         compOp == BL_COMP_OP_SCREEN      ||
-         compOp == BL_COMP_OP_OVERLAY     ||
-         compOp == BL_COMP_OP_DARKEN      ||
-         compOp == BL_COMP_OP_LIGHTEN     ||
-         compOp == BL_COMP_OP_COLOR_DODGE ||
-         compOp == BL_COMP_OP_COLOR_BURN  ||
-         compOp == BL_COMP_OP_HARD_LIGHT  ||
-         compOp == BL_COMP_OP_SOFT_LIGHT  ||
-         compOp == BL_COMP_OP_DIFFERENCE  ||
-         compOp == BL_COMP_OP_EXCLUSION   ;
+bool CoreGraphicsModule::supports_comp_op(BLCompOp comp_op) const {
+  return comp_op == BL_COMP_OP_SRC_OVER    ||
+         comp_op == BL_COMP_OP_SRC_COPY    ||
+         comp_op == BL_COMP_OP_SRC_IN      ||
+         comp_op == BL_COMP_OP_SRC_OUT     ||
+         comp_op == BL_COMP_OP_SRC_ATOP    ||
+         comp_op == BL_COMP_OP_DST_OVER    ||
+         comp_op == BL_COMP_OP_DST_IN      ||
+         comp_op == BL_COMP_OP_DST_OUT     ||
+         comp_op == BL_COMP_OP_DST_ATOP    ||
+         comp_op == BL_COMP_OP_XOR         ||
+         comp_op == BL_COMP_OP_CLEAR       ||
+         comp_op == BL_COMP_OP_PLUS        ||
+         comp_op == BL_COMP_OP_MULTIPLY    ||
+         comp_op == BL_COMP_OP_SCREEN      ||
+         comp_op == BL_COMP_OP_OVERLAY     ||
+         comp_op == BL_COMP_OP_DARKEN      ||
+         comp_op == BL_COMP_OP_LIGHTEN     ||
+         comp_op == BL_COMP_OP_COLOR_DODGE ||
+         comp_op == BL_COMP_OP_COLOR_BURN  ||
+         comp_op == BL_COMP_OP_HARD_LIGHT  ||
+         comp_op == BL_COMP_OP_SOFT_LIGHT  ||
+         comp_op == BL_COMP_OP_DIFFERENCE  ||
+         comp_op == BL_COMP_OP_EXCLUSION   ;
 }
 
-bool CoreGraphicsModule::supportsStyle(StyleKind style) const {
+bool CoreGraphicsModule::supports_style(StyleKind style) const {
   return style == StyleKind::kSolid     ||
          style == StyleKind::kLinearPad ||
          style == StyleKind::kRadialPad ||
@@ -169,27 +169,27 @@ bool CoreGraphicsModule::supportsStyle(StyleKind style) const {
          style == StyleKind::kPatternBI ;
 }
 
-void CoreGraphicsModule::beforeRun() {
-  int w = int(_params.screenW);
-  int h = int(_params.screenH);
+void CoreGraphicsModule::before_run() {
+  int w = int(_params.screen_w);
+  int h = int(_params.screen_h);
   StyleKind style = _params.style;
 
-  _cgColorspace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
+  _cg_colorspace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
 
   // Initialize the sprites.
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
     BLImage& sprite = _sprites[i];
     flipImage(sprite);
 
-    BLImageData spriteData;
-    sprite.getData(&spriteData);
+    BLImageData sprite_data;
+    sprite.get_data(&sprite_data);
 
-    BLFormat spriteFormat = BLFormat(spriteData.format);
+    BLFormat sprite_format = BLFormat(sprite_data.format);
 
     CGDataProviderRef dp = CGDataProviderCreateWithData(
       nullptr,
-      spriteData.pixelData,
-      size_t(spriteData.size.h) * size_t(spriteData.stride),
+      sprite_data.pixel_data,
+      size_t(sprite_data.size.h) * size_t(sprite_data.stride),
       nullptr);
 
     if (!dp) {
@@ -197,85 +197,85 @@ void CoreGraphicsModule::beforeRun() {
       continue;
     }
 
-    CGImageRef cgSprite = CGImageCreate(
-      size_t(spriteData.size.w),      // Width.
-      size_t(spriteData.size.h),      // Height.
-      8,                              // Bits per component.
-      32,                             // Bits per pixel.
-      size_t(spriteData.stride),      // Bytes per row.
-      _cgColorspace,                  // Colorspace.
-      toCGBitmapInfo(spriteFormat),   // Bitmap info.
-      dp,                             // Data provider.
-      nullptr,                        // Decode.
-      style == StyleKind::kPatternBI, // Should interpolate.
-      kCGRenderingIntentDefault);     // Color rendering intent.
+    CGImageRef cg_sprite = CGImageCreate(
+      size_t(sprite_data.size.w),       // Width.
+      size_t(sprite_data.size.h),       // Height.
+      8,                                // Bits per component.
+      32,                               // Bits per pixel.
+      size_t(sprite_data.stride),       // Bytes per row.
+      _cg_colorspace,                   // Colorspace.
+      to_cg_bitmap_info(sprite_format), // Bitmap info.
+      dp,                               // Data provider.
+      nullptr,                          // Decode.
+      style == StyleKind::kPatternBI,   // Should interpolate.
+      kCGRenderingIntentDefault);       // Color rendering intent.
 
-    if (!cgSprite) {
+    if (!cg_sprite) {
       printf("Failed to create CGImage\n");
       continue;
     }
 
-    _cgSprites[i] = cgSprite;
+    _cg_sprites[i] = cg_sprite;
     CGDataProviderRelease(dp);
   }
 
   // Initialize the surface and the context.
-  BLImageData surfaceData;
+  BLImageData surface_data;
   _surface.create(w, h, _params.format);
-  _surface.makeMutable(&surfaceData);
+  _surface.make_mutable(&surface_data);
 
-  _cgContext = CGBitmapContextCreate(
-    surfaceData.pixelData,
-    uint32_t(surfaceData.size.w),
-    uint32_t(surfaceData.size.h),
+  _cg_ctx = CGBitmapContextCreate(
+    surface_data.pixel_data,
+    uint32_t(surface_data.size.w),
+    uint32_t(surface_data.size.h),
     8,
-    size_t(surfaceData.stride),
-    _cgColorspace,
-    toCGBitmapInfo(BLFormat(surfaceData.format)));
+    size_t(surface_data.stride),
+    _cg_colorspace,
+    to_cg_bitmap_info(BLFormat(surface_data.format)));
 
   const CGFloat transparent[4] {};
 
   // Setup the context.
-  CGContextSetBlendMode(_cgContext, kCGBlendModeCopy);
-  CGContextSetFillColorSpace(_cgContext, _cgColorspace);
-  CGContextSetStrokeColorSpace(_cgContext, _cgColorspace);
+  CGContextSetBlendMode(_cg_ctx, kCGBlendModeCopy);
+  CGContextSetFillColorSpace(_cg_ctx, _cg_colorspace);
+  CGContextSetStrokeColorSpace(_cg_ctx, _cg_colorspace);
 
-  CGContextSetFillColor(_cgContext, transparent);
-  CGContextFillRect(_cgContext, CGRectMake(0, 0, CGFloat(surfaceData.size.w), CGFloat(surfaceData.size.h)));
+  CGContextSetFillColor(_cg_ctx, transparent);
+  CGContextFillRect(_cg_ctx, CGRectMake(0, 0, CGFloat(surface_data.size.w), CGFloat(surface_data.size.h)));
 
-  CGContextSetBlendMode(_cgContext, toCGBlendMode(_params.compOp));
-  CGContextSetAllowsAntialiasing(_cgContext, true);
+  CGContextSetBlendMode(_cg_ctx, to_cg_blend_mode(_params.comp_op));
+  CGContextSetAllowsAntialiasing(_cg_ctx, true);
 
-  CGContextSetLineJoin(_cgContext, kCGLineJoinMiter);
-  CGContextSetLineWidth(_cgContext, CGFloat(_params.strokeWidth));
+  CGContextSetLineJoin(_cg_ctx, kCGLineJoinMiter);
+  CGContextSetLineWidth(_cg_ctx, CGFloat(_params.stroke_width));
 }
 
 void CoreGraphicsModule::flush() {
-  CGContextSynchronize(_cgContext);
+  CGContextSynchronize(_cg_ctx);
 }
 
-void CoreGraphicsModule::afterRun() {
-  CGContextRelease(_cgContext);
-  CGColorSpaceRelease(_cgColorspace);
+void CoreGraphicsModule::after_run() {
+  CGContextRelease(_cg_ctx);
+  CGColorSpaceRelease(_cg_colorspace);
 
-  _cgContext = nullptr;
-  _cgColorspace = nullptr;
+  _cg_ctx = nullptr;
+  _cg_colorspace = nullptr;
 
   // Free the sprites.
   for (uint32_t i = 0; i < kBenchNumSprites; i++) {
-    if (_cgSprites[i]) {
-      CGImageRelease(_cgSprites[i]);
-      _cgSprites[i] = nullptr;
+    if (_cg_sprites[i]) {
+      CGImageRelease(_cg_sprites[i]);
+      _cg_sprites[i] = nullptr;
     }
   }
 
   flipImage(_surface);
 }
 
-CGGradientRef CoreGraphicsModule::createGradient(StyleKind style) noexcept {
-  BLRgba32 c0 = _rndColor.nextRgba32();
-  BLRgba32 c1 = _rndColor.nextRgba32();
-  BLRgba32 c2 = _rndColor.nextRgba32();
+CGGradientRef CoreGraphicsModule::create_gradient(StyleKind style) noexcept {
+  BLRgba32 c0 = _rnd_color.next_rgba32();
+  BLRgba32 c1 = _rnd_color.next_rgba32();
+  BLRgba32 c2 = _rnd_color.next_rgba32();
 
   switch (style) {
     case StyleKind::kLinearPad:
@@ -283,9 +283,9 @@ CGGradientRef CoreGraphicsModule::createGradient(StyleKind style) noexcept {
     case StyleKind::kRadialPad:
     case StyleKind::kRadialRepeat: {
       CGFloat components[12];
-      toCGColorComponents(components + 0, c0);
-      toCGColorComponents(components + 4, c1);
-      toCGColorComponents(components + 8, c2);
+      to_cg_color_components(components + 0, c0);
+      to_cg_color_components(components + 4, c1);
+      to_cg_color_components(components + 8, c2);
 
       CGFloat locations[3] = {
         CGFloat(0.0),
@@ -293,18 +293,18 @@ CGGradientRef CoreGraphicsModule::createGradient(StyleKind style) noexcept {
         CGFloat(1.0)
       };
 
-      return CGGradientCreateWithColorComponents(_cgColorspace, components, locations, 3);
+      return CGGradientCreateWithColorComponents(_cg_colorspace, components, locations, 3);
     }
 
     case StyleKind::kLinearReflect:
     case StyleKind::kRadialReflect: {
 
       CGFloat components[20];
-      toCGColorComponents(components +  0, c0);
-      toCGColorComponents(components +  4, c1);
-      toCGColorComponents(components +  8, c2);
-      toCGColorComponents(components + 12, c1);
-      toCGColorComponents(components + 16, c0);
+      to_cg_color_components(components +  0, c0);
+      to_cg_color_components(components +  4, c1);
+      to_cg_color_components(components +  8, c2);
+      to_cg_color_components(components + 12, c1);
+      to_cg_color_components(components + 16, c0);
 
       CGFloat locations[5] = {
         CGFloat(0.0),
@@ -314,19 +314,19 @@ CGGradientRef CoreGraphicsModule::createGradient(StyleKind style) noexcept {
         CGFloat(1.0)
       };
 
-      return CGGradientCreateWithColorComponents(_cgColorspace, components, locations, 5);
+      return CGGradientCreateWithColorComponents(_cg_colorspace, components, locations, 5);
     }
 
     case StyleKind::kConic: {
-      BLRgba32 c0 = _rndColor.nextRgba32();
-      BLRgba32 c1 = _rndColor.nextRgba32();
-      BLRgba32 c2 = _rndColor.nextRgba32();
+      BLRgba32 c0 = _rnd_color.next_rgba32();
+      BLRgba32 c1 = _rnd_color.next_rgba32();
+      BLRgba32 c2 = _rnd_color.next_rgba32();
 
       CGFloat components[16];
-      toCGColorComponents(components +  0, c0);
-      toCGColorComponents(components +  4, c1);
-      toCGColorComponents(components +  8, c2);
-      toCGColorComponents(components + 12, c0);
+      to_cg_color_components(components +  0, c0);
+      to_cg_color_components(components +  4, c1);
+      to_cg_color_components(components +  8, c2);
+      to_cg_color_components(components + 12, c0);
 
       CGFloat locations[4] = {
         CGFloat(0.0),
@@ -335,7 +335,7 @@ CGGradientRef CoreGraphicsModule::createGradient(StyleKind style) noexcept {
         CGFloat(1.0)
       };
 
-      return CGGradientCreateWithColorComponents(_cgColorspace, components, locations, 4);
+      return CGGradientCreateWithColorComponents(_cg_colorspace, components, locations, 4);
     }
 
     default:
@@ -343,57 +343,57 @@ CGGradientRef CoreGraphicsModule::createGradient(StyleKind style) noexcept {
   }
 }
 
-BL_INLINE void CoreGraphicsModule::renderSolidPath(RenderOp op) noexcept {
+BL_INLINE void CoreGraphicsModule::render_solid_path(RenderOp op) noexcept {
   CGFloat color[4];
-  toCGColorComponents(color, _rndColor.nextRgba32());
+  to_cg_color_components(color, _rnd_color.next_rgba32());
 
   if (op == RenderOp::kStroke) {
-    CGContextSetStrokeColor(_cgContext, color);
-    CGContextStrokePath(_cgContext);
+    CGContextSetStrokeColor(_cg_ctx, color);
+    CGContextStrokePath(_cg_ctx);
   }
   else {
-    CGContextSetFillColor(_cgContext, color);
+    CGContextSetFillColor(_cg_ctx, color);
     if (op == RenderOp::kFillNonZero)
-      CGContextFillPath(_cgContext);
+      CGContextFillPath(_cg_ctx);
     else
-      CGContextEOFillPath(_cgContext);
+      CGContextEOFillPath(_cg_ctx);
   }
 }
 
 template<typename RectT>
-BL_INLINE void CoreGraphicsModule::renderSolidRect(const RectT& rect, RenderOp op) noexcept {
+BL_INLINE void CoreGraphicsModule::render_solid_rect(const RectT& rect, RenderOp op) noexcept {
   CGFloat color[4];
-  toCGColorComponents(color, _rndColor.nextRgba32());
+  to_cg_color_components(color, _rnd_color.next_rgba32());
 
   if (op == RenderOp::kStroke) {
-    CGContextSetStrokeColor(_cgContext, color);
-    CGContextStrokeRect(_cgContext, toCGRect(rect));
+    CGContextSetStrokeColor(_cg_ctx, color);
+    CGContextStrokeRect(_cg_ctx, to_cg_rect(rect));
   }
   else {
-    CGContextSetFillColor(_cgContext, color);
-    CGContextFillRect(_cgContext, toCGRect(rect));
+    CGContextSetFillColor(_cg_ctx, color);
+    CGContextFillRect(_cg_ctx, to_cg_rect(rect));
   }
 }
 
 template<bool kSaveGState, typename RectT>
-BL_INLINE void CoreGraphicsModule::renderStyledPath(const RectT& rect, StyleKind style, RenderOp op) noexcept {
+BL_INLINE void CoreGraphicsModule::render_styled_path(const RectT& rect, StyleKind style, RenderOp op) noexcept {
   if (kSaveGState)
-    CGContextSaveGState(_cgContext);
+    CGContextSaveGState(_cg_ctx);
 
   if (op == RenderOp::kStroke) {
-    CGContextReplacePathWithStrokedPath(_cgContext);
+    CGContextReplacePathWithStrokedPath(_cg_ctx);
   }
 
   if (op == RenderOp::kFillEvenOdd) {
-    CGContextEOClip(_cgContext);
+    CGContextEOClip(_cg_ctx);
   }
   else {
-    CGContextClip(_cgContext);
+    CGContextClip(_cg_ctx);
   }
 
   switch (style) {
     case StyleKind::kSolid:
-      // Not reached (the caller must use renderSolidPath() instead).
+      // Not reached (the caller must use render_solid_path() instead).
       break;
 
     case StyleKind::kLinearPad:
@@ -408,9 +408,9 @@ BL_INLINE void CoreGraphicsModule::renderStyledPath(const RectT& rect, StyleKind
       CGFloat x1 = CGFloat(rect.x) + w * CGFloat(0.8);
       CGFloat y1 = CGFloat(rect.y) + h * CGFloat(0.8);
 
-      CGGradientRef gradient = createGradient(style);
+      CGGradientRef gradient = create_gradient(style);
       CGGradientDrawingOptions options = kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation;
-      CGContextDrawLinearGradient(_cgContext, gradient, CGPointMake(x0, y0), CGPointMake(x1, y1), options);
+      CGContextDrawLinearGradient(_cg_ctx, gradient, CGPointMake(x0, y0), CGPointMake(x1, y1), options);
       CGGradientRelease(gradient);
       break;
     }
@@ -424,9 +424,9 @@ BL_INLINE void CoreGraphicsModule::renderStyledPath(const RectT& rect, StyleKind
       CGFloat fx = CGFloat(cx - cr / 2);
       CGFloat fy = CGFloat(cy - cr / 2);
 
-      CGGradientRef gradient = createGradient(style);
+      CGGradientRef gradient = create_gradient(style);
       CGGradientDrawingOptions options = kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation;
-      CGContextDrawRadialGradient(_cgContext, gradient, CGPointMake(cx, cy), cr, CGPointMake(fx, fy), CGFloat(0.0), options);
+      CGContextDrawRadialGradient(_cg_ctx, gradient, CGPointMake(cx, cy), cr, CGPointMake(fx, fy), CGFloat(0.0), options);
       CGGradientRelease(gradient);
       break;
     }
@@ -436,8 +436,8 @@ BL_INLINE void CoreGraphicsModule::renderStyledPath(const RectT& rect, StyleKind
       double cy = rect.y + rect.h / 2;
       double angle = 0.0;
 
-      CGGradientRef gradient = createGradient(style);
-      CGContextDrawConicGradient(_cgContext, gradient, CGPointMake(cx, cy), CGFloat(angle));
+      CGGradientRef gradient = create_gradient(style);
+      CGContextDrawConicGradient(_cg_ctx, gradient, CGPointMake(cx, cy), CGFloat(angle));
       CGGradientRelease(gradient);
       break;
     }
@@ -446,100 +446,100 @@ BL_INLINE void CoreGraphicsModule::renderStyledPath(const RectT& rect, StyleKind
     case StyleKind::kPatternBI: {
       uint32_t spriteId = nextSpriteId();
 
-      CGContextDrawImage(_cgContext, toCGRect(rect), _cgSprites[spriteId]);
+      CGContextDrawImage(_cg_ctx, to_cg_rect(rect), _cg_sprites[spriteId]);
       break;
     }
   }
 
   if (kSaveGState)
-    CGContextRestoreGState(_cgContext);
+    CGContextRestoreGState(_cg_ctx);
 }
 
 template<bool kSaveGState, typename RectT>
-BL_INLINE void CoreGraphicsModule::renderStyledRect(const RectT& rect, StyleKind style, RenderOp op) noexcept {
-  CGContextAddRect(_cgContext, toCGRect(rect));
-  renderStyledPath<kSaveGState>(rect, style, op);
+BL_INLINE void CoreGraphicsModule::render_styled_rect(const RectT& rect, StyleKind style, RenderOp op) noexcept {
+  CGContextAddRect(_cg_ctx, to_cg_rect(rect));
+  render_styled_path<kSaveGState>(rect, style, op);
 }
 
-void CoreGraphicsModule::renderRectA(RenderOp op) {
-  BLSizeI bounds(_params.screenW, _params.screenH);
+void CoreGraphicsModule::render_rect_a(RenderOp op) {
+  BLSizeI bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  int wh = _params.shapeSize;
+  int wh = _params.shape_size;
 
   if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      renderSolidRect(_rndCoord.nextRectI(bounds, wh, wh), op);
+      render_solid_rect(_rnd_coord.next_rect_i(bounds, wh, wh), op);
     }
   }
   else if ((style == StyleKind::kPatternNN || style == StyleKind::kPatternBI) && op != RenderOp::kStroke) {
     CGFloat wh_f = CGFloat(wh);
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      BLRectI r = _rndCoord.nextRectI(bounds, wh, wh);
+      BLRectI r = _rnd_coord.next_rect_i(bounds, wh, wh);
       uint32_t spriteId = nextSpriteId();
 
-      CGContextDrawImage(_cgContext, CGRectMake(CGFloat(r.x), CGFloat(r.y), wh_f, wh_f), _cgSprites[spriteId]);
+      CGContextDrawImage(_cg_ctx, CGRectMake(CGFloat(r.x), CGFloat(r.y), wh_f, wh_f), _cg_sprites[spriteId]);
     }
   }
   else {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      renderStyledRect<true>(_rndCoord.nextRectI(bounds, wh, wh), style, op);
+      render_styled_rect<true>(_rnd_coord.next_rect_i(bounds, wh, wh), style, op);
     }
   }
 }
 
-void CoreGraphicsModule::renderRectF(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void CoreGraphicsModule::render_rect_f(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  double wh = _params.shapeSize;
+  double wh = _params.shape_size;
 
   if (style == StyleKind::kSolid) {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      renderSolidRect(_rndCoord.nextRect(bounds, wh, wh), op);
+      render_solid_rect(_rnd_coord.next_rect(bounds, wh, wh), op);
     }
   }
   else {
     for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-      renderStyledRect<true>(_rndCoord.nextRect(bounds, wh, wh), style, op);
+      render_styled_rect<true>(_rnd_coord.next_rect(bounds, wh, wh), style, op);
     }
   }
 }
 
-void CoreGraphicsModule::renderRectRotated(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void CoreGraphicsModule::render_rect_rotated(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
 
-  double cx = double(_params.screenW) * 0.5;
-  double cy = double(_params.screenH) * 0.5;
-  double wh = _params.shapeSize;
+  double cx = double(_params.screen_w) * 0.5;
+  double cy = double(_params.screen_h) * 0.5;
+  double wh = _params.shape_size;
   double angle = 0.0;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-    BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
+    BLRect rect(_rnd_coord.next_rect(bounds, wh, wh));
 
-    CGContextSaveGState(_cgContext);
-    CGContextTranslateCTM(_cgContext, CGFloat(cx), CGFloat(cy));
-    CGContextRotateCTM(_cgContext, CGFloat(angle));
-    CGContextTranslateCTM(_cgContext, CGFloat(-cx), CGFloat(-cy));
+    CGContextSaveGState(_cg_ctx);
+    CGContextTranslateCTM(_cg_ctx, CGFloat(cx), CGFloat(cy));
+    CGContextRotateCTM(_cg_ctx, CGFloat(angle));
+    CGContextTranslateCTM(_cg_ctx, CGFloat(-cx), CGFloat(-cy));
 
     if (style == StyleKind::kSolid) {
-      renderSolidRect(rect, op);
+      render_solid_rect(rect, op);
     }
     else {
-      renderStyledRect<false>(rect, style, op);
+      render_styled_rect<false>(rect, style, op);
     }
 
-    CGContextRestoreGState(_cgContext);
+    CGContextRestoreGState(_cg_ctx);
   }
 }
 
-void CoreGraphicsModule::renderRoundF(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void CoreGraphicsModule::render_round_f(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
-  double wh = _params.shapeSize;
+  double wh = _params.shape_size;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-    double radius = _rndExtra.nextDouble(4.0, 40.0);
+    BLRect rect(_rnd_coord.next_rect(bounds, wh, wh));
+    double radius = _rnd_extra.next_double(4.0, 40.0);
 
     CGPathRef path = CGPathCreateWithRoundedRect(
       CGRectMake(rect.x, rect.y, rect.w, rect.h),
@@ -547,36 +547,36 @@ void CoreGraphicsModule::renderRoundF(RenderOp op) {
       std::min(rect.h * 0.5, radius),
       nullptr);
 
-    CGContextAddPath(_cgContext, path);
+    CGContextAddPath(_cg_ctx, path);
 
     if (style == StyleKind::kSolid) {
-      renderSolidPath(op);
+      render_solid_path(op);
     }
     else {
-      renderStyledPath<true>(rect, style, op);
+      render_styled_path<true>(rect, style, op);
     }
 
     CGPathRelease(path);
   }
 }
 
-void CoreGraphicsModule::renderRoundRotated(RenderOp op) {
-  BLSize bounds(_params.screenW, _params.screenH);
+void CoreGraphicsModule::render_round_rotated(RenderOp op) {
+  BLSize bounds(_params.screen_w, _params.screen_h);
   StyleKind style = _params.style;
 
-  double cx = double(_params.screenW) * 0.5;
-  double cy = double(_params.screenH) * 0.5;
-  double wh = _params.shapeSize;
+  double cx = double(_params.screen_w) * 0.5;
+  double cy = double(_params.screen_h) * 0.5;
+  double wh = _params.shape_size;
   double angle = 0.0;
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++, angle += 0.01) {
-    BLRect rect(_rndCoord.nextRect(bounds, wh, wh));
-    double radius = _rndExtra.nextDouble(4.0, 40.0);
+    BLRect rect(_rnd_coord.next_rect(bounds, wh, wh));
+    double radius = _rnd_extra.next_double(4.0, 40.0);
 
-    CGContextSaveGState(_cgContext);
-    CGContextTranslateCTM(_cgContext, CGFloat(cx), CGFloat(cy));
-    CGContextRotateCTM(_cgContext, CGFloat(angle));
-    CGContextTranslateCTM(_cgContext, CGFloat(-cx), CGFloat(-cy));
+    CGContextSaveGState(_cg_ctx);
+    CGContextTranslateCTM(_cg_ctx, CGFloat(cx), CGFloat(cy));
+    CGContextRotateCTM(_cg_ctx, CGFloat(angle));
+    CGContextTranslateCTM(_cg_ctx, CGFloat(-cx), CGFloat(-cy));
 
     CGPathRef path = CGPathCreateWithRoundedRect(
       CGRectMake(rect.x, rect.y, rect.w, rect.h),
@@ -584,79 +584,79 @@ void CoreGraphicsModule::renderRoundRotated(RenderOp op) {
       std::min(rect.h * 0.5, radius),
       nullptr);
 
-    CGContextAddPath(_cgContext, path);
+    CGContextAddPath(_cg_ctx, path);
 
     if (style == StyleKind::kSolid) {
-      renderSolidPath(op);
+      render_solid_path(op);
     }
     else {
-      renderStyledPath<false>(rect, style, op);
+      render_styled_path<false>(rect, style, op);
     }
 
     CGPathRelease(path);
-    CGContextRestoreGState(_cgContext);
+    CGContextRestoreGState(_cg_ctx);
   }
 }
 
-void CoreGraphicsModule::renderPolygon(RenderOp op, uint32_t complexity) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
+void CoreGraphicsModule::render_polygon(RenderOp op, uint32_t complexity) {
+  BLSizeI bounds(_params.screen_w - _params.shape_size,
+                 _params.screen_h - _params.shape_size);
   StyleKind style = _params.style;
-  double wh = double(_params.shapeSize);
+  double wh = double(_params.shape_size);
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLPoint base(_rndCoord.nextPoint(bounds));
+    BLPoint base(_rnd_coord.nextPoint(bounds));
 
-    double x = _rndCoord.nextDouble(base.x, base.x + wh);
-    double y = _rndCoord.nextDouble(base.y, base.y + wh);
+    double x = _rnd_coord.next_double(base.x, base.x + wh);
+    double y = _rnd_coord.next_double(base.y, base.y + wh);
 
-    CGContextMoveToPoint(_cgContext, CGFloat(x), CGFloat(y));
+    CGContextMoveToPoint(_cg_ctx, CGFloat(x), CGFloat(y));
     for (uint32_t p = 1; p < complexity; p++) {
-      x = _rndCoord.nextDouble(base.x, base.x + wh);
-      y = _rndCoord.nextDouble(base.y, base.y + wh);
-      CGContextAddLineToPoint(_cgContext, CGFloat(x), CGFloat(y));
+      x = _rnd_coord.next_double(base.x, base.x + wh);
+      y = _rnd_coord.next_double(base.y, base.y + wh);
+      CGContextAddLineToPoint(_cg_ctx, CGFloat(x), CGFloat(y));
     }
-    CGContextClosePath(_cgContext);
+    CGContextClosePath(_cg_ctx);
 
     if (style == StyleKind::kSolid) {
-      renderSolidPath(op);
+      render_solid_path(op);
     }
     else {
-      renderStyledPath<true>(BLRect(x, y, wh, wh), style, op);
+      render_styled_path<true>(BLRect(x, y, wh, wh), style, op);
     }
   }
 }
 
-void CoreGraphicsModule::renderShape(RenderOp op, ShapeData shape) {
-  BLSizeI bounds(_params.screenW - _params.shapeSize,
-                 _params.screenH - _params.shapeSize);
+void CoreGraphicsModule::render_shape(RenderOp op, ShapeData shape) {
+  BLSizeI bounds(_params.screen_w - _params.shape_size,
+                 _params.screen_h - _params.shape_size);
   StyleKind style = _params.style;
-  double wh = double(_params.shapeSize);
+  double wh = double(_params.shape_size);
 
   CGMutablePathRef path = CGPathCreateMutable();
   ShapeIterator it(shape);
 
-  while (it.hasCommand()) {
-    if (it.isMoveTo()) {
+  while (it.has_command()) {
+    if (it.is_move_to()) {
       CGPathMoveToPoint(
         path,
         nullptr,
         it.x(0) * wh, it.y(0) * wh);
     }
-    else if (it.isLineTo()) {
+    else if (it.is_line_to()) {
       CGPathAddLineToPoint(
         path,
         nullptr,
         it.x(0) * wh, it.y(0) * wh);
     }
-    else if (it.isQuadTo()) {
+    else if (it.is_quad_to()) {
       CGPathAddQuadCurveToPoint(
         path,
         nullptr,
         it.x(0) * wh, it.y(0) * wh,
         it.x(1) * wh, it.y(1) * wh);
     }
-    else if (it.isCubicTo()) {
+    else if (it.is_cubic_to()) {
       CGPathAddCurveToPoint(
         path,
         nullptr,
@@ -671,26 +671,26 @@ void CoreGraphicsModule::renderShape(RenderOp op, ShapeData shape) {
   }
 
   for (uint32_t i = 0, quantity = _params.quantity; i < quantity; i++) {
-    BLPoint base(_rndCoord.nextPoint(bounds));
+    BLPoint base(_rnd_coord.nextPoint(bounds));
 
-    CGContextSaveGState(_cgContext);
-    CGContextTranslateCTM(_cgContext, CGFloat(base.x), CGFloat(base.y));
-    CGContextAddPath(_cgContext, path);
+    CGContextSaveGState(_cg_ctx);
+    CGContextTranslateCTM(_cg_ctx, CGFloat(base.x), CGFloat(base.y));
+    CGContextAddPath(_cg_ctx, path);
 
     if (style == StyleKind::kSolid) {
-      renderSolidPath(op);
+      render_solid_path(op);
     }
     else {
-      renderStyledPath<false>(BLRect(base.x, base.y, wh, wh), style, op);
+      render_styled_path<false>(BLRect(base.x, base.y, wh, wh), style, op);
     }
 
-    CGContextRestoreGState(_cgContext);
+    CGContextRestoreGState(_cg_ctx);
   }
 
   CGPathRelease(path);
 }
 
-Backend* createCGBackend() {
+Backend* create_cg_backend() {
   return new CoreGraphicsModule();
 }
 
